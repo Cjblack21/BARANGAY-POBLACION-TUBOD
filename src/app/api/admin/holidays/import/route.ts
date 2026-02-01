@@ -111,12 +111,15 @@ export async function POST(request: NextRequest) {
 
     // Bulk create new holidays
     console.log('💾 Creating holidays in database...')
+    const { randomBytes } = await import('crypto')
     const created = await prisma.holidays.createMany({
       data: newHolidays.map(h => ({
+        holidays_id: randomBytes(12).toString('hex'),
         name: h.name,
         date: new Date(h.date),
         type: h.type as any,
-        description: h.description
+        description: h.description,
+        updatedAt: new Date()
       }))
     })
 
