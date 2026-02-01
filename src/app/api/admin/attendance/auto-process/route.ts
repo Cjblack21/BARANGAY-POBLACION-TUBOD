@@ -79,7 +79,7 @@ async function processDayAttendance(date: Date, settings: any) {
     })
 
     // Get existing attendance records for this date
-    const existingRecords = await prisma.attendance.findMany({
+    const existingRecords = await prisma.attendances.findMany({
       where: { 
         date: { gte: startOfTargetDay, lte: endOfTargetDay } 
       }
@@ -92,7 +92,7 @@ async function processDayAttendance(date: Date, settings: any) {
 
       if (!record) {
         // No record exists - mark as ABSENT
-        await prisma.attendance.create({
+        await prisma.attendances.create({
           data: {
             users_id: person.users_id,
             date: date,
@@ -112,7 +112,7 @@ async function processDayAttendance(date: Date, settings: any) {
             
             // Only mark as ABSENT if time-in window has expired
             if (now > timeInEndToday) {
-              await prisma.attendance.update({
+              await prisma.attendances.update({
                 where: { attendances_id: record.attendances_id },
                 data: { status: 'ABSENT' }
               })
@@ -130,14 +130,14 @@ async function processDayAttendance(date: Date, settings: any) {
             
             if (timeInDate > graceEndTime && settings.autoMarkLate) {
               // Late arrival
-              await prisma.attendance.update({
+              await prisma.attendances.update({
                 where: { attendances_id: record.attendances_id },
                 data: { status: 'LATE' }
               })
               result.lateMarked++
             } else {
               // On time
-              await prisma.attendance.update({
+              await prisma.attendances.update({
                 where: { attendances_id: record.attendances_id },
                 data: { status: 'PRESENT' }
               })
