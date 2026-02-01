@@ -92,11 +92,15 @@ async function processDayAttendance(date: Date, settings: any) {
 
       if (!record) {
         // No record exists - mark as ABSENT
+        const { randomBytes } = await import('crypto')
+        const attendanceId = randomBytes(12).toString('hex')
         await prisma.attendances.create({
           data: {
+            attendances_id: attendanceId,
             users_id: person.users_id,
             date: date,
-            status: 'ABSENT'
+            status: 'ABSENT',
+            updatedAt: new Date()
           }
         })
         result.absentMarked++
