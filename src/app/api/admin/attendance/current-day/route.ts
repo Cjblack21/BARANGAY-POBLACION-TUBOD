@@ -80,7 +80,7 @@ export async function GET() {
           gte: startOfToday,
           lte: endOfToday
         },
-        deductionType: {
+        deduction_types: {
           name: {
             in: ['Late Arrival', 'Late Penalty', 'Absence Deduction', 'Absent', 'Late', 'Tardiness']
           }
