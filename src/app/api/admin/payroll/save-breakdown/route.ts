@@ -18,16 +18,16 @@ export async function POST(request: NextRequest) {
     }
 
     // Find the payroll entry
-    const payrollEntry = await prisma.payrollEntry.findFirst({
+    const payrollEntry = await prisma.payroll_entries.findFirst({
       where: {
         users_id: userId,
         periodStart: new Date(periodStart),
         periodEnd: new Date(periodEnd)
       },
       include: {
-        user: {
+        users: {
           include: {
-            personnelType: true
+            personnel_types: true
           }
         }
       }
@@ -51,11 +51,11 @@ export async function POST(request: NextRequest) {
       loanPayments: breakdownData.loanDeductions,
       attendanceRecords: breakdownData.attendanceDetails || [],
       deductionDetails: breakdownData.otherDeductionDetails || [],
-      personnelType: payrollEntry.user?.personnelType?.name
+      personnelType: payrollEntry.users?.personnel_types?.name
     }
 
     // Update the payroll entry with the snapshot and change status to ARCHIVED
-    await prisma.payrollEntry.update({
+    await prisma.payroll_entries.update({
       where: {
         payroll_entries_id: payrollEntry.payroll_entries_id
       },
