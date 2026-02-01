@@ -18,10 +18,10 @@ export async function GET() {
     const endOfCurrentMonth = endOfMonth(now)
 
     // Get all personnel users with their attendance data for current month
-    const users = await prisma.user.findMany({
+    const users = await prisma.users.findMany({
       where: { isActive: true, role: 'PERSONNEL' },
       include: {
-        personnelType: {
+        personnel_types: {
           select: {
             personnel_types_id: true,
             name: true,
@@ -47,12 +47,12 @@ export async function GET() {
     // No need to fetch payroll data since we calculate from personnel type salary structure
 
     // Get attendance settings for proper time calculation
-    const attendanceSettings = await prisma.attendanceSettings.findFirst()
+    const attendanceSettings = await prisma.attendance_settings.findFirst()
     const timeInEnd = attendanceSettings?.timeInEnd || '09:00' // Default to 9:00 AM if no settings
 
     // Calculate personnel attendance summary
     const personnelData = await Promise.all(users.map(async (user) => {
-      const basicSalary = user.personnelType?.basicSalary ? Number(user.personnelType.basicSalary) : 0
+      const basicSalary = user.personnel_types?.basicSalary ? Number(user.personnel_types.basicSalary) : 0
       const monthlySalary = basicSalary
       const hourlyRate = monthlySalary / (22 * 8) // 22 working days * 8 hours per day
       
@@ -157,7 +157,7 @@ export async function GET() {
         users_id: user.users_id,
         name: user.name,
         email: user.email,
-        personnelType: user.personnelType,
+        personnel_types: user.personnel_types,
         totalDays,
         presentDays,
         absentDays,
