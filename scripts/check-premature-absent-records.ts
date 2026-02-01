@@ -12,7 +12,7 @@ async function checkPrematureAbsentRecords() {
     console.log('🔍 Checking for premature ABSENT attendance records...')
     
     // Get attendance settings
-    const settings = await prisma.attendanceSettings.findFirst()
+    const settings = await prisma.attendance_settings.findFirst()
     if (!settings || !settings.timeOutEnd) {
       console.log('❌ No attendance settings or timeOutEnd found')
       return
@@ -44,7 +44,7 @@ async function checkPrematureAbsentRecords() {
     console.log(`📅 Today's date range: ${startOfToday.toISOString()} to ${endOfToday.toISOString()}`)
     
     // Find ABSENT attendance records created TODAY
-    const absentRecords = await prisma.attendance.findMany({
+    const absentRecords = await prisma.attendances.findMany({
       where: {
         status: 'ABSENT',
         date: {
@@ -53,7 +53,7 @@ async function checkPrematureAbsentRecords() {
         }
       },
       include: {
-        user: {
+        users: {
           select: {
             name: true,
             email: true
@@ -70,7 +70,7 @@ async function checkPrematureAbsentRecords() {
     console.log(`\u26a0\ufe0f  Found ${absentRecords.length} ABSENT attendance record(s) created before cutoff:`)
     
     for (const record of absentRecords) {
-      console.log(`  - ${record.user.name} (${record.user.email})`)
+      console.log(`  - ${record.users.name} (${record.users.email})`)
       console.log(`    Date: ${record.date.toISOString()}`)
       console.log(`    Status: ${record.status}`)
       console.log(`    Time In: ${record.timeIn || 'null'}`)
