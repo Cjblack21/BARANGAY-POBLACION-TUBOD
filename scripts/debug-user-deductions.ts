@@ -37,9 +37,9 @@ async function debugUserDeductions(userEmail?: string) {
     console.log('')
     
     // Find user
-    const user = userEmail 
-      ? await prisma.users.findUnique({ where: { email: userEmail }, include: { personnelType: true } })
-      : await prisma.users.findFirst({ where: { role: 'PERSONNEL' }, include: { personnelType: true } })
+    const user = userEmail
+      ? await prisma.users.findUnique({ where: { email: userEmail }, include: { personnel_types: true } })
+      : await prisma.users.findFirst({ where: { role: 'PERSONNEL' }, include: { personnel_types: true } })
     
     if (!user) {
       console.log('❌ No user found')
@@ -47,12 +47,12 @@ async function debugUserDeductions(userEmail?: string) {
     }
     
     console.log(`👤 User: ${user.name} (${user.email})`)
-    console.log(`   Basic Salary: ₱${user.personnelType?.basicSalary || 0}`)
+    console.log(`   Basic Salary: ₱${user.personnel_types?.basicSalary || 0}`)
     console.log('')
     
     // Get today's attendance
     const { start: startOfToday, end: endOfToday } = getTodayRangeInPhilippines()
-    const todayAttendance = await prisma.attendance.findFirst({
+    const todayAttendance = await prisma.attendances.findFirst({
       where: {
         users_id: user.users_id,
         date: { gte: startOfToday, lte: endOfToday }
@@ -71,7 +71,7 @@ async function debugUserDeductions(userEmail?: string) {
     
     // Get all attendance in period
     if (settings.periodStart && settings.periodEnd) {
-      const periodAttendance = await prisma.attendance.findMany({
+      const periodAttendance = await prisma.attendances.findMany({
         where: {
           users_id: user.users_id,
           date: { gte: settings.periodStart, lte: settings.periodEnd }
@@ -96,7 +96,7 @@ async function debugUserDeductions(userEmail?: string) {
           appliedAt: { gte: settings.periodStart, lte: settings.periodEnd }
         },
         include: {
-          deductionType: true
+          deduction_types: true
         },
         orderBy: { appliedAt: 'desc' }
       })
@@ -108,13 +108,13 @@ async function debugUserDeductions(userEmail?: string) {
       for (const deduction of deductions) {
         const dateStr = deduction.appliedAt.toISOString().split('T')[0]
         const isToday = deduction.appliedAt >= startOfToday && deduction.appliedAt <= endOfToday
-        const isAttendanceRelated = ['Late Arrival', 'Early Time-Out', 'Absence Deduction', 'Absent', 'Late', 'Tardiness'].includes(deduction.deductionType.name)
+        const isAttendanceRelated = ['Late Arrival', 'Early Time-Out', 'Absence Deduction', 'Absent', 'Late', 'Tardiness'].includes(deduction.deduction_types.name)
         
-        console.log(`   ${isToday ? '👉 ' : '   '}${dateStr}: ${deduction.deductionType.name} - ₱${deduction.amount}`)
+        console.log(`   ${isToday ? '👉 ' : '   '}${dateStr}: ${deduction.deduction_types.name} - ₱${deduction.amount}`)
         
         if (isAttendanceRelated) {
           totalAttendanceDeductions += Number(deduction.amount)
-          if (isToday && deduction.deductionType.name === 'Absence Deduction') {
+          if (isToday && deduction.deduction_types.name === 'Absence Deduction') {
             todayAbsenceDeductions += Number(deduction.amount)
           }
         }
