@@ -88,7 +88,7 @@ export async function GET(request: NextRequest) {
           appliedAt: { gte: periodStart, lte: periodEnd }
         },
         include: {
-          deductionType: true
+          deduction_types: true
         }
       })
       
