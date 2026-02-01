@@ -41,7 +41,7 @@ export async function GET() {
     }
 
   // Use attendance settings period instead of biweekly calculation
-  const attendanceSettingsForPeriod = await prisma.attendanceSettings.findFirst()
+  const attendanceSettingsForPeriod = await prisma.attendance_settings.findFirst()
   if (!attendanceSettingsForPeriod?.periodStart || !attendanceSettingsForPeriod?.periodEnd) {
     console.error('❌ Attendance settings not configured')
     return NextResponse.json({ error: 'Attendance settings not configured' }, { status: 500 })
@@ -77,7 +77,7 @@ export async function GET() {
   const userIds = users.map(u => u.users_id)
 
   // Get all attendance data for real-time calculation
-  const attendance = await prisma.attendance.findMany({
+  const attendance = await prisma.attendances.findMany({
     where: { 
       users_id: { in: userIds }, 
       date: { gte: periodStart, lte: periodEnd }
@@ -94,7 +94,7 @@ export async function GET() {
   console.log('Attendance records found:', attendance.length)
 
   // Get attendance settings to check time-out window
-  const attendanceSettingsData = await prisma.attendanceSettings.findFirst()
+  const attendanceSettingsData = await prisma.attendance_settings.findFirst()
   
   // Create a map of attendance records by user and date
   const attendanceMap = new Map()
@@ -104,7 +104,7 @@ export async function GET() {
   })
 
   // Get header settings for working days
-  const headerSettings = await prisma.headerSettings.findFirst()
+  const headerSettings = await prisma.header_settings.findFirst()
   const configuredWorkingDays = headerSettings?.workingDays || ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday"] // Default to weekdays
   
   // Generate only working days that have actually passed (up to today)
@@ -156,7 +156,7 @@ export async function GET() {
       archivedAt: null  // Only get active deductions, not archived ones
     },
     include: {
-      deductionType: {
+      deduction_types: {
         select: {
           name: true,
           description: true,
@@ -169,8 +169,8 @@ export async function GET() {
 
   // Separate attendance and non-attendance deductions
   const attendanceRelatedTypes = ['Late Arrival', 'Early Time-Out', 'Absence Deduction', 'Partial Attendance', 'Absent', 'Late', 'Tardiness']
-  const attendanceDeductions = allDeductions.filter(d => attendanceRelatedTypes.includes(d.deductionType.name))
-  const nonAttendanceDeductions = allDeductions.filter(d => !attendanceRelatedTypes.includes(d.deductionType.name))
+  const attendanceDeductions = allDeductions.filter(d => attendanceRelatedTypes.includes(d.deduction_types.name))
+  const nonAttendanceDeductions = allDeductions.filter(d => !attendanceRelatedTypes.includes(d.deduction_types.name))
 
   // Debug logging after variable declarations
   console.log('Processing actual attendance deduction records from database...')
@@ -312,8 +312,8 @@ export async function GET() {
     attendanceDeductionsByUser.get(userId).push({
       id: deduction.deductions_id,
       amount: Number(deduction.amount),
-      type: deduction.deductionType.name,
-      description: deduction.deductionType.description,
+      type: deduction.deduction_types.name,
+      description: deduction.deduction_types.description,
       appliedAt: deduction.appliedAt,
       notes: deduction.notes
     })
@@ -329,9 +329,9 @@ export async function GET() {
     nonAttendanceDeductionsByUser.get(userId).push({
       id: deduction.deductions_id,
       amount: Number(deduction.amount),
-      type: deduction.deductionType.name,
-      description: deduction.deductionType.description,
-      isMandatory: deduction.deductionType.isMandatory || false,
+      type: deduction.deduction_types.name,
+      description: deduction.deduction_types.description,
+      isMandatory: deduction.deduction_types.isMandatory || false,
       appliedAt: deduction.appliedAt,
       notes: deduction.notes
     })
@@ -368,7 +368,7 @@ export async function GET() {
   const liveAttendanceDetailsMap = new Map()
   
   // Get attendance settings for time windows
-  const attendanceSettings = await prisma.attendanceSettings.findFirst()
+  const attendanceSettings = await prisma.attendance_settings.findFirst()
   const timeInEnd = attendanceSettings?.timeInEnd || '08:02'
   const timeOutStart = attendanceSettings?.timeOutStart || '17:00'
   
