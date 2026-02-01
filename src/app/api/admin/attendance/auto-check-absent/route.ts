@@ -23,16 +23,10 @@ export async function POST() {
     
     // Get attendance settings
     const settings = await prisma.attendance_settings.findFirst()
-    if (!settings) {
+    if (!settings || !settings.timeOutEnd) {
       return NextResponse.json({ 
         success: false,
         message: 'Attendance settings not configured' 
-      })
-    }
-    if (!settings.timeOutEnd) {
-      return NextResponse.json({ 
-        success: false,
-        message: 'Time out end not configured' 
       })
     }
     
