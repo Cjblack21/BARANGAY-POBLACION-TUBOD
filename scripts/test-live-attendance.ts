@@ -22,7 +22,7 @@ async function testLiveAttendance() {
       return
     }
     
-    const basicSalary = Number(user.personnelType?.basicSalary || 0)
+    const basicSalary = Number(user.personnel_types?.basicSalary || 0)
     
     console.log(`Testing live attendance for ${user.name}`)
     console.log(`Period: ${settings.periodStart.toISOString()} to ${settings.periodEnd.toISOString()}`)
