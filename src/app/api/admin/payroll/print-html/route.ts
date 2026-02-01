@@ -101,9 +101,9 @@ export async function POST(request: NextRequest) {
 
     for (const record of attendance) {
       const user = users.find(u => u.users_id === record.users_id)
-      if (!user?.personnelType?.basicSalary || !record.timeIn) continue
+      if (!user?.personnel_types?.basicSalary || !record.timeIn) continue
 
-      const monthlySalary = Number(user.personnelType.basicSalary)
+      const monthlySalary = Number(user.personnel_types.basicSalary)
       const timeIn = new Date(record.timeIn)
       const timeOut = record.timeOut ? new Date(record.timeOut) : undefined
 
@@ -166,7 +166,7 @@ export async function POST(request: NextRequest) {
 
     // Prepare payslip data
     const payslipData = users.map(u => {
-      const basicSalary = u.personnelType?.basicSalary ? Number(u.personnelType.basicSalary) : 0
+      const basicSalary = u.personnel_types?.basicSalary ? Number(u.personnel_types.basicSalary) : 0
       const biweeklyBasicSalary = basicSalary / 2
       const deductionData = deductionsMap.get(u.users_id) || { total: 0, details: [] }
       const nonAttendanceDeductions = deductionData.total
