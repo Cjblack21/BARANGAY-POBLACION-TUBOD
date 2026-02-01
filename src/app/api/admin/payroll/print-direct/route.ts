@@ -120,7 +120,7 @@ export async function POST(request: NextRequest) {
         const earnings = calculateEarnings(monthlySalary, timeIn, timeOut)
         const workHours = (timeOut.getTime() - timeIn.getTime()) / (1000 * 60 * 60)
         // Get attendance settings for proper time calculation
-        const attendanceSettings = await prisma.attendanceSettings.findFirst()
+        const attendanceSettings = await prisma.attendance_settings.findFirst()
         const timeInEnd = attendanceSettings?.timeInEnd || '09:00' // Default to 9:00 AM if no settings
         const expectedTimeIn = new Date(record.date)
         const [hours, minutes] = timeInEnd.split(':').map(Number)
@@ -151,7 +151,7 @@ export async function POST(request: NextRequest) {
       current.details.push({
         id: deduction.deductions_id,
         amount: Number(deduction.amount),
-        type: deduction.deductionType.name
+        type: deduction.deduction_types.name
       })
       deductionsMap.set(deduction.users_id, current)
     }
@@ -207,7 +207,7 @@ export async function POST(request: NextRequest) {
     })
 
     // Get header settings
-    const headerSettings = await prisma.headerSettings.findFirst()
+    const headerSettings = await prisma.header_settings.findFirst()
 
     // Generate HTML for payslips
     const generatePayslipHTML = (employee: any) => {
