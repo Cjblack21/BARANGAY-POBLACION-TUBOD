@@ -55,14 +55,18 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Personnel type with this name already exists' }, { status: 400 })
     }
     
-    const created = await prisma.personnel_types.create({ 
-      data: { 
+    const { randomBytes } = await import('crypto')
+    const personnelTypeId = randomBytes(12).toString('hex')
+    const created = await prisma.personnel_types.create({
+      data: {
+        personnel_types_id: personnelTypeId,
         name: data.name,
         type: data.type,
         department: data.department,
         basicSalary: data.basicSalary,
-        isActive: data.isActive
-      } 
+        isActive: true,
+        updatedAt: new Date()
+      }
     })
     return NextResponse.json(created, { status: 201 })
   } catch (error) {
