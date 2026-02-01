@@ -647,7 +647,6 @@ export async function getPayrollSummary(): Promise<{
       totalGrossSalary,
       totalDeductions,
       totalNetSalary,
-      workingDays,
       payrollEntries,
       hasGenerated,
       hasReleased,
