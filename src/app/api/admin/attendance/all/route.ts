@@ -79,14 +79,14 @@ export async function GET(request: NextRequest) {
 
     // Get attendance-related deductions for users with actual attendance records
     const userIdsWithAttendance = attendanceRecords.map(r => r.users_id)
-    const actualDeductions = await prisma.deduction.findMany({
+    const actualDeductions = await prisma.deductions.findMany({
       where: {
         users_id: { in: userIdsWithAttendance },
         appliedAt: {
           gte: dateFilter ? new Date(dateFilter + 'T00:00:00.000Z') : new Date('1900-01-01'),
           lte: dateFilter ? new Date(dateFilter + 'T23:59:59.999Z') : new Date()
         },
-        deductionType: {
+        deduction_types: {
           name: {
             in: ['Late Arrival', 'Late Penalty', 'Absence Deduction', 'Absent', 'Late', 'Tardiness']
           }
@@ -96,7 +96,7 @@ export async function GET(request: NextRequest) {
         users_id: true,
         amount: true,
         appliedAt: true,
-        deductionType: {
+        deduction_types: {
           select: {
             name: true
           }
@@ -136,7 +136,7 @@ export async function GET(request: NextRequest) {
     const targetStartOfDay = new Date(targetDate.getFullYear(), targetDate.getMonth(), targetDate.getDate())
     const targetEndOfDay = new Date(targetDate.getFullYear(), targetDate.getMonth(), targetDate.getDate(), 23, 59, 59, 999)
     const isSunday = targetDate.getDay() === 0
-    const holiday = await prisma.holiday.findFirst({
+    const holiday = await prisma.holidays.findFirst({
       where: {
         date: {
           gte: targetStartOfDay,
