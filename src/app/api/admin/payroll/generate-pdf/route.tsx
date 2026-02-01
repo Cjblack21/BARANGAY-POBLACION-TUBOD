@@ -86,7 +86,7 @@ export async function POST(request: NextRequest) {
         }
       },
       include: {
-        deductionType: true
+        deduction_types: true
       }
     })
 
