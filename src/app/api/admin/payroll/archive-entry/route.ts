@@ -18,7 +18,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Archive the specific payroll entry
-    const archiveResult = await prisma.payrollEntry.updateMany({
+    const archiveResult = await prisma.payroll_entries.updateMany({
       where: {
         users_id: userId,
         periodStart: new Date(periodStart),
