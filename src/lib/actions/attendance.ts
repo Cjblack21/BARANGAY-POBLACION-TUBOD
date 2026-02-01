@@ -64,7 +64,7 @@ function isWithinWindow(nowHHmm: string, start?: string | null, end?: string | n
 export async function punchAttendance(): Promise<{
   success: boolean
   message: string
-  status?: AttendanceStatus
+  status?: 'PENDING' | 'PRESENT' | 'LATE' | 'ABSENT' | 'PARTIAL'
   earlyTimeoutDeduction?: {
     minutes: number
     amount: number
@@ -119,7 +119,7 @@ export async function punchAttendance(): Promise<{
       console.log('🕐 Time-in phase validation:')
       console.log('Time comparison:', nowHHmm, '(' + (now.getHours() * 60 + now.getMinutes()) + ' min) vs', settings?.timeInStart, '(' + (settings?.timeInStart ? parseInt(settings.timeInStart.split(':')[0]) * 60 + parseInt(settings.timeInStart.split(':')[1]) : 'N/A') + ' min) to', settings?.timeInEnd, '(' + (settings?.timeInEnd ? parseInt(settings.timeInEnd.split(':')[0]) * 60 + parseInt(settings.timeInEnd.split(':')[1]) : 'N/A') + ' min)')
       
-      let status: AttendanceStatus = 'PRESENT'
+      let status: 'PENDING' | 'PRESENT' | 'LATE' | 'ABSENT' | 'PARTIAL' = 'PRESENT'
       
       if (settings?.timeInStart && settings?.timeInEnd) {
         const isInNormalWindow = isWithinWindow(nowHHmm, settings.timeInStart, settings.timeInEnd)
@@ -353,7 +353,7 @@ export async function getCurrentDayAttendance(): Promise<{
       let workHours = 0
       let earnings = 0
       let deductions = 0
-      let status: AttendanceStatus
+      let status: 'PENDING' | 'PRESENT' | 'LATE' | 'ABSENT' | 'PARTIAL'
 
       if (attendanceRecord) {
         
@@ -491,7 +491,7 @@ export async function getCurrentDayAttendance(): Promise<{
 export async function updateAttendanceStatus(
   users_id: string,
   date: string,
-  status: AttendanceStatus
+  status: 'PENDING' | 'PRESENT' | 'LATE' | 'ABSENT' | 'PARTIAL'
 ): Promise<{ success: boolean; error?: string }> {
   try {
     const session = await getServerSession(authOptions)
@@ -524,7 +524,7 @@ export async function updateAttendanceStatus(
 // Server Action: Update All Attendance Status for a Date
 export async function updateAllAttendanceStatusForDate(
   date: string,
-  status: AttendanceStatus
+  status: 'PENDING' | 'PRESENT' | 'LATE' | 'ABSENT' | 'PARTIAL'
 ): Promise<{ success: boolean; error?: string; updatedCount?: number }> {
   try {
     const session = await getServerSession(authOptions)
@@ -922,7 +922,7 @@ export async function getPersonnelHistory(userId: string): Promise<{
           date: record.date.toISOString(),
           timeIn: record.timeIn?.toISOString() || null,
           timeOut: record.timeOut?.toISOString() || null,
-          status: 'PENDING' as AttendanceStatus,
+          status: 'PENDING' as 'PENDING' | 'PRESENT' | 'LATE' | 'ABSENT' | 'PARTIAL',
           workHours: 0,
           earnings: 0,
           deductions: 0,
@@ -941,7 +941,7 @@ export async function getPersonnelHistory(userId: string): Promise<{
       // Check if this is a date with no time-in
       if (!record.timeIn) {
         // Determine if we should mark as ABSENT or PENDING
-        let statusToShow: AttendanceStatus = 'PENDING'
+        let statusToShow: 'PENDING' | 'PRESENT' | 'LATE' | 'ABSENT' | 'PARTIAL' = 'PENDING'
         let dailyDeductions = 0
         
         // For past dates: check if we're past the FINAL cutoff time (Time Out End)
