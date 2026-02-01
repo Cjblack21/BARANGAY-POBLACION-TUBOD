@@ -10,7 +10,7 @@ async function fixPayrollDeductions() {
     include: {
       users: {
         include: {
-          personnelType: true
+          personnel_types: true
         }
       }
     }
@@ -23,7 +23,7 @@ async function fixPayrollDeductions() {
     const endDate = new Date(entry.periodEnd)
     
     // Get attendance records for this period
-    const attendanceRecords = await prisma.attendance.findMany({
+    const attendanceRecords = await prisma.attendances.findMany({
       where: {
         users_id: entry.users_id,
         date: {
@@ -49,13 +49,13 @@ async function fixPayrollDeductions() {
     }
     
     // Get monthly basic salary
-    const monthlyBasicSalary = entry.user.personnelType?.basicSalary 
-      ? Number(entry.user.personnelType.basicSalary) 
+    const monthlyBasicSalary = entry.users.personnel_types?.basicSalary 
+      ? Number(entry.users.personnel_types.basicSalary) 
       : Number(entry.basicSalary) * 2
     
     const dailyRate = monthlyBasicSalary / workingDaysInMonth
     
-    console.log(`📊 ${entry.user.name}:`)
+    console.log(`📊 ${entry.users.name}:`)
     console.log(`   Monthly Salary: ₱${monthlyBasicSalary.toLocaleString()}`)
     console.log(`   Working Days: ${workingDaysInMonth}`)
     console.log(`   Daily Rate: ₱${dailyRate.toFixed(2)}`)
