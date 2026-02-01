@@ -17,7 +17,7 @@ async function updateLoanBalances(loans: any[], releaseTime: Date) {
     const newBalance = Math.max(0, currentBalance - biweeklyPayment)
     
     // Update loan balance and auto-archive if completed
-    await prisma.loan.update({
+    await prisma.loans.update({
       where: { loans_id: loan.loans_id },
       data: { 
         balance: newBalance,
@@ -45,7 +45,7 @@ export async function POST(request: NextRequest) {
     const { periodStart, periodEnd } = getCurrentBiweeklyPeriod()
     
     // Check if there are any unreleased payroll entries for this period
-    const existingPayrolls = await prisma.payrollEntry.findMany({
+    const existingPayrolls = await prisma.payroll_entries.findMany({
       where: {
         processedAt: { gte: periodStart, lte: periodEnd },
         status: 'PENDING'
@@ -55,7 +55,7 @@ export async function POST(request: NextRequest) {
     console.log(`Found ${existingPayrolls.length} existing pending payroll entries`)
 
     // If there are already released payrolls for this period, don't create new ones
-    const releasedPayrolls = await prisma.payrollEntry.findMany({
+    const releasedPayrolls = await prisma.payroll_entries.findMany({
       where: {
         processedAt: { gte: periodStart, lte: periodEnd },
         status: 'RELEASED'
@@ -70,7 +70,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Generate payroll entries for users who don't have them yet
-    const users = await prisma.user.findMany({
+    const users = await prisma.users.findMany({
       where: { isActive: true, role: 'PERSONNEL' },
       select: { 
         users_id: true, 
@@ -118,7 +118,7 @@ export async function POST(request: NextRequest) {
     })
 
     // Get active loans for current period
-    const loans = await prisma.loan.findMany({
+    const loans = await prisma.loans.findMany({
       where: { 
         users_id: { in: userIds }, 
         status: 'ACTIVE',
@@ -242,7 +242,7 @@ export async function POST(request: NextRequest) {
     if (existingPayrolls.length > 0) {
       // Update existing pending payroll entries to released
       try {
-        await prisma.payrollEntry.updateMany({
+        await prisma.payroll_entries.updateMany({
           where: {
             processedAt: { gte: periodStart, lte: periodEnd },
             status: 'PENDING'
@@ -272,7 +272,7 @@ export async function POST(request: NextRequest) {
         
         console.log('Creating new payroll entries:', entriesToCreate)
         
-        await prisma.payrollEntry.createMany({
+        await prisma.payroll_entries.createMany({
           data: entriesToCreate
         })
         console.log(`Successfully created ${payrollEntries.length} new payroll entries`)
