@@ -603,8 +603,7 @@ export async function getPayrollSummary(): Promise<{
           breakdown: {
             basicSalary: monthlyBasicSalary,
             overloadPay: totalOverloadPay,
-            totalDeductions: finalTotalDeductions,
-            loanDeductions: totalLoanPayments
+            totalDeductions: finalTotalDeductions
           },
           status: 'Pending' as 'Pending' | 'Released',
           deductionDetails: deductionDetails.map((deduction: any) => ({
