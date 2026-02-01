@@ -101,9 +101,9 @@ export async function POST(request: NextRequest) {
     }
 
     // Block release if any personnel lacks personnel type (basic salary)
-    const missingPersonnelType = pendingPayrolls.filter(p => !p.user?.personnelType)
+    const missingPersonnelType = pendingPayrolls.filter(p => !p.users?.personnel_types)
     if (missingPersonnelType.length > 0) {
-      const blocked = missingPersonnelType.map(p => ({ users_id: p.user?.users_id, name: p.user?.name, email: p.user?.email }))
+      const blocked = missingPersonnelType.map(p => ({ users_id: p.users?.users_id, name: p.users?.name, email: p.users?.email }))
       return NextResponse.json({
         error: 'Some users have no personnel type (basic salary). Assign before releasing.',
         blocked
@@ -179,10 +179,10 @@ export async function POST(request: NextRequest) {
 
     for (const record of attendance) {
       const userId = record.users_id
-      const user = pendingPayrolls.find(p => p.users_id === userId)?.user
-      if (!user || !user.personnelType) return
+      const user = pendingPayrolls.find(p => p.users_id === userId)?.users
+      if (!user || !user.personnel_types) return
 
-      const basicSalary = Number(user.personnelType.basicSalary)
+      const basicSalary = Number(user.personnel_types.basicSalary)
       let dayEarnings = 0
       let dayDeductions = 0
       let dayWorkHours = 0
@@ -286,10 +286,10 @@ export async function POST(request: NextRequest) {
     const updatedPayrolls = []
 
     for (const payroll of pendingPayrolls) {
-      const user = payroll.user
-      if (!user || !user.personnelType) continue
+      const user = payroll.users
+      if (!user || !user.personnel_types) continue
 
-      const monthlyBasic = Number(user.personnelType.basicSalary)
+      const monthlyBasic = Number(user.personnel_types.basicSalary)
       const daysInMonth = new Date(periodStart.getFullYear(), periodStart.getMonth() + 1, 0).getDate()
       const periodDays = Math.max(1, Math.ceil((periodEnd.getTime() - periodStart.getTime()) / (1000 * 60 * 60 * 24)) + 1)
       const periodBasePay = (monthlyBasic * periodDays) / daysInMonth
