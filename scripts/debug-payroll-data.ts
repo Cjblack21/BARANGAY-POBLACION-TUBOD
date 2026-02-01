@@ -17,7 +17,7 @@ async function debugPayrollData() {
       include: {
         users: {
           include: {
-            personnelType: true
+            personnel_types: true
           }
         }
       },
@@ -31,9 +31,9 @@ async function debugPayrollData() {
 
     for (const entry of payrollEntries) {
       console.log('═'.repeat(80))
-      console.log(`👤 User: ${entry.user?.name || entry.user?.email}`)
+      console.log(`👤 User: ${entry.users?.name || entry.users?.email}`)
       console.log(`📅 Period: ${entry.periodStart.toISOString().split('T')[0]} to ${entry.periodEnd.toISOString().split('T')[0]}`)
-      console.log(`💰 Semi-Monthly Salary: ₱${entry.user?.personnelType?.basicSalary}`)
+      console.log(`💰 Semi-Monthly Salary: ₱${entry.users?.personnel_types?.basicSalary}`)
       console.log(`💸 Total Deductions: ₱${entry.deductions}`)
       console.log(`💵 Net Pay: ₱${entry.netPay}`)
       
