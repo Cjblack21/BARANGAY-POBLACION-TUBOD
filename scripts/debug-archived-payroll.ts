@@ -11,14 +11,14 @@ async function debugArchivedPayroll() {
     console.log('🔍 Inspecting archived payroll data...')
 
     // Get archived payroll records
-    const archivedPayrolls = await prisma.payrollEntry.findMany({
+    const archivedPayrolls = await prisma.payroll_entries.findMany({
       where: {
         archivedAt: {
           not: null
         }
       },
       include: {
-        user: true
+        users: true
       },
       orderBy: {
         releasedAt: 'desc'
@@ -30,7 +30,7 @@ async function debugArchivedPayroll() {
 
     for (const record of archivedPayrolls) {
       console.log('═'.repeat(80))
-      console.log(`👤 User: ${record.user.name || record.user.email}`)
+      console.log(`👤 User: ${record.users.name || record.users.email}`)
       console.log(`📅 Period: ${record.periodStart.toISOString()} to ${record.periodEnd.toISOString()}`)
       console.log(`💰 Basic Salary: ₱${record.basicSalary}`)
       console.log(`⏰ Overtime: ₱${record.overtime}`)
