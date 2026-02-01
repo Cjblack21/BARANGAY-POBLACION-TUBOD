@@ -16,7 +16,7 @@ export async function POST(request: NextRequest) {
     const { periodStart, periodEnd } = await request.json()
 
     // Get the payroll entry for this user and period
-    const payrollEntry = await prisma.payrollEntry.findFirst({
+    const payrollEntry = await prisma.payroll_entries.findFirst({
       where: {
         users_id: session.user.id,
         periodStart: new Date(periodStart),
@@ -26,9 +26,9 @@ export async function POST(request: NextRequest) {
         }
       },
       include: {
-        user: {
+        users: {
           include: {
-            personnelType: true
+            personnel_types: true
           }
         }
       }
@@ -50,7 +50,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Calculate values from snapshot
-    const monthlyBasicSalary = snapshot?.monthlyBasicSalary || Number(payrollEntry.user?.personnelType?.basicSalary) || 0
+    const monthlyBasicSalary = snapshot?.monthlyBasicSalary || Number(payrollEntry.users?.personnel_types?.basicSalary) || 0
     const semiMonthlyBase = monthlyBasicSalary / 2
     const overloadPay = snapshot?.totalAdditions || 0
     const grossPay = snapshot?.periodSalary || Number(payrollEntry.basicSalary)
@@ -58,12 +58,12 @@ export async function POST(request: NextRequest) {
     const netPay = snapshot?.netPay || Number(payrollEntry.netPay)
     
     // Get header settings
-    const headerSettings = await prisma.headerSettings.findFirst()
+    const headerSettings = await prisma.header_settings.findFirst()
     
     // Format payslip data in the same structure as admin
     const payslipData = [{
-      name: payrollEntry.user?.name || 'N/A',
-      email: payrollEntry.user?.email || 'N/A',
+      name: payrollEntry.users?.name || 'N/A',
+      email: payrollEntry.users?.email || 'N/A',
       monthlyBasicSalary: monthlyBasicSalary,
       basicSalary: semiMonthlyBase,
       overloadPay: overloadPay,
@@ -95,7 +95,7 @@ export async function POST(request: NextRequest) {
     return new NextResponse(pdfBuffer, {
       headers: {
         'Content-Type': 'application/pdf',
-        'Content-Disposition': `inline; filename="payslip-${payrollEntry.user?.name}.pdf"`,
+        'Content-Disposition': `inline; filename="payslip-${payrollEntry.users?.name}.pdf"`,
       },
     })
 
