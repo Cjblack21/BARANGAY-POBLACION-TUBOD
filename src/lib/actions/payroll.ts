@@ -615,11 +615,6 @@ export async function getPayrollSummary(): Promise<{
             notes: deduction.notes,
             isMandatory: deduction.deduction_types.isMandatory
           })),
-          loanDetails: loanDetails,
-          overloadPayDetails: userOverloadPays.map((op: any) => ({
-            type: op.type || 'OVERTIME',
-            amount: parseFloat(op.amount.toString())
-          })),
           loanPayments: totalLoanPayments,
           databaseDeductions: totalDatabaseDeductions
         })
