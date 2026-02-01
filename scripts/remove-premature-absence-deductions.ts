@@ -13,7 +13,7 @@ async function removePrematureAbsenceDeductions() {
     console.log('🔍 Starting removal of premature absence deductions...')
     
     // Get attendance settings
-    const settings = await prisma.attendanceSettings.findFirst()
+    const settings = await prisma.attendance_settings.findFirst()
     if (!settings || !settings.timeOutEnd) {
       console.log('❌ No attendance settings or timeOutEnd found')
       return

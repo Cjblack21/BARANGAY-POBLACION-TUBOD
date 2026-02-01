@@ -9,7 +9,7 @@ async function triggerAutoMarkAbsent() {
     console.log('🔧 Manually triggering auto-mark-absent logic...\n')
     
     // Get attendance settings
-    const settings = await prisma.attendanceSettings.findFirst()
+    const settings = await prisma.attendance_settings.findFirst()
     if (!settings || !settings.timeOutEnd) {
       console.log('❌ No attendance settings or timeOutEnd found')
       return

@@ -15,7 +15,7 @@ async function main() {
     console.log('🕐 Current hour:', now.getHours(), 'minutes:', now.getMinutes())
     
     // Get attendance settings
-    const settings = await prisma.attendanceSettings.findFirst()
+    const settings = await prisma.attendance_settings.findFirst()
     
     if (!settings?.timeOutEnd) {
       console.log('❌ No time out end time configured')

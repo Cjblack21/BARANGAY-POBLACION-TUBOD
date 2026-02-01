@@ -4,7 +4,7 @@ const prisma = new PrismaClient()
 
 async function fixPeriodStartDate() {
   try {
-    const settings = await prisma.attendanceSettings.findFirst()
+    const settings = await prisma.attendance_settings.findFirst()
     
     if (!settings) {
       console.log('No settings found')
@@ -20,7 +20,7 @@ async function fixPeriodStartDate() {
     const newStart = new Date('2025-11-03T00:00:00.000Z')
     const newEnd = new Date('2025-11-05T23:59:59.999Z')
     
-    await prisma.attendanceSettings.update({
+    await prisma.attendance_settings.update({
       where: { attendance_settings_id: settings.attendance_settings_id },
       data: {
         periodStart: newStart,

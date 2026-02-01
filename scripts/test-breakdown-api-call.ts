@@ -4,8 +4,8 @@ const prisma = new PrismaClient()
 
 async function testBreakdownAPI() {
   try {
-    const settings = await prisma.attendanceSettings.findFirst()
-    const user = await prisma.user.findFirst({
+    const settings = await prisma.attendance_settings.findFirst()
+    const user = await prisma.users.findFirst({
       where: { email: 'mike.johnson@pms.com' }
     })
     

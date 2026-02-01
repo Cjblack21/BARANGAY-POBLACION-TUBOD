@@ -4,7 +4,7 @@ const prisma = new PrismaClient()
 
 async function testBreakdownAPI() {
   try {
-    const settings = await prisma.attendanceSettings.findFirst()
+    const settings = await prisma.attendance_settings.findFirst()
     
     if (!settings || !settings.periodStart || !settings.periodEnd) {
       console.log('No settings found')

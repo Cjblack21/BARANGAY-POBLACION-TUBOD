@@ -13,7 +13,7 @@ async function debugUserDeductions(userEmail?: string) {
     console.log('🔍 Debugging user attendance and deductions...\n')
     
     // Get attendance settings
-    const settings = await prisma.attendanceSettings.findFirst()
+    const settings = await prisma.attendance_settings.findFirst()
     if (!settings) {
       console.log('❌ No attendance settings found')
       return
