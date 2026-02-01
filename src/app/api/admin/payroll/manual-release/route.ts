@@ -56,7 +56,7 @@ export async function POST(request: NextRequest) {
     console.log('Requested payroll period:', { periodStart: periodStart.toISOString(), periodEnd: periodEnd.toISOString() })
 
     // Refuse if any released payroll overlaps the selected period
-    const existingReleased = await prisma.payrollEntry.count({
+    const existingReleased = await prisma.payroll_entries.count({
       where: {
         status: 'RELEASED',
         processedAt: { gte: periodStart, lte: periodEnd },
@@ -69,18 +69,18 @@ export async function POST(request: NextRequest) {
     }
 
     // Get all pending payroll entries for requested period
-    const pendingPayrolls = await prisma.payrollEntry.findMany({
+    const pendingPayrolls = await prisma.payroll_entries.findMany({
       where: {
         status: 'PENDING',
         processedAt: { gte: periodStart, lte: periodEnd }
       },
       include: {
-        user: {
+        users: {
           select: {
             users_id: true,
             name: true,
             email: true,
-            personnelType: {
+            personnel_types: {
               select: {
                 basicSalary: true
               }
@@ -113,7 +113,7 @@ export async function POST(request: NextRequest) {
     const userIds = pendingPayrolls.map(p => p.users_id)
 
     // Get current attendance data for real-time calculation
-    const attendance = await prisma.attendance.findMany({
+    const attendance = await prisma.attendances.findMany({
       where: {
         users_id: { in: userIds },
         date: { gte: periodStart, lte: periodEnd }
@@ -129,7 +129,7 @@ export async function POST(request: NextRequest) {
 
     // Get non-attendance related deductions only
     const attendanceRelatedTypes = ['Late Arrival', 'Absence Deduction', 'Partial Attendance']
-    const deductions = await prisma.deduction.findMany({
+    const deductions = await prisma.deductions.findMany({
       where: {
         users_id: { in: userIds },
         appliedAt: { gte: periodStart, lte: periodEnd },
@@ -151,7 +151,7 @@ export async function POST(request: NextRequest) {
     })
 
     // Get active loans for current period
-    const loans = await prisma.loan.findMany({
+    const loans = await prisma.loans.findMany({
       where: {
         users_id: { in: userIds },
         status: 'ACTIVE',
@@ -169,7 +169,7 @@ export async function POST(request: NextRequest) {
     })
 
     // Get attendance settings once before processing (used for late deduction calculation)
-    const attendanceSettings = await prisma.attendanceSettings.findFirst()
+    const attendanceSettings = await prisma.attendance_settings.findFirst()
     const timeInEnd = attendanceSettings?.timeInEnd || '09:00' // Default to 9:00 AM if no settings
 
     // Calculate attendance deductions and work hours (earnings not used for base pay)
@@ -309,7 +309,7 @@ export async function POST(request: NextRequest) {
 
       // Update the payroll entry with recalculated values
       console.log(`Updating payroll entry ${payroll.payroll_entries_id} for user ${user.users_id}`)
-      const updatedPayroll = await prisma.payrollEntry.update({
+      const updatedPayroll = await prisma.payroll_entries.update({
         where: {
           payroll_entries_id: payroll.payroll_entries_id
         },
@@ -325,10 +325,10 @@ export async function POST(request: NextRequest) {
       console.log(`Successfully updated payroll entry ${payroll.payroll_entries_id}`)
 
       // Archive non-mandatory deductions on release (backup in case they weren't archived during generation)
-      await prisma.deduction.updateMany({
+      await prisma.deductions.updateMany({
         where: {
           users_id: user.users_id,
-          deductionType: {
+          deduction_types: {
             isMandatory: false
           },
           appliedAt: {
@@ -345,10 +345,10 @@ export async function POST(request: NextRequest) {
 
       // Archive ALL attendance-related deductions on release (regardless of mandatory status)
       // This prevents attendance deductions from stacking up across multiple payroll periods
-      const attendanceArchiveResult = await prisma.deduction.updateMany({
+      const attendanceArchiveResult = await prisma.deductions.updateMany({
         where: {
           users_id: user.users_id,
-          deductionType: {
+          deduction_types: {
             OR: [
               { name: { contains: 'Attendance' } },
               { name: { contains: 'Late' } },
@@ -387,7 +387,7 @@ export async function POST(request: NextRequest) {
           const newBalance = Math.max(0, currentBalance - biweeklyPayment)
 
           // Update loan balance
-          await prisma.loan.update({
+          await prisma.loans.update({
             where: { loans_id: loan.loans_id },
             data: {
               balance: newBalance,
