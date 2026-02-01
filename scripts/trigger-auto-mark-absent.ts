@@ -43,7 +43,7 @@ async function triggerAutoMarkAbsent() {
     // Get all active personnel
     const users = await prisma.users.findMany({
       where: { isActive: true, role: 'PERSONNEL' },
-      include: { personnelType: true }
+      include: { personnel_types: true }
     })
     
     // Get attendances records for today
@@ -57,9 +57,9 @@ async function triggerAutoMarkAbsent() {
     
     let markedCount = 0
     
-    for (const user of activeUsers) {
+    for (const user of users) {
       const record = recordMap.get(user.users_id)
-      const basicSalary = Number(user.personnelType?.basicSalary || 0)
+      const basicSalary = Number(user.personnel_types?.basicSalary || 0)
       
       if (!record || record.status === 'PENDING') {
         // Mark as absent
