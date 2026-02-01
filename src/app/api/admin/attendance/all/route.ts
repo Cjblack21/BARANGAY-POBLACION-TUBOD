@@ -163,7 +163,7 @@ export async function GET(request: NextRequest) {
 
     // Process ONLY actual attendance records (no fake records for users without attendance)
     const attendanceData = attendanceRecords.map(attendanceRecord => {
-      const user = attendanceRecord.user
+      const user = attendanceRecord.users
       
       // Calculate work hours
       let workHours = 0
