@@ -24,11 +24,11 @@ export async function POST(request: NextRequest) {
     const endOfTargetDay = endOfDay(targetDate)
 
     // Get attendance settings
-    const settings = await prisma.attendanceSettings.findFirst()
+    const settings = await prisma.attendance_settings.findFirst()
     
-    if (!settings || settings.noTimeOutCutoff || !settings.timeOutEnd) {
+    if (!settings || !settings.timeOutEnd) {
       return NextResponse.json({ 
-        error: 'Auto-mark absent is not configured. Time-out restrictions must be enabled with an end time.' 
+        error: 'Auto-mark absent is not configured. Time-out end time must be set.' 
       }, { status: 400 })
     }
 
