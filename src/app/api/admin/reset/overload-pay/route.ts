@@ -12,7 +12,7 @@ export async function DELETE() {
     }
 
     // Delete all overload pay records
-    const result = await prisma.overloadPay.deleteMany({})
+    const result = await prisma.overload_pays.deleteMany({})
 
     return NextResponse.json({ 
       success: true, 
