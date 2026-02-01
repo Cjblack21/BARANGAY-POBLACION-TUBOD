@@ -3809,242 +3809,200 @@ html, body { margin: 0 !important; padding: 0 !important; overflow: hidden !impo
 
       {/* Release Payroll Confirmation Modal */}
       <Dialog open={showReleaseConfirmModal} onOpenChange={setShowReleaseConfirmModal}>
-        <DialogContent className="sm:max-w-[900px] max-h-[95vh] p-0 flex flex-col gap-0 overflow-hidden">
-          <DialogHeader className="px-8 py-6 border-b bg-gradient-to-r from-green-50 to-blue-50 dark:from-green-950/20 dark:to-blue-950/20">
+        <DialogContent className="!max-w-none w-[70vw] h-[90vh] p-0 flex flex-col gap-0 overflow-hidden">
+          <DialogHeader className="px-6 py-5 border-b bg-gradient-to-r from-green-50 to-blue-50 dark:from-green-950/20 dark:to-blue-950/20">
             <div className="flex items-center gap-3">
-              <div className="p-3 bg-green-600 rounded-lg">
-                <Save className="h-6 w-6 text-white" />
+              <div className="p-2.5 bg-green-600 rounded-lg">
+                <Save className="h-5 w-5 text-white" />
               </div>
               <div>
-                <DialogTitle className="text-2xl font-bold text-green-900 dark:text-green-100">
+                <DialogTitle className="text-xl font-bold text-green-900 dark:text-green-100">
                   Release Payroll Confirmation
                 </DialogTitle>
-                <DialogDescription className="text-base mt-1">
+                <DialogDescription className="text-sm mt-0.5">
                   Please confirm the following before releasing payroll to all employees.
                 </DialogDescription>
               </div>
             </div>
           </DialogHeader>
 
-          <div className="flex-1 overflow-y-auto px-8 py-6 space-y-6">
-            {/* Attendance Deductions Info */}
-            <div className="bg-gradient-to-br from-blue-50 to-indigo-50 dark:from-blue-950/30 dark:to-indigo-950/30 rounded-xl p-6 border-2 border-blue-200 dark:border-blue-800 shadow-sm">
-              <div className="flex items-start gap-4">
-                <div className="p-2 bg-blue-600 rounded-lg">
-                  <AlertCircle className="h-6 w-6 text-white" />
+          <div className="flex-1 overflow-y-auto px-6 py-5">
+            <div className="space-y-5">
+              {/* Top Section - Controls */}
+              <div className="flex flex-wrap gap-4">
+                {/* Attendance Deductions Info */}
+                <div className="flex-1 min-w-[300px] bg-gradient-to-br from-blue-50 to-indigo-50 dark:from-blue-950/30 dark:to-indigo-950/30 rounded-lg p-4 border-2 border-blue-200 dark:border-blue-800 shadow-sm">
+                  <div className="flex items-start gap-3">
+                    <div className="p-2 bg-blue-600 rounded-lg">
+                      <AlertCircle className="h-5 w-5 text-white" />
+                    </div>
+                    <div className="flex-1">
+                      <h4 className="font-bold text-lg text-blue-900 dark:text-blue-100 mb-2">
+                        Attendance Deductions
+                      </h4>
+                      <p className="text-base text-blue-700 dark:text-blue-300 leading-relaxed">
+                        Do you want to include attendance deductions (late, absent, early timeout) in this payroll release?
+                      </p>
+                    </div>
+                  </div>
                 </div>
-                <div className="flex-1">
-                  <h4 className="font-bold text-lg text-blue-900 dark:text-blue-100 mb-2">
-                    Attendance Deductions
-                  </h4>
-                  <p className="text-blue-700 dark:text-blue-300 leading-relaxed">
-                    Do you want to include attendance deductions (late, absent, early timeout) in this payroll release?
-                  </p>
-                </div>
-              </div>
-            </div>
 
-            {/* Include Attendance Deductions Toggle */}
-            <div
-              className="flex items-center gap-4 p-5 border-2 rounded-xl hover:bg-muted/50 transition-all cursor-pointer hover:border-primary/50 hover:shadow-md"
-              onClick={() => setIncludeAttendanceDeductions(!includeAttendanceDeductions)}
-            >
-              <div className={`flex items-center justify-center w-7 h-7 rounded-lg border-2 transition-all ${includeAttendanceDeductions
-                ? 'bg-primary border-primary shadow-lg shadow-primary/30'
-                : 'border-gray-300 dark:border-gray-600'
-                }`}>
-                {includeAttendanceDeductions && (
-                  <CheckCircle2 className="h-5 w-5 text-white" />
-                )}
-              </div>
-              <div className="flex-1">
-                <p className="font-semibold text-base">Include Attendance Deductions</p>
-                <p className="text-sm text-muted-foreground mt-0.5">
-                  Deduct for late arrivals, absences, and early timeouts
-                </p>
-              </div>
-            </div>
-
-            {/* Personnel with Attendance Deductions Overview */}
-            {attendanceDeductions.length > 0 && (
-              <div className="bg-gradient-to-br from-orange-50 to-amber-50 dark:from-orange-950/30 dark:to-amber-950/30 border-2 border-orange-200 dark:border-orange-800 rounded-xl p-6 shadow-sm">
-                <div className="flex items-start gap-3 mb-4">
-                  <div className="p-2 bg-orange-600 rounded-lg">
-                    <Users className="h-6 w-6 text-white" />
+                {/* Include Attendance Deductions Toggle */}
+                <div
+                  className="flex-1 min-w-[280px] flex items-center gap-3 p-4 border-2 rounded-lg hover:bg-muted/50 transition-all cursor-pointer hover:border-primary/50 hover:shadow-md"
+                  onClick={() => setIncludeAttendanceDeductions(!includeAttendanceDeductions)}
+                >
+                  <div className={`flex items-center justify-center w-6 h-6 rounded-lg border-2 transition-all ${includeAttendanceDeductions
+                    ? 'bg-primary border-primary shadow-lg shadow-primary/30'
+                    : 'border-gray-300 dark:border-gray-600'
+                    }`}>
+                    {includeAttendanceDeductions && (
+                      <CheckCircle2 className="h-4 w-4 text-white" />
+                    )}
                   </div>
                   <div className="flex-1">
-                    <h4 className="font-bold text-lg text-orange-900 dark:text-orange-100">
-                      Personnel with Attendance Deductions
-                    </h4>
-                    <p className="text-sm text-orange-700 dark:text-orange-300 mt-1">
-                      {new Set(attendanceDeductions.map(d => d.users_id)).size} personnel have active attendance deductions
+                    <p className="font-bold text-base">Include Attendance Deductions</p>
+                    <p className="text-sm text-muted-foreground mt-1">
+                      Deduct for late arrivals, absences, and early timeouts
                     </p>
                   </div>
                 </div>
-                <div className="space-y-3 max-h-64 overflow-y-auto pr-2">
-                  {Array.from(new Set(attendanceDeductions.map(d => d.users_id))).map(userId => {
-                    const userDeductions = attendanceDeductions.filter(d => d.users_id === userId)
-                    const totalAmount = userDeductions.reduce((sum, d) => sum + d.amount, 0)
-                    const personnelName = userDeductions[0]?.personnelName || 'Unknown'
 
-                    // Parse notes to extract late and absent details
-                    const parseNotes = (notes: string) => {
-                      const lateMatch = notes.match(/Late:\s*(\d+)h?\s*(\d+)?m?/i) || notes.match(/Late:\s*(\d+)\s*min/i)
-                      const absentMatch = notes.match(/Absent:\s*(\d+)\s*days?/i)
-                      
-                      let lateHours = 0
-                      let lateMinutes = 0
-                      let absentDays = 0
-                      
-                      if (lateMatch) {
-                        if (lateMatch[2]) {
-                          // Format: "Late: Xh Ym"
-                          lateHours = parseInt(lateMatch[1]) || 0
-                          lateMinutes = parseInt(lateMatch[2]) || 0
-                        } else {
-                          // Format: "Late: X min"
-                          const totalMinutes = parseInt(lateMatch[1]) || 0
-                          lateHours = Math.floor(totalMinutes / 60)
-                          lateMinutes = totalMinutes % 60
-                        }
-                      }
-                      
-                      if (absentMatch) {
-                        absentDays = parseInt(absentMatch[1]) || 0
-                      }
-                      
-                      return { lateHours, lateMinutes, absentDays }
-                    }
-
-                    // Calculate total late and absent
-                    let totalLateHours = 0
-                    let totalLateMinutes = 0
-                    let totalAbsentDays = 0
-                    
-                    userDeductions.forEach(d => {
-                      const parsed = parseNotes(d.notes || '')
-                      totalLateHours += parsed.lateHours
-                      totalLateMinutes += parsed.lateMinutes
-                      totalAbsentDays += parsed.absentDays
-                    })
-
-                    // Convert excess minutes to hours
-                    totalLateHours += Math.floor(totalLateMinutes / 60)
-                    totalLateMinutes = totalLateMinutes % 60
-
-                    return (
-                      <div key={userId} className="bg-white dark:bg-gray-900 rounded-lg p-5 border border-orange-200 dark:border-orange-800 shadow-sm hover:shadow-md transition-shadow">
-                        <div className="flex justify-between items-start mb-4">
-                          <div className="flex-1">
-                            <p className="font-semibold text-base">{personnelName}</p>
-                            <p className="text-sm text-muted-foreground">{userDeductions.length} deduction(s)</p>
-                          </div>
-                          <p className="font-bold text-red-600 text-lg">-₱{totalAmount.toFixed(2)}</p>
-                        </div>
-
-                        {/* Detailed Breakdown */}
-                        <div className="bg-orange-50 dark:bg-orange-950/20 rounded-lg p-3 mb-3 border border-orange-200 dark:border-orange-800">
-                          <p className="text-xs font-semibold text-orange-900 dark:text-orange-100 mb-2">Attendance Breakdown</p>
-                          <div className="grid grid-cols-2 gap-3">
-                            {/* Late Time */}
-                            {(totalLateHours > 0 || totalLateMinutes > 0) && (
-                              <div className="bg-white dark:bg-gray-900 rounded p-2 border border-orange-200 dark:border-orange-800">
-                                <div className="flex items-center gap-1.5 mb-1">
-                                  <Clock className="h-3.5 w-3.5 text-orange-600" />
-                                  <p className="text-xs font-medium text-orange-900 dark:text-orange-100">Late Time</p>
-                                </div>
-                                <p className="text-sm font-bold text-orange-700 dark:text-orange-300">
-                                  {totalLateHours > 0 && `${totalLateHours}h `}
-                                  {totalLateMinutes > 0 && `${totalLateMinutes}m`}
-                                </p>
-                                <p className="text-xs text-muted-foreground mt-0.5">
-                                  {(totalLateHours * 60 + totalLateMinutes)} minutes total
-                                </p>
-                              </div>
-                            )}
-
-                            {/* Absent Days */}
-                            {totalAbsentDays > 0 && (
-                              <div className="bg-white dark:bg-gray-900 rounded p-2 border border-orange-200 dark:border-orange-800">
-                                <div className="flex items-center gap-1.5 mb-1">
-                                  <Calendar className="h-3.5 w-3.5 text-red-600" />
-                                  <p className="text-xs font-medium text-red-900 dark:text-red-100">Absent Days</p>
-                                </div>
-                                <p className="text-sm font-bold text-red-700 dark:text-red-300">
-                                  {totalAbsentDays} {totalAbsentDays === 1 ? 'day' : 'days'}
-                                </p>
-                                <p className="text-xs text-muted-foreground mt-0.5">
-                                  {totalAbsentDays * 480} minutes total
-                                </p>
-                              </div>
-                            )}
-                          </div>
-                        </div>
-
-                        {/* Individual Deductions */}
-                        <div className="space-y-1.5">
-                          {userDeductions.map((d, idx) => {
-                            const parsed = parseNotes(d.notes || '')
-                            return (
-                              <div key={idx} className="text-sm flex justify-between items-start py-1.5 border-t border-orange-100 dark:border-orange-900">
-                                <div className="flex-1">
-                                  <div className="flex items-center gap-2 mb-0.5">
-                                    <span className="w-1.5 h-1.5 bg-orange-400 rounded-full"></span>
-                                    <span className="font-medium text-gray-700 dark:text-gray-300">{d.deductionType}</span>
-                                  </div>
-                                  <p className="text-xs text-muted-foreground ml-3.5">
-                                    {parsed.lateHours > 0 || parsed.lateMinutes > 0 ? (
-                                      <span>Late: {parsed.lateHours > 0 && `${parsed.lateHours}h `}{parsed.lateMinutes > 0 && `${parsed.lateMinutes}m`} </span>
-                                    ) : null}
-                                    {parsed.absentDays > 0 ? (
-                                      <span>Absent: {parsed.absentDays} {parsed.absentDays === 1 ? 'day' : 'days'}</span>
-                                    ) : null}
-                                  </p>
-                                </div>
-                                <span className="font-semibold text-red-600">-₱{d.amount.toFixed(2)}</span>
-                              </div>
-                            )
-                          })}
-                        </div>
-                      </div>
-                    )
-                  })}
-                </div>
-                <div className="mt-4 pt-4 border-t-2 border-orange-200 dark:border-orange-800">
-                  <div className="flex justify-between items-center">
-                    <span className="text-base font-semibold text-orange-900 dark:text-orange-100">Total Attendance Deductions:</span>
-                    <span className="text-2xl font-bold text-red-600">
-                      -₱{attendanceDeductions.reduce((sum, d) => sum + d.amount, 0).toFixed(2)}
-                    </span>
+                {/* Warning Note */}
+                <div className="flex-1 min-w-[300px] bg-gradient-to-br from-yellow-50 to-amber-50 dark:from-yellow-950/30 dark:to-amber-950/30 border-2 border-yellow-200 dark:border-yellow-800 rounded-lg p-4 shadow-sm">
+                  <div className="flex items-start gap-2.5">
+                    <AlertCircle className="h-5 w-5 text-yellow-600 dark:text-yellow-400 mt-0.5 flex-shrink-0" />
+                    <div className="text-sm text-yellow-700 dark:text-yellow-300">
+                      <p className="font-bold mb-1.5 text-base">Important Note:</p>
+                      <p className="leading-relaxed">Once released, payroll cannot be modified. Please ensure all deductions are correct before proceeding.</p>
+                    </div>
                   </div>
                 </div>
               </div>
-            )}
 
-            {/* Warning Note */}
-            <div className="bg-gradient-to-br from-yellow-50 to-amber-50 dark:from-yellow-950/30 dark:to-amber-950/30 border-2 border-yellow-200 dark:border-yellow-800 rounded-xl p-5 shadow-sm">
-              <div className="flex items-start gap-3">
-                <AlertCircle className="h-5 w-5 text-yellow-600 dark:text-yellow-400 mt-0.5 flex-shrink-0" />
-                <div className="text-sm text-yellow-700 dark:text-yellow-300">
-                  <p className="font-bold mb-1.5">Important Note:</p>
-                  <p className="leading-relaxed">Once released, payroll cannot be modified. Please ensure all deductions are correct before proceeding.</p>
+              {/* Bottom Section - Attendance Deductions Table */}
+              {attendanceDeductions.length > 0 && (
+              <div className="bg-gradient-to-br from-orange-50 to-amber-50 dark:from-orange-950/30 dark:to-amber-950/30 border-2 border-orange-200 dark:border-orange-800 rounded-lg p-5 shadow-sm flex flex-col">
+                <div className="flex items-start gap-3 mb-3">
+                  <div className="p-2 bg-orange-600 rounded-lg">
+                    <Users className="h-5 w-5 text-white" />
+                  </div>
+                  <div className="flex-1">
+                    <h4 className="font-bold text-lg text-orange-900 dark:text-orange-100">
+                      Staff with Attendance Deductions
+                    </h4>
+                    <p className="text-sm text-orange-700 dark:text-orange-300 mt-1">
+                      {new Set(attendanceDeductions.map(d => d.users_id)).size} staff have active attendance deductions • <span className="font-bold">₱1.00 per minute deduction</span>
+                    </p>
+                  </div>
+                </div>
+                <div className="flex-1 overflow-auto max-h-[calc(90vh-280px)]">
+                  <table className="w-full">
+                    <thead className="sticky top-0 bg-orange-50 dark:bg-orange-950/30">
+                      <tr className="border-b-2 border-orange-300 dark:border-orange-700">
+                        <th className="text-left py-3 px-4 font-bold text-lg text-orange-900 dark:text-orange-100">Staff Name</th>
+                        <th className="text-center py-3 px-3 font-bold text-lg text-orange-900 dark:text-orange-100 whitespace-nowrap">Late Time</th>
+                        <th className="text-center py-3 px-3 font-bold text-lg text-orange-900 dark:text-orange-100 whitespace-nowrap">Absent Days</th>
+                        <th className="text-right py-3 px-4 font-bold text-lg text-orange-900 dark:text-orange-100">Deduction</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-orange-200 dark:divide-orange-800">
+                      {Array.from(new Set(attendanceDeductions.map(d => d.users_id))).map(userId => {
+                        const userDeductions = attendanceDeductions.filter(d => d.users_id === userId)
+                        const totalAmount = userDeductions.reduce((sum, d) => sum + d.amount, 0)
+                        const staffName = userDeductions[0]?.personnelName || 'Unknown'
+
+                        // Parse notes to extract late and absent details
+                        const parseNotes = (notes: string) => {
+                          const lateMatch = notes.match(/Late:\s*(\d+)h?\s*(\d+)?m?/i) || notes.match(/Late:\s*(\d+)\s*min/i)
+                          const absentMatch = notes.match(/Absent:\s*(\d+)\s*days?/i)
+                          
+                          let lateHours = 0
+                          let lateMinutes = 0
+                          let absentDays = 0
+                          
+                          if (lateMatch) {
+                            if (lateMatch[2]) {
+                              lateHours = parseInt(lateMatch[1]) || 0
+                              lateMinutes = parseInt(lateMatch[2]) || 0
+                            } else {
+                              const totalMinutes = parseInt(lateMatch[1]) || 0
+                              lateHours = Math.floor(totalMinutes / 60)
+                              lateMinutes = totalMinutes % 60
+                            }
+                          }
+                          
+                          if (absentMatch) {
+                            absentDays = parseInt(absentMatch[1]) || 0
+                          }
+                          
+                          return { lateHours, lateMinutes, absentDays }
+                        }
+
+                        // Calculate total late and absent
+                        let totalLateHours = 0
+                        let totalLateMinutes = 0
+                        let totalAbsentDays = 0
+                        
+                        userDeductions.forEach(d => {
+                          const parsed = parseNotes(d.notes || '')
+                          totalLateHours += parsed.lateHours
+                          totalLateMinutes += parsed.lateMinutes
+                          totalAbsentDays += parsed.absentDays
+                        })
+
+                        totalLateHours += Math.floor(totalLateMinutes / 60)
+                        totalLateMinutes = totalLateMinutes % 60
+
+                        return (
+                          <tr key={userId} className="hover:bg-orange-100 dark:hover:bg-orange-900/20 transition-colors border-b border-orange-100 dark:border-orange-900">
+                            <td className="py-4 px-4 font-semibold text-lg text-gray-900 dark:text-gray-100">{staffName}</td>
+                            <td className="py-4 px-3 text-center text-lg text-orange-700 dark:text-orange-300">
+                              {(totalLateHours > 0 || totalLateMinutes > 0) ? (
+                                <span className="font-semibold">
+                                  {totalLateHours > 0 && `${totalLateHours}h `}
+                                  {totalLateMinutes > 0 && `${totalLateMinutes}m`}
+                                </span>
+                              ) : (
+                                <span className="text-muted-foreground">-</span>
+                              )}
+                            </td>
+                            <td className="py-4 px-3 text-center text-lg text-red-700 dark:text-red-300">
+                              {totalAbsentDays > 0 ? (
+                                <span className="font-semibold">{totalAbsentDays} {totalAbsentDays === 1 ? 'day' : 'days'}</span>
+                              ) : (
+                                <span className="text-muted-foreground">-</span>
+                              )}
+                            </td>
+                            <td className="py-4 px-4 text-right font-bold text-xl text-red-600">-₱{totalAmount.toFixed(2)}</td>
+                          </tr>
+                        )
+                      })}
+                    </tbody>
+                    <tfoot className="sticky bottom-0 bg-orange-50 dark:bg-orange-950/30">
+                      <tr className="border-t-2 border-orange-300 dark:border-orange-700">
+                        <td colSpan={3} className="py-4 px-4 text-right font-bold text-lg text-orange-900 dark:text-orange-100">Total Attendance Deductions:</td>
+                        <td className="py-4 px-4 text-right font-bold text-2xl text-red-600">-₱{attendanceDeductions.reduce((sum, d) => sum + d.amount, 0).toFixed(2)}</td>
+                      </tr>
+                    </tfoot>
+                  </table>
                 </div>
               </div>
+            )}
             </div>
           </div>
 
-          <DialogFooter className="px-8 py-5 border-t bg-gradient-to-r from-gray-50 to-slate-50 dark:from-gray-900 dark:to-slate-900 gap-3 z-10 flex-row items-center shadow-lg">
+          <DialogFooter className="px-6 py-4 border-t bg-gradient-to-r from-gray-50 to-slate-50 dark:from-gray-900 dark:to-slate-900 gap-3 z-10 flex-row items-center shadow-lg">
             <Button
-              size="lg"
               variant="outline"
               onClick={() => {
                 setShowReleaseConfirmModal(false)
                 router.push('/admin/attendance-deduction')
               }}
               disabled={loading}
-              className="border-2 border-red-500 bg-red-50 text-red-700 hover:bg-red-100 hover:border-red-600 dark:border-red-600 dark:bg-red-950/30 dark:text-red-400 dark:hover:bg-red-950 font-semibold px-6 py-6 text-base shadow-md"
+              className="border-2 border-red-500 bg-red-50 text-red-700 hover:bg-red-100 hover:border-red-600 dark:border-red-600 dark:bg-red-950/30 dark:text-red-400 dark:hover:bg-red-950 font-semibold px-6 py-3 text-lg shadow-md"
             >
-              <ClipboardMinus className="h-5 w-5 mr-2" />
+              <ClipboardMinus className="h-6 w-6 mr-2" />
               Add Attendance Deduction
             </Button>
             <div className="flex-1" />
@@ -4052,16 +4010,16 @@ html, body { margin: 0 !important; padding: 0 !important; overflow: hidden !impo
               variant="outline"
               onClick={() => setShowReleaseConfirmModal(false)}
               disabled={loading}
-              className="px-6"
+              className="px-7 py-3 text-lg font-semibold"
             >
               Cancel
             </Button>
             <Button
               onClick={handleReleasePayroll}
               disabled={loading}
-              className="bg-green-600 hover:bg-green-700 px-8 shadow-lg shadow-green-600/30"
+              className="bg-green-600 hover:bg-green-700 px-8 py-3 text-lg font-bold shadow-lg shadow-green-600/30"
             >
-              <Save className="h-4 w-4 mr-2" />
+              <Save className="h-6 w-6 mr-2" />
               {loading ? 'Releasing...' : 'Confirm & Release Payroll'}
             </Button>
           </DialogFooter>

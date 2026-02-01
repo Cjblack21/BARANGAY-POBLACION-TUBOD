@@ -140,3 +140,65 @@
   -ms-overflow-style: none;  /* IE and Edge */
   scrollbar-width: none;  /* Firefox */
 }
+
+/* Minimalist scrollbar for sidebar */
+[data-sidebar] ::-webkit-scrollbar {
+  width: 6px;
+}
+
+[data-sidebar] ::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+[data-sidebar] ::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.2);
+  border-radius: 3px;
+}
+
+[data-sidebar] ::-webkit-scrollbar-thumb:hover {
+  background: rgba(255, 255, 255, 0.3);
+}
+
+/* Firefox scrollbar */
+[data-sidebar] * {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(255, 255, 255, 0.2) transparent;
+}
+
+/* Minimalist scrollbar for main content area */
+body ::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+body ::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+body ::-webkit-scrollbar-thumb {
+  background: rgba(148, 163, 184, 0.3);
+  border-radius: 4px;
+}
+
+body ::-webkit-scrollbar-thumb:hover {
+  background: rgba(148, 163, 184, 0.5);
+}
+
+/* Firefox scrollbar for main content */
+body * {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(148, 163, 184, 0.3) transparent;
+}
+
+/* Dark mode scrollbar */
+.dark body ::-webkit-scrollbar-thumb {
+  background: rgba(148, 163, 184, 0.2);
+}
+
+.dark body ::-webkit-scrollbar-thumb:hover {
+  background: rgba(148, 163, 184, 0.4);
+}
+
+.dark body * {
+  scrollbar-color: rgba(148, 163, 184, 0.2) transparent;
+}
