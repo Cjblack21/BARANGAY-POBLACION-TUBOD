@@ -273,8 +273,7 @@ export async function POST(request: NextRequest) {
       }))
 
       // Get attendance settings
-      // Attendance settings removed
-      const attendanceSettings = null
+      const attendanceSettings = await prisma.attendance_settings.findFirst()
 
       // Calculate attendance details
       const attendanceDetails = attendanceRecords.map(record => {
