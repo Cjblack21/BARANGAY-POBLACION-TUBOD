@@ -92,7 +92,7 @@ export async function punchAttendance(): Promise<{
     console.log('Settings:', { 
       timeInStart: settings?.timeInStart, 
       timeInEnd: settings?.timeInEnd, 
-      noTimeInCutoff: settings?.noTimeInCutoff 
+      timeOutEnd: settings?.timeOutEnd 
     })
 
     // Check if there's an existing attendance record for today
@@ -151,8 +151,8 @@ export async function punchAttendance(): Promise<{
             include: { personnel_types: true }
           })
           
-          if (userWithSalary?.personnelType?.basicSalary) {
-            const basicSalary = Number(userWithSalary.personnelType.basicSalary)
+          if (userWithSalary?.personnel_types?.basicSalary) {
+            const basicSalary = Number(userWithSalary.personnel_types.basicSalary)
             const expectedTimeIn = new Date(now)
           const [hours, minutes] = settings.timeInEnd.split(':').map(Number)
           // Deductions start 1 minute after timeInEnd (09:31 AM instead of 09:30 AM)
@@ -206,13 +206,13 @@ export async function punchAttendance(): Promise<{
       
       if (settings?.timeOutStart) {
         // Get user's basic salary for calculation
-        const userWithSalary = await prisma.user.findUnique({
+        const userWithSalary = await prisma.users.findUnique({
           where: { users_id },
-          include: { personnelType: true }
+          include: { personnel_types: true }
         })
         
-        if (userWithSalary?.personnelType?.basicSalary) {
-          const basicSalary = Number(userWithSalary.personnelType.basicSalary)
+        if (userWithSalary?.personnel_types?.basicSalary) {
+          const basicSalary = Number(userWithSalary.personnel_types.basicSalary)
           earlyTimeoutDeduction = await calculateEarlyTimeoutDeduction(basicSalary, now, settings.timeOutStart)
           earlySeconds = Math.max(0, (new Date(now.getFullYear(), now.getMonth(), now.getDate(), 
             parseInt(settings.timeOutStart.split(':')[0]), parseInt(settings.timeOutStart.split(':')[1]), 0, 0).getTime() - now.getTime()) / 1000)
