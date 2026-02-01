@@ -13,7 +13,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Get attendance settings
-    const settings = await prisma.attendanceSettings.findFirst()
+    const settings = await prisma.attendance_settings.findFirst()
     
     if (!settings || !settings.autoMarkAbsent || !settings.autoMarkLate) {
       return NextResponse.json({ 
