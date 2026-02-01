@@ -15,9 +15,9 @@ async function fixAbsenceDeductions() {
     console.log('🔧 Starting absence deduction fix...')
 
     // Get all payroll entries with breakdown data
-    const payrollEntries = await prisma.payrollEntry.findMany({
+    const payrollEntries = await prisma.payroll_entries.findMany({
       include: {
-        user: {
+        users: {
           include: {
             personnelType: true
           }
@@ -109,7 +109,7 @@ async function fixAbsenceDeductions() {
         const newNetPay = Math.max(0, grossPay - totalDeductions)
 
         // Update the payroll entry
-        await prisma.payrollEntry.update({
+        await prisma.payroll_entries.update({
           where: { payroll_entries_id: entry.payroll_entries_id },
           data: {
             breakdownSnapshot: JSON.stringify(breakdown),

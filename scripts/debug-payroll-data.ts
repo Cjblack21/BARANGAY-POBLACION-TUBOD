@@ -13,9 +13,9 @@ async function debugPayrollData() {
     console.log('🔍 Inspecting payroll data...')
 
     // Get all payroll entries
-    const payrollEntries = await prisma.payrollEntry.findMany({
+    const payrollEntries = await prisma.payroll_entries.findMany({
       include: {
-        user: {
+        users: {
           include: {
             personnelType: true
           }

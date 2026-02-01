@@ -4,7 +4,7 @@ const prisma = new PrismaClient()
 
 async function deleteGeneratedPayroll() {
   try {
-    const settings = await prisma.attendanceSettings.findFirst()
+    const settings = await prisma.attendance_settings.findFirst()
     
     if (!settings || !settings.periodStart || !settings.periodEnd) {
       console.log('No settings found')
@@ -14,7 +14,7 @@ async function deleteGeneratedPayroll() {
     console.log('Deleting generated payroll for period:')
     console.log(`  ${settings.periodStart.toISOString()} to ${settings.periodEnd.toISOString()}`)
     
-    const result = await prisma.payrollEntry.deleteMany({
+    const result = await prisma.payroll_entries.deleteMany({
       where: {
         periodStart: settings.periodStart,
         periodEnd: settings.periodEnd

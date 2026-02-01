@@ -6,9 +6,9 @@ async function fixPayrollDeductions() {
   console.log('🔧 Fixing payroll attendance deductions...\n')
   
   // Get all payroll entries
-  const entries = await prisma.payrollEntry.findMany({
+  const entries = await prisma.payroll_entries.findMany({
     include: {
-      user: {
+      users: {
         include: {
           personnelType: true
         }
@@ -102,7 +102,7 @@ async function fixPayrollDeductions() {
     }
     updatedBreakdown.attendanceDeductions = totalAttendanceDeductions
     
-    await prisma.payrollEntry.update({
+    await prisma.payroll_entries.update({
       where: { payroll_entries_id: entry.payroll_entries_id },
       data: {
         deductions: newTotalDeductions,
