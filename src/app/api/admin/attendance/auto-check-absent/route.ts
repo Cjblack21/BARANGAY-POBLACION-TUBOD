@@ -123,11 +123,15 @@ export async function POST() {
           markedCount++
         } else if (!existingStatus) {
           // Create new ABSENT record for users without any attendance today
+          const { randomBytes } = await import('crypto')
+          const attendanceId = randomBytes(12).toString('hex')
           await prisma.attendances.create({
             data: {
+              attendances_id: attendanceId,
               users_id: user.users_id,
               date: today,
-              status: 'ABSENT'
+              status: 'ABSENT',
+              updatedAt: new Date()
             }
           })
           
