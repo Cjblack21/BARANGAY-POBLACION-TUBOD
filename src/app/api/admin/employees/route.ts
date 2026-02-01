@@ -8,7 +8,7 @@ export async function GET() {
   if (!session || session.user.role !== "ADMIN") {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
   }
-  const users = await prisma.user.findMany({
+  const users = await prisma.users.findMany({
     where: { isActive: true, role: "PERSONNEL" },
     select: { users_id: true, name: true, email: true },
     orderBy: { name: "asc" },
