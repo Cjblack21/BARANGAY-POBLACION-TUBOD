@@ -39,7 +39,7 @@ export async function POST(request: NextRequest) {
     })
 
     // Get all existing attendance records for the date
-    const existingRecords = await prisma.attendance.findMany({
+    const existingRecords = await prisma.attendances.findMany({
       where: { 
         date: { gte: startOfTargetDay, lte: endOfTargetDay } 
       },
@@ -65,7 +65,7 @@ export async function POST(request: NextRequest) {
         
         if (existingRecord) {
           // Update existing PENDING record to ABSENT
-          const updatedRecord = await prisma.attendance.updateMany({
+          const updatedRecord = await prisma.attendances.updateMany({
             where: { 
               users_id: user.users_id,
               date: { gte: startOfTargetDay, lte: endOfTargetDay },
@@ -83,7 +83,7 @@ export async function POST(request: NextRequest) {
           })
         } else {
           // Create new ABSENT record
-          await prisma.attendance.create({
+          await prisma.attendances.create({
             data: {
               users_id: user.users_id,
               date: targetDate,
