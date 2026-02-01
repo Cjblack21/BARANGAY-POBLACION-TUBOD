@@ -17,8 +17,8 @@ export async function POST(request: NextRequest) {
 
     // Resolve user either by users_id or email
     const user = inputUsersId
-      ? await prisma.user.findUnique({ where: { users_id: inputUsersId } })
-      : await prisma.user.findUnique({ where: { email: inputEmail! } })
+      ? await prisma.users.findUnique({ where: { users_id: inputUsersId } })
+      : await prisma.users.findUnique({ where: { email: inputEmail! } })
 
     if (!user || !user.isActive) {
       return NextResponse.json({ error: 'User not found or inactive' }, { status: 404 })
@@ -29,7 +29,7 @@ export async function POST(request: NextRequest) {
     const endToday = getEndOfDayInPhilippines(now)
 
     // Find today's attendance record
-    const record = await prisma.attendance.findFirst({
+    const record = await prisma.attendances.findFirst({
       where: { 
         users_id: user.users_id, 
         date: { gte: startToday, lte: endToday } 
