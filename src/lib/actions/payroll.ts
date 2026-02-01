@@ -649,13 +649,7 @@ export async function getPayrollSummary(): Promise<{
       totalNetSalary,
       payrollEntries,
       hasGenerated,
-      hasReleased,
-      settings: {
-        periodStart: settingsPeriodStart.toISOString(),
-        periodEnd: settingsPeriodEnd.toISOString(),
-        hasGeneratedForSettings,
-        timeOutEnd: '17:00' // Default release time
-      }
+      hasReleased
     }
 
     return { success: true, summary }
