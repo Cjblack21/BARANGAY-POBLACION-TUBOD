@@ -31,7 +31,7 @@ export async function POST() {
     }
     
     // Parse cut-off time (timeOutEnd)
-    const [cutoffHours, cutoffMinutes] = settings.timeOutEnd!.split(':').map(Number)
+    const [cutoffHours, cutoffMinutes] = settings!.timeOutEnd!.split(':').map(Number)
     const cutoffTime = new Date(nowPhilippines)
     cutoffTime.setHours(cutoffHours, cutoffMinutes, 0, 0)
     
