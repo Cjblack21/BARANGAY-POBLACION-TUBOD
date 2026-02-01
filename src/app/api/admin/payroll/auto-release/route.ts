@@ -76,7 +76,7 @@ export async function POST(request: NextRequest) {
         users_id: true, 
         name: true, 
         email: true,
-        personnelType: {
+        personnel_types: {
           select: {
             basicSalary: true
           }
