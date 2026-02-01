@@ -17,7 +17,7 @@ async function main() {
   }
   
   // Update custom mandatory deductions that have "Mandatory deduction" in description
-  await prisma.deductionType.updateMany({
+  await prisma.deduction_types.updateMany({
     where: {
       description: {
         contains: 'Mandatory deduction'
