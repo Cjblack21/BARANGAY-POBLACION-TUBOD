@@ -6,7 +6,6 @@ import { authOptions } from "@/lib/auth"
 import { startOfDay, endOfDay, startOfMonth, endOfMonth } from "date-fns"
 import { calculateEarlyTimeoutDeduction } from "@/lib/attendance-calculations"
 import { calculateLateDeductionSync, calculateAbsenceDeductionSync, calculatePartialDeduction, calculateEarnings as calculateEarningsSync } from "@/lib/attendance-calculations-sync"
-import { AttendanceStatus } from "@prisma/client"
 import { revalidatePath } from "next/cache"
 import { getTodayRangeInPhilippines, getNowInPhilippines, getPhilippinesTimeString } from "@/lib/timezone"
 
