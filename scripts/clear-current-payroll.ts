@@ -7,7 +7,7 @@ async function main() {
   
   try {
     // Get attendance settings to find current period
-    const settings = await prisma.attendanceSettings.findFirst()
+    const settings = await prisma.attendance_settings.findFirst()
     
     if (!settings?.periodStart || !settings?.periodEnd) {
       console.log('❌ No payroll period set in attendance settings')
@@ -17,7 +17,7 @@ async function main() {
     console.log(`📅 Current period: ${settings.periodStart.toISOString().split('T')[0]} to ${settings.periodEnd.toISOString().split('T')[0]}`)
     
     // Delete payroll entries for this period
-    const deleted = await prisma.payrollEntry.deleteMany({
+    const deleted = await prisma.payroll_entries.deleteMany({
       where: {
         periodStart: settings.periodStart,
         periodEnd: settings.periodEnd
