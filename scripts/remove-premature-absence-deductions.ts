@@ -64,7 +64,7 @@ async function removePrematureAbsenceDeductions() {
         }
       },
       include: {
-        user: {
+        users: {
           select: {
             name: true,
             email: true
@@ -81,7 +81,7 @@ async function removePrematureAbsenceDeductions() {
     console.log(`\u26a0\ufe0f  Found ${todayAbsenceDeductions.length} absence deduction(s) created before cutoff:`)
     
     for (const deduction of todayAbsenceDeductions) {
-      console.log(`  - ${deduction.user.name} (${deduction.user.email}): ₱${deduction.amount}`)
+      console.log(`  - ${deduction.users.name} (${deduction.users.email}): ₱${deduction.amount}`)
     }
     
     // Delete these premature deductions
