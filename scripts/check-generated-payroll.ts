@@ -7,7 +7,7 @@ async function checkGeneratedPayroll() {
     console.log('🔍 Checking generated payroll...\n')
     
     // Get attendance settings
-    const settings = await prisma.attendanceSettings.findFirst()
+    const settings = await prisma.attendance_settings.findFirst()
     if (!settings || !settings.periodStart || !settings.periodEnd) {
       console.log('❌ No attendance settings or period found')
       return
@@ -17,13 +17,13 @@ async function checkGeneratedPayroll() {
     console.log(`   ${settings.periodStart.toISOString()} to ${settings.periodEnd.toISOString()}\n`)
     
     // Check for generated payroll entries
-    const payrollEntries = await prisma.payrollEntry.findMany({
+    const payrollEntries = await prisma.payroll_entries.findMany({
       where: {
         periodStart: settings.periodStart,
         periodEnd: settings.periodEnd
       },
       include: {
-        user: {
+        users: {
           select: {
             name: true,
             email: true
@@ -42,7 +42,7 @@ async function checkGeneratedPayroll() {
     console.log('   This means the payroll was FROZEN and is NOT updating in real-time!\n')
     
     for (const entry of payrollEntries) {
-      console.log(`   - ${entry.user.name} (${entry.user.email})`)
+      console.log(`   - ${entry.users.name} (${entry.users.email})`)
       console.log(`     Basic Salary: ₱${entry.basicSalary}`)
       console.log(`     Overtime: ₱${entry.overtime}`)
       console.log(`     Deductions: ₱${entry.deductions}`)
