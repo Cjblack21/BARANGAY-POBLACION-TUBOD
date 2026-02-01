@@ -19,7 +19,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Get the current admin user's password hash
-    const user = await prisma.user.findUnique({
+    const user = await prisma.users.findUnique({
       where: { users_id: session.user.id },
       select: { password: true }
     })
