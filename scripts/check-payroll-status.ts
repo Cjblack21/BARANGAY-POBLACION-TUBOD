@@ -12,11 +12,11 @@ async function checkStatus() {
     console.log('📊 PAYROLL ENTRIES:')
     console.log('='.repeat(60))
     
-    const payrolls = await prisma.payrollEntry.findMany({
+    const payrolls = await prisma.payroll_entries.findMany({
       orderBy: { createdAt: 'desc' },
       take: 5,
       include: {
-        user: {
+        users: {
           select: {
             name: true,
             email: true
@@ -29,7 +29,7 @@ async function checkStatus() {
       console.log('❌ No payroll entries found\n')
     } else {
       payrolls.forEach(p => {
-        console.log(`\nUser: ${p.user.name} (${p.user.email})`)
+        console.log(`\nUser: ${p.users.name} (${p.users.email})`)
         console.log(`Period: ${p.periodStart.toISOString().split('T')[0]} to ${p.periodEnd.toISOString().split('T')[0]}`)
         console.log(`Status: ${p.status}`)
         console.log(`Net Pay: ₱${Number(p.netPay).toFixed(2)}`)
@@ -51,13 +51,13 @@ async function checkStatus() {
       orderBy: { appliedAt: 'desc' },
       take: 10,
       include: {
-        user: {
+        users: {
           select: {
             name: true,
             email: true
           }
         },
-        deductionType: {
+        deduction_types: {
           select: {
             name: true,
             isMandatory: true
@@ -70,9 +70,9 @@ async function checkStatus() {
       console.log('✅ No active deductions found\n')
     } else {
       activeDeductions.forEach(d => {
-        console.log(`\n${d.user.name}: ${d.deductionType.name}`)
+        console.log(`\n${d.users.name}: ${d.deduction_types.name}`)
         console.log(`  Amount: ₱${Number(d.amount).toFixed(2)}`)
-        console.log(`  Mandatory: ${d.deductionType.isMandatory ? 'YES' : 'NO'}`)
+        console.log(`  Mandatory: ${d.deduction_types.isMandatory ? 'YES' : 'NO'}`)
         console.log(`  Applied: ${d.appliedAt.toISOString().split('T')[0]}`)
         console.log(`  Archived: ${d.archivedAt ? 'YES (' + d.archivedAt.toISOString() + ')' : 'NO'}`)
       })
@@ -89,13 +89,13 @@ async function checkStatus() {
       orderBy: { archivedAt: 'desc' },
       take: 10,
       include: {
-        user: {
+        users: {
           select: {
             name: true,
             email: true
           }
         },
-        deductionType: {
+        deduction_types: {
           select: {
             name: true,
             isMandatory: true
@@ -108,9 +108,9 @@ async function checkStatus() {
       console.log('❌ No archived deductions found\n')
     } else {
       archivedDeductions.forEach(d => {
-        console.log(`\n${d.user.name}: ${d.deductionType.name}`)
+        console.log(`\n${d.users.name}: ${d.deduction_types.name}`)
         console.log(`  Amount: ₱${Number(d.amount).toFixed(2)}`)
-        console.log(`  Mandatory: ${d.deductionType.isMandatory ? 'YES' : 'NO'}`)
+        console.log(`  Mandatory: ${d.deduction_types.isMandatory ? 'YES' : 'NO'}`)
         console.log(`  Applied: ${d.appliedAt.toISOString().split('T')[0]}`)
         console.log(`  Archived: ${d.archivedAt?.toISOString()}`)
       })
