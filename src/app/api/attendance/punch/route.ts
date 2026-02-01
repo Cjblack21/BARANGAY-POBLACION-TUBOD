@@ -47,7 +47,8 @@ export async function POST(request: NextRequest) {
     console.log('Settings:', settings ? {
       timeInStart: settings.timeInStart,
       timeInEnd: settings.timeInEnd,
-      noTimeInCutoff: settings.noTimeInCutoff
+      timeOutStart: settings.timeOutStart,
+      timeOutEnd: settings.timeOutEnd
     } : 'No settings found')
 
     // Get today's date range in Philippines timezone
