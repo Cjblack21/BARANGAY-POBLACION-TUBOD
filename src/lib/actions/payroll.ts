@@ -693,7 +693,6 @@ export async function getPayrollSchedule(): Promise<{
       totalGrossSalary: summaryResult.summary!.totalGrossSalary,
       totalDeductions: summaryResult.summary!.totalDeductions,
       totalNetSalary: summaryResult.summary!.totalNetSalary,
-      workingDays: summaryResult.summary!.workingDays,
       payrollEntries: summaryResult.summary!.payrollEntries
     }
 
