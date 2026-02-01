@@ -22,7 +22,7 @@ export async function DELETE(
     const { userId } = params
 
     // Check if the user exists
-    const user = await prisma.user.findUnique({
+    const user = await prisma.users.findUnique({
       where: { users_id: userId },
       select: { users_id: true, name: true, email: true }
     })
