@@ -12,7 +12,7 @@ export async function DELETE() {
     }
 
     // Check if user is admin
-    const user = await prisma.user.findUnique({
+    const user = await prisma.users.findUnique({
       where: { users_id: session.user.id },
       select: { role: true },
     })
@@ -22,7 +22,7 @@ export async function DELETE() {
     }
 
     // First, set all users' personnel_types_id to null
-    await prisma.user.updateMany({
+    await prisma.users.updateMany({
       where: {
         personnel_types_id: { not: null },
       },
@@ -32,7 +32,7 @@ export async function DELETE() {
     })
 
     // Delete all personnel types
-    const result = await prisma.personnelType.deleteMany({})
+    const result = await prisma.personnel_types.deleteMany({})
 
     return NextResponse.json({ 
       message: "All position/personnel type data has been deleted successfully",
