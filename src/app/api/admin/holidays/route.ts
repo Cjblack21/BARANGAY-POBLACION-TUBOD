@@ -67,12 +67,16 @@ export async function POST(request: NextRequest) {
 
     console.log('Creating holiday with data:', { name, date: holidayDate, type, description })
     
+    const { randomBytes } = await import('crypto')
+    const holidayId = randomBytes(12).toString('hex')
     const holiday = await prisma.holidays.create({
       data: {
+        holidays_id: holidayId,
         name: name.trim(),
         date: holidayDate,
         type: type as 'NATIONAL' | 'RELIGIOUS' | 'COMPANY',
-        description: description?.trim() || null
+        description: description?.trim() || '',
+        updatedAt: new Date()
       }
     })
 
