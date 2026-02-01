@@ -36,7 +36,7 @@ export async function getEffectiveAttendanceStatus(
   const { start: startOfToday, end: endOfToday } = getTodayRangeInPhilippines()
   
   // Get attendance settings
-  const settings = await prisma.attendanceSettings.findFirst()
+  const settings = await prisma.attendance_settings.findFirst()
   
   const nowHH = nowPH.getHours().toString().padStart(2, '0')
   const nowMM = nowPH.getMinutes().toString().padStart(2, '0')
@@ -132,7 +132,7 @@ export async function getLiveAttendanceRecords(
   basicSalary: number
 ): Promise<LiveAttendanceRecord[]> {
   // Get attendance records from database - include all dates in period
-  const records = await prisma.attendance.findMany({
+  const records = await prisma.attendances.findMany({
     where: {
       users_id: userId,
       date: { gte: periodStart, lte: periodEnd }
