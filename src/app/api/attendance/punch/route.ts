@@ -2,7 +2,6 @@ import { NextRequest, NextResponse } from "next/server"
 import { prisma } from "@/lib/prisma"
 import { getStartOfDayInPhilippines, getEndOfDayInPhilippines, getNowInPhilippines } from "@/lib/timezone"
 import { calculateLateDeduction, calculateEarlyTimeoutDeduction, createLateDeduction } from "@/lib/attendance-calculations"
-import { AttendanceStatus } from "@prisma/client"
 
 // Ensure this route is always dynamically rendered
 export const dynamic = 'force-dynamic'
@@ -90,7 +89,7 @@ export async function POST(request: NextRequest) {
     let lateSeconds = 0
     let earlyTimeoutDeduction = 0
     let earlySeconds = 0
-    let status: AttendanceStatus = AttendanceStatus.PENDING
+    let status: attendances_status = attendances_status.PENDING
     
     if (!record) {
       // First punch (time-in) - determine status based on timing
@@ -101,8 +100,8 @@ export async function POST(request: NextRequest) {
           include: { personnel_types: true }
         })
         
-        if (userWithSalary?.personnelType?.basicSalary) {
-          const basicSalary = Number(userWithSalary.personnelType.basicSalary)
+        if (userWithSalary?.personnel_types?.basicSalary) {
+          const basicSalary = Number(userWithSalary.personnel_types.basicSalary)
           // Create expected time from settings using TODAY's date in Philippines timezone
           // Extract date components from the Philippines time
           const phTimeString = now.toLocaleString('en-US', { timeZone: 'Asia/Manila' })
@@ -125,7 +124,7 @@ export async function POST(request: NextRequest) {
           
           lateDeduction = lateDeductionAmount
           lateSeconds = Math.floor(lateSeconds)
-          status = lateSeconds > 0 ? AttendanceStatus.LATE : AttendanceStatus.PRESENT
+          status = lateSeconds > 0 ? attendances_status.LATE : attendances_status.PRESENT
           
           console.log(`🔍 DEBUG: Late deduction calculation for user ${users_id}:`)
           console.log(`🔍 DEBUG: Current time: ${now.toISOString()}`)
@@ -136,10 +135,10 @@ export async function POST(request: NextRequest) {
           console.log(`🔍 DEBUG: Late deduction amount: ${lateDeductionAmount}`)
           console.log(`🔍 DEBUG: Status: ${status}`)
         } else {
-          status = AttendanceStatus.PRESENT
+          status = attendances_status.PRESENT
         }
       } else {
-        status = AttendanceStatus.PRESENT // Default to present if no late deduction logic
+        status = attendances_status.PRESENT // Default to present if no late deduction logic
       }
       
       // Normalize date to start of day to ensure consistency with existing records
@@ -172,8 +171,8 @@ export async function POST(request: NextRequest) {
           include: { personnel_types: true }
         })
         
-        if (userWithSalary?.personnelType?.basicSalary) {
-          const basicSalary = Number(userWithSalary.personnelType.basicSalary)
+        if (userWithSalary?.personnel_types?.basicSalary) {
+          const basicSalary = Number(userWithSalary.personnel_types.basicSalary)
           // Create expected time from settings using TODAY's date in Philippines timezone
           // Extract date components from the Philippines time
           const phTimeString = now.toLocaleString('en-US', { timeZone: 'Asia/Manila' })
@@ -196,7 +195,7 @@ export async function POST(request: NextRequest) {
           
           lateDeduction = lateDeductionAmount
           lateSeconds = Math.floor(lateSeconds)
-          status = lateSeconds > 0 ? AttendanceStatus.LATE : AttendanceStatus.PRESENT
+          status = lateSeconds > 0 ? attendances_status.LATE : attendances_status.PRESENT
           
           console.log(`🔍 DEBUG: Late deduction calculation for user ${users_id}:`)
           console.log(`🔍 DEBUG: Current time: ${now.toISOString()}`)
@@ -207,10 +206,10 @@ export async function POST(request: NextRequest) {
           console.log(`🔍 DEBUG: Late deduction amount: ${lateDeductionAmount}`)
           console.log(`🔍 DEBUG: Status: ${status}`)
         } else {
-          status = AttendanceStatus.PRESENT
+          status = attendances_status.PRESENT
         }
       } else {
-        status = AttendanceStatus.PRESENT // Default to present if no late deduction logic
+        status = attendances_status.PRESENT // Default to present if no late deduction logic
       }
       
       record = await prisma.attendances.update({
@@ -237,8 +236,8 @@ export async function POST(request: NextRequest) {
           include: { personnel_types: true }
         })
         
-        if (userWithSalary?.personnelType?.basicSalary) {
-          const basicSalary = Number(userWithSalary.personnelType.basicSalary)
+        if (userWithSalary?.personnel_types?.basicSalary) {
+          const basicSalary = Number(userWithSalary.personnel_types.basicSalary)
           earlyTimeoutDeduction = await calculateEarlyTimeoutDeduction(basicSalary, now, settings.timeOutStart)
           earlySeconds = Math.max(0, (new Date(now.getFullYear(), now.getMonth(), now.getDate(), 
             parseInt(settings.timeOutStart.split(':')[0]), parseInt(settings.timeOutStart.split(':')[1]), 0, 0).getTime() - now.getTime()) / 1000)
