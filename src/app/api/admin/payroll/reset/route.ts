@@ -15,20 +15,20 @@ export async function POST() {
     }
 
     // Archive all released payroll entries
-    await prisma.payrollEntry.updateMany({
+    await prisma.payroll_entries.updateMany({
       where: { status: 'RELEASED' },
       data: { status: 'ARCHIVED' }
     })
 
     // Delete pending entries with invalid dates (start = end)
-    await prisma.payrollEntry.deleteMany({
+    await prisma.payroll_entries.deleteMany({
       where: {
-        periodStart: { equals: prisma.payrollEntry.fields.periodEnd }
+        periodStart: { equals: prisma.payroll_entries.fields.periodEnd }
       }
     })
 
     // Get current settings
-    const settings = await prisma.attendanceSettings.findFirst()
+    const settings = await prisma.attendance_settings.findFirst()
     
     if (!settings) {
       return NextResponse.json({ error: 'No settings found' }, { status: 404 })
@@ -44,7 +44,7 @@ export async function POST() {
     periodEnd.setHours(23, 59, 59, 999)
 
     // Update settings with correct period
-    await prisma.attendanceSettings.update({
+    await prisma.attendance_settings.update({
       where: { attendance_settings_id: settings.attendance_settings_id },
       data: {
         periodStart,
