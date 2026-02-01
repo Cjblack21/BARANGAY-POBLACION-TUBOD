@@ -278,10 +278,18 @@ export async function GET() {
           const deductions = attendanceDeductionMap.get(user.users_id) || 0
 
           // Persist absence deduction idempotently
+          const { randomBytes } = await import('crypto')
+          const deductionTypeId = randomBytes(12).toString('hex')
           const absenceType = await prisma.deduction_types.upsert({
             where: { name: 'Absence Deduction' },
             update: {},
-            create: { name: 'Absence Deduction', amount: deductions, isActive: true },
+            create: { 
+              deduction_types_id: deductionTypeId,
+              name: 'Absence Deduction', 
+              amount: deductions, 
+              isActive: true,
+              updatedAt: new Date()
+            },
           })
           const existing = await prisma.deductions.findFirst({
             where: {
