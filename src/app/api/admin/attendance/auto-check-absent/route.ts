@@ -148,7 +148,7 @@ export async function POST() {
 
     return NextResponse.json({ 
       success: true, 
-      message: `Auto-marked ${markedCount} users as absent after cut-off time (${settings.timeOutEnd})`,
+      message: `Auto-marked ${markedCount} users as absent after cut-off time (${settings!.timeOutEnd})`,
       markedCount,
       cutoffTime: cutoffTime.toISOString(),
       currentTime: nowPhilippines.toISOString()
