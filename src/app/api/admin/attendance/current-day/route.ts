@@ -89,7 +89,7 @@ export async function GET() {
       select: {
         users_id: true,
         amount: true,
-        deductionType: {
+        deduction_types: {
           select: {
             name: true
           }
