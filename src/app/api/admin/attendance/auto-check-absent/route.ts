@@ -21,6 +21,15 @@ export async function POST() {
     const today = new Date(nowPhilippines)
     today.setHours(0, 0, 0, 0)
     
+    // Get attendance settings
+    const settings = await prisma.attendance_settings.findFirst()
+    if (!settings || !settings.timeOutEnd) {
+      return NextResponse.json({ 
+        success: false,
+        message: 'Attendance settings not configured' 
+      })
+    }
+    
     // Parse cut-off time (timeOutEnd)
     const [cutoffHours, cutoffMinutes] = settings.timeOutEnd.split(':').map(Number)
     const cutoffTime = new Date(nowPhilippines)
