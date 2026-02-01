@@ -19,7 +19,7 @@ async function fixAbsenceDeductions() {
       include: {
         users: {
           include: {
-            personnelType: true
+            personnel_types: true
           }
         }
       }
@@ -30,7 +30,7 @@ async function fixAbsenceDeductions() {
     let fixedCount = 0
 
     for (const entry of payrollEntries) {
-      if (!entry.breakdownSnapshot || !entry.user?.personnelType) {
+      if (!entry.breakdownSnapshot || !entry.users?.personnel_types) {
         continue
       }
 
@@ -66,7 +66,7 @@ async function fixAbsenceDeductions() {
         currentDate.setDate(currentDate.getDate() + 1)
       }
 
-      const semiMonthlySalary = Number(entry.user.personnelType.basicSalary)
+      const semiMonthlySalary = Number(entry.users.personnel_types.basicSalary)
       const correctDailyDeduction = semiMonthlySalary / workingDays
 
       // Update each absence deduction
@@ -118,7 +118,7 @@ async function fixAbsenceDeductions() {
           }
         })
 
-        console.log(`✅ Fixed ${entry.user.name || entry.user.email}:`)
+        console.log(`✅ Fixed ${entry.users.name || entry.users.email}:`)
         console.log(`   Old absence deduction: ₱${totalOldDeductions.toFixed(2)}`)
         console.log(`   New absence deduction: ₱${totalNewDeductions.toFixed(2)}`)
         console.log(`   Working days: ${workingDays}`)
