@@ -33,9 +33,9 @@ export async function POST(request: NextRequest) {
     }
 
     // Get all active personnel users
-    const activeUsers = await prisma.user.findMany({
+    const activeUsers = await prisma.users.findMany({
       where: { isActive: true, role: 'PERSONNEL' },
-      include: { personnelType: true }
+      include: { personnel_types: true }
     })
 
     // Get all existing attendance records for the date
