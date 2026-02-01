@@ -103,11 +103,11 @@ export async function POST(request: NextRequest) {
       const overtime = Number(entry.overtime || 0)
       const deductions = Number(entry.deductions)
       const netPay = Number(entry.netPay)
-      const workHours = workHoursMap.get(entry.users.id) || 0
+      const workHours = workHoursMap.get(entry.users.users_id) || 0
       const grossPay = basicSalary + overtime
 
       return {
-        users_id: entry.users.id,
+        users_id: entry.users.users_id,
         name: entry.users.name,
         email: entry.users.email || '',
         totalHours: workHours,
