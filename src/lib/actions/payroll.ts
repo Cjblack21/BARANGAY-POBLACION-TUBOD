@@ -27,17 +27,11 @@ export type PayrollSummary = {
   totalGrossSalary: number
   totalDeductions: number
   totalNetSalary: number
-  workingDays: string[]
   payrollEntries: PayrollEntry[]
   hasGenerated: boolean
   hasReleased: boolean
-  settings: {
-    periodStart: string
-    periodEnd: string
-    hasGeneratedForSettings: boolean
-    timeOutEnd?: string | null
-  }
 }
+
 
 export type PayrollEntry = {
   users_id: string
@@ -48,25 +42,16 @@ export type PayrollEntry = {
     name: string
     basicSalary: number
   } | null
-  totalDays: number
-  presentDays: number
-  absentDays: number
-  lateDays: number
-  totalWorkHours: number
   grossSalary: number
   totalDeductions: number
   totalAdditions: number
   netSalary: number
   status: 'Pending' | 'Released' | 'Archived'
-  attendanceRecords: AttendanceRecord[]
   deductionDetails: DeductionDetail[]
   loanPayments: number
-  // Separate deduction breakdowns for frontend
-  attendanceDeductions: number
   databaseDeductions: number
-  unpaidLeaveDeduction: number
-  unpaidLeaveDays: number
 }
+
 
 export type DeductionDetail = {
   id: string
