@@ -38,7 +38,7 @@ async function main() {
       todayEnd.setHours(23, 59, 59, 999)
       
       // Update all ABSENT records to PENDING
-      const result = await prisma.attendance.updateMany({
+      const result = await prisma.attendances.updateMany({
         where: {
           date: {
             gte: todayDate,

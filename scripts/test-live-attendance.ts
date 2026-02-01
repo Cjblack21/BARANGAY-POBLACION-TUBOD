@@ -12,9 +12,9 @@ async function testLiveAttendance() {
       return
     }
     
-    const user = await prisma.user.findFirst({
+    const user = await prisma.users.findFirst({
       where: { email: 'mike.johnson@pms.com' },
-      include: { personnelType: true }
+      include: { personnel_types: true }
     })
     
     if (!user) {

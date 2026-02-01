@@ -16,7 +16,7 @@ async function testBreakdownAPI() {
     console.log(`   End: ${settings.periodEnd.toISOString()}`)
     console.log('')
     
-    const user = await prisma.user.findFirst({
+    const user = await prisma.users.findFirst({
       where: { email: 'bryllecooked@pms.com' },
       include: { personnelType: true }
     })
@@ -31,7 +31,7 @@ async function testBreakdownAPI() {
     console.log('')
     
     // Get attendance records in period
-    const attendanceRecords = await prisma.attendance.findMany({
+    const attendanceRecords = await prisma.attendances.findMany({
       where: {
         users_id: user.users_id,
         date: { gte: settings.periodStart, lte: settings.periodEnd }

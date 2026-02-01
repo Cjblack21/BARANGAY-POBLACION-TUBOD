@@ -46,7 +46,7 @@ async function fixTodaysAbsentToPending() {
     console.log(`📅 Today's date: ${startOfToday.toISOString().split('T')[0]}`)
     
     // Find all ABSENT records for today
-    const absentRecords = await prisma.attendance.findMany({
+    const absentRecords = await prisma.attendances.findMany({
       where: {
         status: 'ABSENT',
         date: {
@@ -76,7 +76,7 @@ async function fixTodaysAbsentToPending() {
     console.log('')
     
     // Update all ABSENT records to PENDING
-    const result = await prisma.attendance.updateMany({
+    const result = await prisma.attendances.updateMany({
       where: {
         status: 'ABSENT',
         date: {

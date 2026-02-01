@@ -41,13 +41,13 @@ async function triggerAutoMarkAbsent() {
     console.log(`📅 Today: ${startOfToday.toISOString().split('T')[0]}`)
     
     // Get all active personnel
-    const activeUsers = await prisma.user.findMany({
+    const users = await prisma.users.findMany({
       where: { isActive: true, role: 'PERSONNEL' },
       include: { personnelType: true }
     })
     
-    // Get attendance records for today
-    const todayRecords = await prisma.attendance.findMany({
+    // Get attendances records for today
+    const todayRecords = await prisma.attendances.findMany({
       where: {
         date: { gte: startOfToday, lte: endOfToday }
       }
@@ -64,13 +64,13 @@ async function triggerAutoMarkAbsent() {
       if (!record || record.status === 'PENDING') {
         // Mark as absent
         if (record) {
-          await prisma.attendance.update({
+          await prisma.attendances.update({
             where: { attendances_id: record.attendances_id },
             data: { status: 'ABSENT' }
           })
           console.log(`✅ Updated ${user.name}: PENDING → ABSENT`)
         } else {
-          await prisma.attendance.create({
+          await prisma.attendances.create({
             data: {
               users_id: user.users_id,
               date: new Date(startOfToday),
