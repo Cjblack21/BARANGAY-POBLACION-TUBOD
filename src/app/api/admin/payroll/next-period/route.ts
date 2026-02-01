@@ -32,11 +32,11 @@ export async function POST(request: NextRequest) {
     }
 
     // Get existing HeaderSettings
-    const existingSettings = await prisma.headerSettings.findFirst()
+    const existingSettings = await prisma.header_settings.findFirst()
     
     if (existingSettings) {
       // Update existing settings with next period info in customText field
-      await prisma.headerSettings.update({
+      await prisma.header_settings.update({
         where: { id: existingSettings.id },
         data: {
           customText: `Next Payroll Period: ${nextPeriodStart} to ${nextPeriodEnd} (${type}) - ${notes || 'No notes'}`
@@ -44,13 +44,17 @@ export async function POST(request: NextRequest) {
       })
     } else {
       // Create new HeaderSettings if none exist
-      await prisma.headerSettings.create({
+      const { randomBytes } = await import('crypto')
+      const settingsId = randomBytes(12).toString('hex')
+      await prisma.header_settings.create({
         data: {
+          id: settingsId,
           schoolName: 'Default School',
           schoolAddress: 'Default Address',
           systemName: 'Payroll System',
           customText: `Next Payroll Period: ${nextPeriodStart} to ${nextPeriodEnd} (${type}) - ${notes || 'No notes'}`,
-          workingDays: JSON.stringify(["Monday", "Tuesday", "Wednesday", "Thursday", "Friday"])
+          workingDays: JSON.stringify(["Monday", "Tuesday", "Wednesday", "Thursday", "Friday"]),
+          updatedAt: new Date()
         }
       })
     }
@@ -60,7 +64,7 @@ export async function POST(request: NextRequest) {
     // Create notification for all users about payroll reschedule
     try {
       // Get all active users
-      const activeUsers = await prisma.user.findMany({
+      const activeUsers = await prisma.users.findMany({
         where: { 
           isActive: true,
           role: { not: 'ADMIN' } // Don't notify admins, they already know
@@ -109,7 +113,7 @@ export async function GET(request: NextRequest) {
     }
 
     // Get the next period configuration from HeaderSettings
-    const headerSettings = await prisma.headerSettings.findFirst()
+    const headerSettings = await prisma.header_settings.findFirst()
     
     if (headerSettings?.customText && headerSettings.customText.includes('Next Payroll Period:')) {
       // Parse the customText to extract period information
