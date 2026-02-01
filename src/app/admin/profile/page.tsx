@@ -58,7 +58,7 @@ export default function AdminProfile() {
   const [resettingOtherDeductions, setResettingOtherDeductions] = useState(false)
   const [resettingAll, setResettingAll] = useState(false)
   const [showResetModal, setShowResetModal] = useState(false)
-  const [resetType, setResetType] = useState<'payroll' | 'positions' | 'countdown' | 'mandatory-deductions' | 'overload-pay' | 'loans' | 'other-deductions' | 'all' | null>(null)
+  const [resetType, setResetType] = useState<'payroll' | 'attendance' | 'positions' | 'countdown' | 'mandatory-deductions' | 'overload-pay' | 'loans' | 'other-deductions' | 'all' | null>(null)
   const [resetPassword, setResetPassword] = useState('')
 
   useEffect(() => {
