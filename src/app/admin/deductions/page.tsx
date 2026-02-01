@@ -48,6 +48,7 @@ type Deduction = {
     name: string | null
     email: string
     personnel_types?: {
+      name?: string | null
       department?: string | null
       basicSalary?: number
     } | null
