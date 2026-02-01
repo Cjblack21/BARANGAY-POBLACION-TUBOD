@@ -55,7 +55,7 @@ async function fixTodaysAbsentToPending() {
         }
       },
       include: {
-        user: {
+        users: {
           select: {
             name: true,
             email: true
@@ -71,7 +71,7 @@ async function fixTodaysAbsentToPending() {
     
     console.log(`⚠️  Found ${absentRecords.length} premature ABSENT record(s):`)
     for (const record of absentRecords) {
-      console.log(`   - ${record.user.name} (${record.user.email})`)
+      console.log(`   - ${record.users.name} (${record.users.email})`)
     }
     console.log('')
     
