@@ -35,12 +35,12 @@ export async function POST(request: NextRequest) {
     const attendanceRelatedNames = ['Late Arrival', 'Late Penalty', 'Absence Deduction', 'Absent', 'Late', 'Tardiness']
 
     const where: any = {
-      deductionType: { name: { in: attendanceRelatedNames } },
+      deduction_types: { name: { in: attendanceRelatedNames } },
     }
     if (users_id) where.users_id = users_id
     if (periodStart && periodEnd) where.appliedAt = { gte: periodStart, lte: periodEnd }
 
-    const deleted = await prisma.deduction.deleteMany({ where })
+    const deleted = await prisma.deductions.deleteMany({ where })
 
     return NextResponse.json({ success: true, deletedCount: deleted.count })
   } catch (error) {
