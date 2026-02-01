@@ -90,7 +90,7 @@ export async function getPersonnelDashboard(): Promise<{
     const monthEnd = new Date(now.getFullYear(), now.getMonth() + 1, 0)
     monthEnd.setHours(23, 59, 59, 999)
 
-    const monthlyAttendance = await prisma.attendance.findMany({
+    const monthlyAttendance = await prisma.attendances.findMany({
       where: {
         users_id: userId,
         date: {
