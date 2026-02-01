@@ -44,13 +44,13 @@ export async function POST(request: NextRequest) {
     const { periodStart, periodEnd } = getCurrentBiweeklyPeriod()
 
     // Get users with their personnel type and basic salary
-    const users = await prisma.user.findMany({
+    const users = await prisma.users.findMany({
       where: { isActive: true, role: 'PERSONNEL' },
       select: {
         users_id: true,
         name: true,
         email: true,
-        personnelType: {
+        personnel_types: {
           select: {
             basicSalary: true
           }
@@ -61,7 +61,7 @@ export async function POST(request: NextRequest) {
     const userIds = users.map(u => u.users_id)
 
     // Get all attendance data for real-time calculation
-    const attendance = await prisma.attendance.findMany({
+    const attendance = await prisma.attendances.findMany({
       where: {
         users_id: { in: userIds },
         date: { gte: periodStart, lte: periodEnd }
@@ -77,10 +77,10 @@ export async function POST(request: NextRequest) {
 
     // Get non-attendance related deductions only
     const attendanceRelatedTypes = ['Late Arrival', 'Absence Deduction', 'Partial Attendance']
-    const deductions = await prisma.deduction.findMany({
+    const deductions = await prisma.deductions.findMany({
       where: {
         users_id: { in: userIds },
-        deductionType: {
+        deduction_types: {
           name: { notIn: attendanceRelatedTypes }
         }
       },
@@ -90,7 +90,7 @@ export async function POST(request: NextRequest) {
     })
 
     // Get active loans
-    const loans = await prisma.loan.findMany({
+    const loans = await prisma.loans.findMany({
       where: {
         users_id: { in: userIds },
         status: 'ACTIVE'
