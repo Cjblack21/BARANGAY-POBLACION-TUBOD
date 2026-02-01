@@ -48,6 +48,7 @@ type PayrollEntry = {
     grossPay?: number // Total gross pay (basic + overload)
     loanDeductions: number
     otherDeductions: number
+    totalDeductions?: number // Total of all deductions
     netPay?: number // Calculated net pay from backend
     loanDetails: LoanDetail[]
     otherDeductionDetails: DeductionDetail[]
