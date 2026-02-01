@@ -54,7 +54,7 @@ export async function GET() {
   console.log('✅ Using attendance settings period:', { periodStart, periodEnd })
 
   // Get users with their personnel type and basic salary
-  const users = await prisma.user.findMany({
+  const users = await prisma.users.findMany({
     where: { isActive: true, role: 'PERSONNEL' },
     select: { 
       users_id: true, 
@@ -149,7 +149,7 @@ export async function GET() {
 
   // Get ALL non-archived deductions but separate attendance-related from non-attendance deductions
   // Only fetch deductions that haven't been archived yet (archived ones are already in payroll snapshot)
-  const allDeductions = await prisma.deduction.findMany({
+  const allDeductions = await prisma.deductions.findMany({
     where: { 
       users_id: { in: userIds }, 
       appliedAt: { gte: periodStart, lte: periodEnd },
@@ -179,7 +179,7 @@ export async function GET() {
   console.log('Non-attendance deductions found:', nonAttendanceDeductions.length)
 
   // Get active loans for current period
-  const loans = await prisma.loan.findMany({
+  const loans = await prisma.loans.findMany({
     where: { 
       users_id: { in: userIds }, 
       status: 'ACTIVE',
@@ -196,7 +196,7 @@ export async function GET() {
   })
 
   // Check if payroll entries exist for this period (exclude archived)
-  const existingPayrolls = await prisma.payrollEntry.groupBy({
+  const existingPayrolls = await prisma.payroll_entries.groupBy({
     by: ['users_id'],
     where: { 
       users_id: { in: userIds }, 
@@ -207,7 +207,7 @@ export async function GET() {
   })
 
   const releasedSet = new Set(
-    (await prisma.payrollEntry.findMany({ 
+    (await prisma.payroll_entries.findMany({ 
       where: { 
         users_id: { in: userIds }, 
         processedAt: { gte: periodStart, lte: periodEnd }, 
