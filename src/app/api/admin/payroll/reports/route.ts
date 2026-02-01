@@ -36,7 +36,7 @@ export async function POST(request: NextRequest) {
     }
 
     // 1. Company Summary Report
-    const companySummary = await prisma.payrollEntry.aggregate({
+    const companySummary = await prisma.payroll_entries.aggregate({
       where: {
         periodStart: startDate,
         periodEnd: endDate,
@@ -53,16 +53,16 @@ export async function POST(request: NextRequest) {
     })
 
     // 2. Employee Contribution Report (per-employee breakdown)
-    const employeeContributions = await prisma.payrollEntry.findMany({
+    const employeeContributions = await prisma.payroll_entries.findMany({
       where: {
         periodStart: startDate,
         periodEnd: endDate,
         status: { in: ['RELEASED', 'ARCHIVED'] }
       },
       include: {
-        user: {
+        users: {
           include: {
-            personnelType: true
+            personnel_types: true
           }
         }
       }
@@ -81,9 +81,9 @@ export async function POST(request: NextRequest) {
         totalNetPay: Number(companySummary._sum.netPay || 0)
       },
       employeeContribution: employeeContributions.map(entry => ({
-        employeeName: entry.user.name,
-        employeeEmail: entry.user.email,
-        personnelType: entry.user.personnelType?.name,
+        employeeName: entry.users.name,
+        employeeEmail: entry.users.email,
+        personnelType: entry.users.personnel_types?.name,
         grossSalary: Number(entry.basicSalary),
         totalDeductions: Number(entry.deductions),
         netSalary: Number(entry.netPay),
