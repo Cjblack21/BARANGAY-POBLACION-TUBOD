@@ -180,7 +180,7 @@ export async function GET(request: NextRequest) {
       }
 
       // Calculate earnings and deductions based on ACTUAL seconds worked
-      const basicSalary = user.personnelType?.basicSalary ? Number(user.personnelType.basicSalary) : 0
+      const basicSalary = user.personnel_types?.basicSalary ? Number(user.personnel_types.basicSalary) : 0
       
       let earnings = 0
       let deductions = 0
