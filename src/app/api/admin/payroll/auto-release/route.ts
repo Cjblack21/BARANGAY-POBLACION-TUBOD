@@ -264,10 +264,13 @@ export async function POST(request: NextRequest) {
     } else if (payrollEntries.length > 0) {
       // Create new payroll entries with RELEASED status
       try {
+        const { randomBytes } = await import('crypto')
         const entriesToCreate = payrollEntries.map(entry => ({
           ...entry,
+          payroll_entries_id: randomBytes(12).toString('hex'),
           status: 'RELEASED' as const,
-          releasedAt: now
+          releasedAt: now,
+          updatedAt: new Date()
         }))
         
         console.log('Creating new payroll entries:', entriesToCreate)
