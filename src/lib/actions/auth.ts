@@ -1,7 +1,7 @@
 'use server'
 
 import { prisma } from '@/lib/prisma'
-import { Role } from '@prisma/client'
+import { users_role } from '@prisma/client'
 import { revalidatePath } from 'next/cache'
 
 export async function createUserAccount(data: {
@@ -17,7 +17,7 @@ export async function createUserAccount(data: {
 }> {
   try {
     // Check if school ID is already taken
-    const existingUser = await prisma.user.findFirst({
+    const existingUser = await prisma.users.findFirst({
       where: {
         OR: [
           { email: data.email },
@@ -37,7 +37,7 @@ export async function createUserAccount(data: {
 
     // Verify personnel type exists if provided
     if (data.personnelTypeId) {
-      const personnelType = await prisma.personnelType.findUnique({
+      const personnelType = await prisma.personnel_types.findUnique({
         where: { personnel_types_id: data.personnelTypeId }
       })
 
@@ -47,15 +47,16 @@ export async function createUserAccount(data: {
     }
 
     // Create user account
-    await prisma.user.create({
+    await prisma.users.create({
       data: {
         users_id: data.schoolId, // Use school ID as the primary key
         email: data.email,
         name: data.name,
         password: '', // No password needed for OAuth users
-        role: Role.PERSONNEL,
+        role: users_role.PERSONNEL,
         personnel_types_id: data.personnelTypeId || null,
-        isActive: true
+        isActive: true,
+        updatedAt: new Date()
       }
     })
 
