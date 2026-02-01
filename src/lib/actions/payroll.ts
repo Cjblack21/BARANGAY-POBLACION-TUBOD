@@ -83,7 +83,6 @@ export type PayrollSchedule = {
   totalGrossSalary: number
   totalDeductions: number
   totalNetSalary: number
-  workingDays: string[]
   payrollEntries: PayrollEntry[]
 }
 
