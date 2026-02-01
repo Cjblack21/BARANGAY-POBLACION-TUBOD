@@ -13,7 +13,7 @@ export async function GET() {
     }
 
     // Get the current active schedule
-    const schedule = await prisma.payrollSchedule.findFirst({
+    const schedule = await prisma.payroll_schedules.findFirst({
       where: { isActive: true },
       orderBy: { scheduledDate: 'asc' }
     })
@@ -49,17 +49,21 @@ export async function POST(request: NextRequest) {
     }
 
     // Deactivate any existing active schedules
-    await prisma.payrollSchedule.updateMany({
+    await prisma.payroll_schedules.updateMany({
       where: { isActive: true },
       data: { isActive: false }
     })
 
     // Create new schedule
-    const schedule = await prisma.payrollSchedule.create({
+    const { randomBytes } = await import('crypto')
+    const scheduleId = randomBytes(12).toString('hex')
+    const schedule = await prisma.payroll_schedules.create({
       data: {
+        payroll_schedule_id: scheduleId,
         scheduledDate: new Date(scheduledDate),
         notes: notes || null,
-        isActive: true
+        isActive: true,
+        updatedAt: new Date()
       }
     })
 
@@ -95,7 +99,7 @@ export async function PUT(request: NextRequest) {
     }
 
     // Update the schedule
-    const schedule = await prisma.payrollSchedule.update({
+    const schedule = await prisma.payroll_schedules.update({
       where: { payroll_schedule_id: id },
       data: {
         scheduledDate: new Date(scheduledDate),
@@ -137,7 +141,7 @@ export async function DELETE(request: NextRequest) {
     }
 
     // Deactivate the schedule
-    await prisma.payrollSchedule.update({
+    await prisma.payroll_schedules.update({
       where: { payroll_schedule_id: id },
       data: { isActive: false }
     })
