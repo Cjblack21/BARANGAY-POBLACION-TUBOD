@@ -21,7 +21,7 @@ export type AttendanceRecord = {
     users_id: string
     name: string | null
     email: string
-    personnelType?: {
+    personnel_types?: {
       name: string
       type?: string
       basicSalary: number
@@ -37,7 +37,7 @@ export type PersonnelAttendance = {
   users_id: string
   name: string | null
   email: string
-  personnelType?: {
+  personnel_types?: {
     name: string
     type?: string
     basicSalary: number
@@ -351,7 +351,7 @@ export async function getCurrentDayAttendance(): Promise<{
     // Process all personnel users
     const attendanceData = await Promise.all(allPersonnelUsers.map(async (user) => {
       const attendanceRecord = attendanceMap.get(user.users_id)
-      const basicSalary = user.personnelType?.basicSalary ? Number(user.personnelType.basicSalary) : 0
+      const basicSalary = user.personnel_types?.basicSalary ? Number(user.personnel_types.basicSalary) : 0
       const monthlySalary = basicSalary
 
       let workHours = 0
@@ -471,11 +471,11 @@ export async function getCurrentDayAttendance(): Promise<{
           users_id: user.users_id,
           name: user.name,
           email: user.email,
-          personnelType: user.personnelType ? {
-            name: user.personnelType.name,
-            type: user.personnelType.type || undefined,
-            basicSalary: Number(user.personnelType.basicSalary),
-            department: user.personnelType.department || undefined
+          personnel_types: user.personnel_types ? {
+            name: user.personnel_types.name,
+            type: user.personnel_types.type || undefined,
+            basicSalary: Number(user.personnel_types.basicSalary),
+            department: user.personnel_types.department || undefined
           } : undefined
         },
         workHours,
@@ -622,7 +622,7 @@ export async function getPersonnelAttendance(): Promise<{
 
     // Calculate personnel attendance summary
     const personnelData = users.map(user => {
-      const basicSalary = user.personnelType?.basicSalary ? Number(user.personnelType.basicSalary) : 0
+      const basicSalary = user.personnel_types?.basicSalary ? Number(user.personnel_types.basicSalary) : 0
       const monthlySalary = basicSalary
       
       
@@ -800,11 +800,11 @@ export async function getPersonnelAttendance(): Promise<{
         users_id: user.users_id,
         name: user.name,
         email: user.email,
-        personnelType: user.personnelType ? {
-          name: user.personnelType.name,
-          type: user.personnelType.type || undefined,
-          basicSalary: Number(user.personnelType.basicSalary),
-          department: user.personnelType.department || undefined
+        personnel_types: user.personnel_types ? {
+          name: user.personnel_types.name,
+          type: user.personnel_types.type || undefined,
+          basicSalary: Number(user.personnel_types.basicSalary),
+          department: user.personnel_types.department || undefined
         } : undefined,
         totalDays,
         presentDays,
@@ -889,7 +889,7 @@ export async function getPersonnelHistory(userId: string): Promise<{
 
     // Use MONTHLY salary divided by standard working days for deduction calculations
     // This matches the daily rate shown in Personnel Types (₱20,000 ÷ 22 = ₱909.09)
-    const monthlySalary = user.personnelType?.basicSalary ? Number(user.personnelType.basicSalary) : 0
+    const monthlySalary = user.personnel_types?.basicSalary ? Number(user.personnel_types.basicSalary) : 0
     const dailyRate = monthlySalary / workingDaysInMonth
     
     console.log(`🔍 Daily Rate Calculation - Monthly Salary: ₱${monthlySalary}, Working Days: ${workingDaysInMonth}, Daily Rate: ₱${dailyRate.toFixed(2)}`)
@@ -934,9 +934,9 @@ export async function getPersonnelHistory(userId: string): Promise<{
             users_id: user.users_id,
             name: user.name,
             email: user.email,
-            personnelType: user.personnelType ? {
-              name: user.personnelType.name,
-              basicSalary: Number(user.personnelType.basicSalary)
+            personnel_types: user.personnel_types ? {
+              name: user.personnel_types.name,
+              basicSalary: Number(user.personnel_types.basicSalary)
             } : undefined
           }
         }
@@ -995,9 +995,9 @@ export async function getPersonnelHistory(userId: string): Promise<{
             users_id: user.users_id,
             name: user.name,
             email: user.email,
-            personnelType: user.personnelType ? {
-              name: user.personnelType.name,
-              basicSalary: Number(user.personnelType.basicSalary)
+            personnel_types: user.personnel_types ? {
+              name: user.personnel_types.name,
+              basicSalary: Number(user.personnel_types.basicSalary)
             } : undefined
           },
           workHours: 0,
@@ -1083,9 +1083,9 @@ export async function getPersonnelHistory(userId: string): Promise<{
           users_id: user.users_id,
           name: user.name,
           email: user.email,
-          personnelType: user.personnelType ? {
-            name: user.personnelType.name,
-            basicSalary: Number(user.personnelType.basicSalary)
+          personnel_types: user.personnel_types ? {
+            name: user.personnel_types.name,
+            basicSalary: Number(user.personnel_types.basicSalary)
           } : undefined
         },
         workHours,
