@@ -12,7 +12,7 @@ export async function GET() {
     }
 
     // Fetch all holidays (personnel can view all holidays)
-    const holidays = await prisma.holiday.findMany({
+    const holidays = await prisma.holidays.findMany({
       orderBy: { date: 'asc' }
     })
 
