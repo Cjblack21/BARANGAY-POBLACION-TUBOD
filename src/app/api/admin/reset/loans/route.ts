@@ -12,7 +12,7 @@ export async function DELETE() {
     }
 
     // Delete all loan records
-    const result = await prisma.loan.deleteMany({})
+    const result = await prisma.loans.deleteMany({})
 
     return NextResponse.json({ 
       success: true, 
