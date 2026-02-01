@@ -24,10 +24,10 @@ export async function GET(request: NextRequest) {
       }
     }
 
-    const logs = await prisma.activityLog.findMany({
+    const logs = await prisma.activity_logs.findMany({
       where: whereClause,
       include: {
-        user: {
+        users: {
           select: {
             users_id: true,
             name: true,
@@ -45,9 +45,9 @@ export async function GET(request: NextRequest) {
     const formattedLogs = logs.map(log => ({
       activity_logs_id: log.activity_logs_id,
       users_id: log.users_id,
-      userName: log.user.name,
-      userEmail: log.user.email,
-      userRole: log.user.role,
+      userName: log.users.name,
+      userEmail: log.users.email,
+      userRole: log.users.role,
       action: log.action,
       ipAddress: log.ipAddress,
       userAgent: log.userAgent,
