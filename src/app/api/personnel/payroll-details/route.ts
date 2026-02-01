@@ -14,10 +14,10 @@ export async function GET(request: NextRequest) {
     const userId = session.user.id
 
     // Get user's basic salary for calculations
-    const user = await prisma.user.findUnique({
+    const user = await prisma.users.findUnique({
       where: { users_id: userId },
       include: {
-        personnelType: {
+        personnel_types: {
           select: {
             basicSalary: true
           }
@@ -25,19 +25,19 @@ export async function GET(request: NextRequest) {
       }
     })
 
-    const monthlyBasicSalary = user?.personnelType?.basicSalary ? Number(user.personnelType.basicSalary) : 0
+    const monthlyBasicSalary = user?.personnel_types?.basicSalary ? Number(user.personnel_types.basicSalary) : 0
     const dailySalary = monthlyBasicSalary / 22
     const perSecondRate = dailySalary / 8 / 60 / 60
 
     // Get attendance settings for time windows
-    const attendanceSettings = await prisma.attendanceSettings.findFirst()
+    const attendanceSettings = await prisma.attendance_settings.findFirst()
     const timeInEnd = attendanceSettings?.timeInEnd || '08:02'
     const timeOutStart = attendanceSettings?.timeOutStart || '17:00'
     const periodStart = attendanceSettings?.periodStart || new Date()
     const periodEnd = attendanceSettings?.periodEnd || new Date()
 
     // Get attendance records for current period
-    const attendanceRecords = await prisma.attendance.findMany({
+    const attendanceRecords = await prisma.attendances.findMany({
       where: {
         users_id: userId,
         date: {
@@ -109,7 +109,7 @@ export async function GET(request: NextRequest) {
     console.log('✅ Total Attendance Deductions:', attendanceDeductions.length, attendanceDeductions)
 
     // Get additional pay for this user (not archived)
-    const additionalPay = await prisma.overloadPay.findMany({
+    const additionalPay = await prisma.overload_pays.findMany({
       where: {
         users_id: userId,
         archivedAt: null
@@ -121,13 +121,13 @@ export async function GET(request: NextRequest) {
     })
 
     // Get non-attendance deductions for this user (not archived)
-    const deductions = await prisma.deduction.findMany({
+    const deductions = await prisma.deductions.findMany({
       where: {
         users_id: userId,
         archivedAt: null
       },
       include: {
-        deductionType: {
+        deduction_types: {
           select: {
             name: true,
             isMandatory: true,
@@ -139,7 +139,7 @@ export async function GET(request: NextRequest) {
     })
 
     // Get active loans for this user
-    const loans = await prisma.loan.findMany({
+    const loans = await prisma.loans.findMany({
       where: {
         users_id: userId,
         status: 'ACTIVE'
@@ -156,11 +156,11 @@ export async function GET(request: NextRequest) {
     const allDeductions = [
       ...attendanceDeductions,
       ...deductions.map(d => ({
-        type: d.deductionType?.name || 'Deduction',
+        type: d.deduction_types?.name || 'Deduction',
         amount: Number(d.amount),
-        isMandatory: d.deductionType?.isMandatory || false,
-        calculationType: d.deductionType?.calculationType || 'FIXED',
-        percentageValue: d.deductionType?.percentageValue ? Number(d.deductionType.percentageValue) : null
+        isMandatory: d.deduction_types?.isMandatory || false,
+        calculationType: d.deduction_types?.calculationType || 'FIXED',
+        percentageValue: d.deduction_types?.percentageValue ? Number(d.deduction_types.percentageValue) : null
       }))
     ]
 
