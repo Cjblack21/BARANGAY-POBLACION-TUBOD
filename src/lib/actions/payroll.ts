@@ -985,11 +985,8 @@ export async function releasePayroll(entryIds: string[]): Promise<{
           totalDeductions: summaryEntry.totalDeductions,
           totalAdditions: summaryEntry.totalAdditions || 0, // Overload pay total
           netPay: summaryEntry.netSalary,
-          totalWorkHours: summaryEntry.totalWorkHours,
-          attendanceDeductions: summaryEntry.attendanceDeductions,
           databaseDeductions: summaryEntry.databaseDeductions,
           loanPayments: summaryEntry.loanPayments,
-          attendanceRecords: summaryEntry.attendanceRecords,
           deductionDetails: (summaryEntry.deductionDetails || []).map((d: any) => ({
             type: d.type,
             amount: Number(d.amount),
