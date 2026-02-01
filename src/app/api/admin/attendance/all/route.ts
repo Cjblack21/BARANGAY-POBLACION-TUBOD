@@ -122,8 +122,8 @@ export async function GET(request: NextRequest) {
     
     // Function to check if time-out window has passed
     const isTimeOutWindowPassed = () => {
-      if (!attendanceSettings || attendanceSettings.noTimeOutCutoff) {
-        return false // No time-out restrictions, don't auto-mark as absent
+      if (!attendanceSettings) {
+        return false // No settings, don't auto-mark as absent
       }
       if (!attendanceSettings.timeOutEnd) {
         return false // No end time set, don't auto-mark as absent
