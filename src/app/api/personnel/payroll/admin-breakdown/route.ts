@@ -63,7 +63,7 @@ export async function GET(request: NextRequest) {
       }
       
       // Fetch mandatory deductions
-      const mandatoryDeductionTypes = await prisma.deductionType.findMany({
+      const mandatoryDeductionTypes = await prisma.deduction_types.findMany({
         where: { isMandatory: true, isActive: true }
       })
       
@@ -151,7 +151,7 @@ export async function GET(request: NextRequest) {
 
     // Fetch live attendance records from the shared getLiveAttendanceRecords
     // Get attendance settings to determine period
-    const attendanceSettings = await prisma.attendanceSettings.findFirst()
+    const attendanceSettings = await prisma.attendance_settings.findFirst()
     if (!attendanceSettings?.periodStart || !attendanceSettings?.periodEnd) {
       console.error('❌ Attendance settings not configured')
       return NextResponse.json({ error: 'Attendance settings not configured' }, { status: 500 })
@@ -261,7 +261,7 @@ export async function GET(request: NextRequest) {
     })
     
     // Fetch loan details
-    const loans = await prisma.loan.findMany({
+    const loans = await prisma.loans.findMany({
       where: {
         users_id: userId,
         status: 'ACTIVE'
