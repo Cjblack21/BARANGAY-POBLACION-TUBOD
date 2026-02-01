@@ -34,7 +34,7 @@ export async function GET(
     }
 
     // Get all attendance records for this user
-    const attendanceRecords = await prisma.attendance.findMany({
+    const attendanceRecords = await prisma.attendances.findMany({
       where: { users_id: userId },
       orderBy: { date: 'desc' }
     })

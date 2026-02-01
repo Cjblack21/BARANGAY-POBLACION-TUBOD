@@ -10,7 +10,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
-    const result = await prisma.attendance.deleteMany({})
+    const result = await prisma.attendances.deleteMany({})
 
     return NextResponse.json({ success: true, deletedCount: result.count })
   } catch (error) {

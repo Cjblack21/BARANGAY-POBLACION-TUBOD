@@ -22,7 +22,7 @@ export async function DELETE(
     const { attendanceId } = params
 
     // Check if the attendance record exists
-    const existingRecord = await prisma.attendance.findUnique({
+    const existingRecord = await prisma.attendances.findUnique({
       where: { attendances_id: attendanceId }
     })
 
@@ -31,7 +31,7 @@ export async function DELETE(
     }
 
     // Delete the attendance record
-    await prisma.attendance.delete({
+    await prisma.attendances.delete({
       where: { attendances_id: attendanceId }
     })
 

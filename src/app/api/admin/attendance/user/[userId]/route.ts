@@ -32,7 +32,7 @@ export async function DELETE(
     }
 
     // Delete all attendance records for this user
-    const deleteResult = await prisma.attendance.deleteMany({
+    const deleteResult = await prisma.attendances.deleteMany({
       where: { users_id: userId }
     })
 
