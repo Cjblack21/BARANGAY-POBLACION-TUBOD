@@ -115,21 +115,21 @@ export async function getPersonnelDashboard(): Promise<{
     })
 
     // Get non-attendance related deductions only (attendance deductions calculated real-time)
-    const deductions = await prisma.deduction.findMany({
+    const deductions = await prisma.deductions.findMany({
       where: {
         users_id: userId,
         appliedAt: {
           gte: periodStart,
           lte: periodEnd
         },
-        deductionType: {
+        deduction_types: {
           name: {
             notIn: ['Late Arrival', 'Late Penalty', 'Absence Deduction', 'Absent', 'Late', 'Tardiness', 'Early Time-Out', 'Partial Attendance']
           }
         }
       },
       include: {
-        deductionType: {
+        deduction_types: {
           select: {
             name: true,
             amount: true
@@ -139,7 +139,7 @@ export async function getPersonnelDashboard(): Promise<{
     })
 
     // Get active loans
-    const activeLoans = await prisma.loan.findMany({
+    const activeLoans = await prisma.loans.findMany({
       where: {
         users_id: userId,
         status: 'ACTIVE'
@@ -156,7 +156,7 @@ export async function getPersonnelDashboard(): Promise<{
     }, 0)
 
     // Get attendance settings for deduction calculations
-    const attendanceSettings = await prisma.attendanceSettings.findFirst()
+    const attendanceSettings = await prisma.attendance_settings.findFirst()
     const timeInEnd = attendanceSettings?.timeInEnd || '09:00'
 
     // Calculate real-time attendance deductions from attendance records
@@ -170,16 +170,16 @@ export async function getPersonnelDashboard(): Promise<{
         const expectedTimeIn = new Date(attendance.date)
         const [hours, minutes] = timeInEnd.split(':').map(Number)
         expectedTimeIn.setHours(hours, minutes, 0, 0)
-        dayDeductions = calculateLateDeductionSync(Number(user.personnelType?.basicSalary || 0), timeIn, expectedTimeIn, workingDaysInPeriod)
+        dayDeductions = calculateLateDeductionSync(Number(user.personnel_types?.basicSalary || 0), timeIn, expectedTimeIn, workingDaysInPeriod)
       } else if (attendance.status === 'ABSENT') {
         // Calculate absence deduction
-        dayDeductions = calculateAbsenceDeductionSync(Number(user.personnelType?.basicSalary || 0), workingDaysInPeriod)
+        dayDeductions = calculateAbsenceDeductionSync(Number(user.personnel_types?.basicSalary || 0), workingDaysInPeriod)
       } else if (attendance.status === 'PARTIAL' && attendance.timeIn) {
         // Calculate partial deduction
         const timeIn = new Date(attendance.timeIn)
         const timeOut = attendance.timeOut ? new Date(attendance.timeOut) : undefined
         const workHours = timeOut ? (timeOut.getTime() - timeIn.getTime()) / (1000 * 60 * 60) : 0
-        dayDeductions = calculatePartialDeduction(Number(user.personnelType?.basicSalary || 0), workHours, 8, workingDaysInPeriod)
+        dayDeductions = calculatePartialDeduction(Number(user.personnel_types?.basicSalary || 0), workHours, 8, workingDaysInPeriod)
       }
 
       return total + dayDeductions
@@ -192,7 +192,7 @@ export async function getPersonnelDashboard(): Promise<{
     const totalDeductions = nonAttendanceDeductions + attendanceDeductions + loanPayments
 
     // Calculate biweekly salary
-    const basicSalary = user.personnelType?.basicSalary ? Number(user.personnelType.basicSalary) : 0
+    const basicSalary = user.personnel_types?.basicSalary ? Number(user.personnel_types.basicSalary) : 0
     const biweeklySalary = basicSalary / 2
 
     // Calculate net pay
