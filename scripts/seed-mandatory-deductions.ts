@@ -1,6 +1,11 @@
 import { PrismaClient } from '@prisma/client'
+import { randomBytes } from 'crypto'
 
 const prisma = new PrismaClient()
+
+async function generateUniqueId(): Promise<string> {
+  return randomBytes(12).toString('hex')
+}
 
 async function main() {
   console.log('🌱 Seeding mandatory deduction types...')
@@ -49,8 +54,13 @@ async function main() {
     if (existing) {
       console.log(`✓ ${type.name} already exists, skipping...`)
     } else {
+      const deductionTypeId = await generateUniqueId()
       await prisma.deduction_types.create({
-        data: type
+        data: {
+          deduction_types_id: deductionTypeId,
+          ...type,
+          updatedAt: new Date()
+        }
       })
       console.log(`✓ Created ${type.name}`)
     }
