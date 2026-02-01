@@ -19,7 +19,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Verify the payroll belongs to this user and is RELEASED
-    const payroll = await prisma.payrollEntry.findFirst({
+    const payroll = await prisma.payroll_entries.findFirst({
       where: {
         payroll_entries_id: payrollId,
         users_id: userId,
@@ -35,7 +35,7 @@ export async function POST(request: NextRequest) {
 
     // Archive the payroll entry
     const now = new Date()
-    await prisma.payrollEntry.update({
+    await prisma.payroll_entries.update({
       where: {
         payroll_entries_id: payrollId
       },
