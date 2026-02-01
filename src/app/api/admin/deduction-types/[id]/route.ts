@@ -4,6 +4,7 @@ import { authOptions } from "@/lib/auth"
 import { prisma } from "@/lib/prisma"
 import { Prisma } from "@prisma/client"
 import { z } from "zod"
+import { randomUUID } from "crypto"
 
 const updateSchema = z.object({
   name: z.string().min(1).optional(),
@@ -26,7 +27,7 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
     const data = updateSchema.parse(body)
 
     // Fetch existing type to compare and for defaults
-    const existing = await prisma.deductionType.findUnique({
+    const existing = await prisma.deduction_types.findUnique({
       where: { deduction_types_id: id },
       include: { deductions: { select: { deductions_id: true, users_id: true } } }
     })
@@ -58,7 +59,7 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
       if (typeof data.percentageValue === 'number') updateData.percentageValue = data.percentageValue
     }
 
-    const updated = await prisma.deductionType.update({ where: { deduction_types_id: id }, data: updateData })
+    const updated = await prisma.deduction_types.update({ where: { deduction_types_id: id }, data: updateData })
 
     // Recalculate existing deduction amounts if calculation-related fields changed
     const calcTypeChanged = data.calculationType && data.calculationType !== existing.calculationType
@@ -67,19 +68,19 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
 
     if (calcTypeChanged || amountChanged || percentChanged) {
       // Load existing deductions with user salaries
-      const deductions = await prisma.deduction.findMany({
+      const deductions = await prisma.deductions.findMany({
         where: { deduction_types_id: id },
         select: {
           deductions_id: true,
           users_id: true,
-          user: { select: { personnelType: { select: { basicSalary: true } } } }
+          users: { select: { personnel_types: { select: { basicSalary: true } } } }
         }
       })
 
       const tx = deductions.map(d => {
         let newAmount = updated.amount
         if (updated.calculationType === 'PERCENTAGE' && updated.percentageValue != null) {
-          const salary = d.user.personnelType?.basicSalary
+          const salary = d.users.personnel_types?.basicSalary
           if (salary) {
             // Decimal operations: use Prisma Decimal methods via any
             // Convert to number-safe by using mul/div available on Decimal
@@ -90,7 +91,7 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
             newAmount = new Prisma.Decimal(0)
           }
         }
-        return prisma.deduction.update({
+        return prisma.deductions.update({
           where: { deductions_id: d.deductions_id },
           data: { amount: newAmount }
         })
@@ -101,56 +102,9 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
       }
     }
 
-    // If mandatory and active after update, ensure all active personnel have it
-    if (updated.isMandatory && updated.isActive) {
-      const activePersonnel = await prisma.user.findMany({
-        where: { isActive: true, role: 'PERSONNEL' },
-        select: { users_id: true, personnelType: { select: { basicSalary: true } } }
-      })
-
-      const existingDeductions = await prisma.deduction.findMany({
-        where: { deduction_types_id: id },
-        select: { users_id: true }
-      })
-      const existingUserIds = new Set(existingDeductions.map(d => d.users_id))
-
-      const missing = activePersonnel.filter(u => !existingUserIds.has(u.users_id))
-      if (missing.length > 0) {
-        if (updated.calculationType === 'PERCENTAGE' && updated.percentageValue != null) {
-          // Create individually to compute per-salary amounts
-          const createTx = missing.map(u => {
-            let amount: any = updated.amount
-            const salary = u.personnelType?.basicSalary
-            if (salary) {
-              // @ts-ignore
-              amount = salary.mul(updated.percentageValue).div(100)
-            } else {
-              amount = 0
-            }
-            return prisma.deduction.create({
-              data: {
-                users_id: u.users_id,
-                deduction_types_id: id,
-                amount,
-                notes: 'Mandatory payroll deduction'
-              }
-            })
-          })
-          await prisma.$transaction(createTx)
-        } else {
-          // Fixed amount - can bulk create with same amount
-          await prisma.deduction.createMany({
-            data: missing.map(u => ({
-              users_id: u.users_id,
-              deduction_types_id: id,
-              amount: updated.amount,
-              notes: 'Mandatory payroll deduction'
-            })),
-            skipDuplicates: true
-          })
-        }
-      }
-    }
+    // NOTE: Removed automatic application of mandatory deductions to all personnel
+    // Users should manually apply deductions using the "Apply Mandatory Deductions" button
+    // This prevents unwanted automatic application when editing deduction types
 
     return NextResponse.json(updated)
   } catch (error) {
@@ -167,8 +121,8 @@ export async function DELETE(_req: NextRequest, { params }: { params: Promise<{ 
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
   }
   const { id } = await params
-  await prisma.deduction.deleteMany({ where: { deduction_types_id: id } })
-  await prisma.deductionType.delete({ where: { deduction_types_id: id } })
+  await prisma.deductions.deleteMany({ where: { deduction_types_id: id } })
+  await prisma.deduction_types.delete({ where: { deduction_types_id: id } })
   return NextResponse.json({ success: true })
 }
 

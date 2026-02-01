@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server"
 import { getServerSession } from "next-auth"
 import { authOptions } from "@/lib/auth"
 import { prisma } from "@/lib/prisma"
+import { randomUUID } from "crypto"
 
 // GET - Fetch all overload pay records
 export async function GET() {
@@ -11,16 +12,17 @@ export async function GET() {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
     }
 
-    const overloadPays = await prisma.overloadPay.findMany({
+    const overloadPays = await prisma.overload_pays.findMany({
       where: { archivedAt: null },
       include: {
-        user: {
+        users: {
           select: {
             users_id: true,
             name: true,
             email: true,
-            personnelType: {
+            personnel_types: {
               select: {
+                name: true,
                 department: true
               }
             }
@@ -56,7 +58,7 @@ export async function POST(request: NextRequest) {
 
     if (selectAll) {
       // Get all active personnel
-      const allPersonnel = await prisma.user.findMany({
+      const allPersonnel = await prisma.users.findMany({
         where: { role: "PERSONNEL", isActive: true },
         select: { users_id: true }
       })
@@ -69,13 +71,15 @@ export async function POST(request: NextRequest) {
     }
 
     // Create overload pay records for all target employees
-    const records = await prisma.overloadPay.createMany({
+    const records = await prisma.overload_pays.createMany({
       data: targetEmployees.map(userId => ({
+        overload_pays_id: randomUUID(),
         users_id: userId,
         amount: Number(amount),
         notes: notes || null,
         type: type || 'OVERTIME',
-        appliedAt: new Date()
+        appliedAt: new Date(),
+        updatedAt: new Date()
       }))
     })
 

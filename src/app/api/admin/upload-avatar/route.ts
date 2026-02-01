@@ -34,7 +34,7 @@ export async function POST(request: Request) {
     const buffer = Buffer.from(bytes)
     const timestamp = Date.now()
     const filename = `${session.user.id}_${timestamp}${path.extname(file.name)}`
-    
+
     // Ensure uploads directory exists
     const uploadsDir = path.join(process.cwd(), "public", "uploads", "avatars")
     await mkdir(uploadsDir, { recursive: true })
@@ -46,14 +46,14 @@ export async function POST(request: Request) {
     const avatarUrl = `/uploads/avatars/${filename}`
 
     // Update user avatar in database
-    await prisma.user.update({
+    await prisma.users.update({
       where: { users_id: session.user.id },
       data: { avatar: avatarUrl },
     })
 
-    return NextResponse.json({ 
+    return NextResponse.json({
       message: "Avatar uploaded successfully",
-      avatarUrl 
+      avatarUrl
     })
   } catch (error) {
     console.error("Error uploading avatar:", error)

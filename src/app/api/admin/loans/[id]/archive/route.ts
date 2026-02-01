@@ -9,7 +9,7 @@ export async function POST(
     const { id } = await params
 
     // Archive the loan by setting archivedAt timestamp
-    const loan = await prisma.loan.update({
+    const loan = await prisma.loans.update({
       where: { loans_id: id },
       data: {
         archivedAt: new Date(),

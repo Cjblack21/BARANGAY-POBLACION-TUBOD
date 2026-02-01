@@ -10,15 +10,11 @@ import { getNowInPhilippines } from "@/lib/timezone"
  */
 export async function POST() {
   try {
-    // Get attendance settings
-    const settings = await prisma.attendanceSettings.findFirst()
-    
-    if (!settings || !settings.autoMarkAbsent || !settings.timeOutEnd) {
-      return NextResponse.json({ 
-        success: false,
-        message: 'Auto-mark absent is disabled or time-out end time is not configured.' 
-      })
-    }
+    // Attendance system has been removed - this endpoint is disabled
+    return NextResponse.json({ 
+      success: false,
+      message: 'Attendance system has been removed from the application.' 
+    })
 
     // Use Philippine timezone for all date calculations
     const nowPhilippines = getNowInPhilippines()

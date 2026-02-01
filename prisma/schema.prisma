@@ -1,0 +1,281 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "mysql"
+  url      = env("DATABASE_URL")
+}
+
+model activity_logs {
+  activity_logs_id String               @id
+  users_id         String
+  action           activity_logs_action
+  ipAddress        String?
+  userAgent        String?
+  createdAt        DateTime             @default(now())
+  users            users                @relation(fields: [users_id], references: [users_id], onDelete: Cascade)
+
+  @@index([createdAt], map: "activity_logs_created_at_idx")
+  @@index([users_id], map: "activity_logs_users_id_fkey")
+}
+
+model attendance_settings {
+  attendance_settings_id String    @id
+  autoMarkAbsent         Boolean   @default(true)
+  autoMarkLate           Boolean   @default(true)
+  periodEnd              DateTime?
+  periodStart            DateTime?
+  payrollReleaseTime     String?   @default("17:00")
+  timeInStart            String?
+  timeInEnd              String?
+  timeOutStart           String?
+  timeOutEnd             String?
+  createdAt              DateTime  @default(now())
+  updatedAt              DateTime
+}
+
+model deduction_types {
+  deduction_types_id String                          @id
+  name               String                          @unique
+  description        String?
+  amount             Decimal                         @default(0.000000000000000000000000000000)
+  calculationType    deduction_types_calculationType @default(FIXED)
+  percentageValue    Decimal?                        @default(0.000000000000000000000000000000)
+  isActive           Boolean                         @default(true)
+  isMandatory        Boolean                         @default(false)
+  createdAt          DateTime                        @default(now())
+  updatedAt          DateTime
+  deductions         deductions[]
+}
+
+model deductions {
+  deductions_id      String          @id
+  users_id           String
+  deduction_types_id String
+  amount             Decimal
+  appliedAt          DateTime        @default(now())
+  notes              String?
+  archivedAt         DateTime?
+  createdAt          DateTime        @default(now())
+  updatedAt          DateTime
+  deduction_types    deduction_types @relation(fields: [deduction_types_id], references: [deduction_types_id])
+  users              users           @relation(fields: [users_id], references: [users_id])
+
+  @@index([deduction_types_id], map: "deductions_deduction_types_id_fkey")
+  @@index([users_id], map: "deductions_users_id_fkey")
+}
+
+model departments {
+  departments_id String   @id
+  name           String   @unique
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime
+}
+
+model events {
+  events_id   String      @id
+  title       String
+  description String?
+  date        DateTime
+  type        events_type
+  createdAt   DateTime    @default(now())
+  updatedAt   DateTime
+}
+
+model header_settings {
+  id              String   @id
+  schoolName      String
+  schoolAddress   String
+  systemName      String
+  logoUrl         String   @default("/brgy-logo.png")
+  showLogo        Boolean  @default(true)
+  headerAlignment String   @default("center")
+  fontSize        String   @default("medium")
+  customText      String?  @default("")
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime
+  workingDays     String   @db.LongText
+}
+
+model holidays {
+  holidays_id String        @id
+  name        String
+  date        DateTime
+  type        holidays_type
+  description String?
+  createdAt   DateTime      @default(now())
+  updatedAt   DateTime
+}
+
+model loans {
+  loans_id              String       @id
+  users_id              String
+  amount                Decimal
+  balance               Decimal
+  monthlyPaymentPercent Decimal      @default(0.000000000000000000000000000000)
+  termMonths            Int
+  status                loans_status @default(ACTIVE)
+  startDate             DateTime
+  endDate               DateTime
+  purpose               String?
+  archivedAt            DateTime?
+  createdAt             DateTime     @default(now())
+  updatedAt             DateTime
+  users                 users        @relation(fields: [users_id], references: [users_id])
+
+  @@index([users_id], map: "loans_users_id_fkey")
+}
+
+model overload_pays {
+  overload_pays_id String    @id
+  users_id         String
+  amount           Decimal
+  notes            String?
+  type             String?   @default("OVERTIME")
+  appliedAt        DateTime  @default(now())
+  archivedAt       DateTime?
+  createdAt        DateTime  @default(now())
+  updatedAt        DateTime
+  isRecurring      Boolean   @default(false)
+  users            users     @relation(fields: [users_id], references: [users_id])
+
+  @@index([users_id], map: "overload_pays_users_id_fkey")
+}
+
+model payroll_entries {
+  payroll_entries_id String                 @id
+  users_id           String
+  periodStart        DateTime
+  periodEnd          DateTime
+  basicSalary        Decimal
+  overtime           Decimal                @default(0.000000000000000000000000000000)
+  deductions         Decimal                @default(0.000000000000000000000000000000)
+  netPay             Decimal
+  status             payroll_entries_status @default(PENDING)
+  processedAt        DateTime               @default(now())
+  releasedAt         DateTime?
+  archivedAt         DateTime?
+  breakdownSnapshot  String?                @db.LongText
+  createdAt          DateTime               @default(now())
+  updatedAt          DateTime
+  users              users                  @relation(fields: [users_id], references: [users_id])
+
+  @@index([users_id], map: "payroll_entries_users_id_fkey")
+}
+
+model payroll_schedules {
+  payroll_schedule_id String   @id
+  scheduledDate       DateTime
+  isActive            Boolean  @default(true)
+  notes               String?
+  createdAt           DateTime @default(now())
+  updatedAt           DateTime
+}
+
+model personnel_types {
+  personnel_types_id String   @id
+  name               String   @unique
+  type               String?  @default("NON_TEACHING")
+  department         String?
+  basicSalary        Decimal
+  isActive           Boolean  @default(true)
+  createdAt          DateTime @default(now())
+  updatedAt          DateTime
+  users              users[]
+}
+
+model sessions {
+  sessions_id  String   @id
+  sessionToken String   @unique
+  users_id     String
+  expires      DateTime
+  users        users    @relation(fields: [users_id], references: [users_id], onDelete: Cascade)
+
+  @@index([users_id], map: "sessions_users_id_fkey")
+}
+
+model user_settings {
+  user_settings_id     String   @id
+  users_id             String   @unique
+  theme                String   @default("light")
+  language             String   @default("en")
+  emailNotifications   Boolean  @default(true)
+  payrollNotifications Boolean  @default(true)
+  systemNotifications  Boolean  @default(true)
+  attendanceReminders  Boolean  @default(true)
+  createdAt            DateTime @default(now())
+  updatedAt            DateTime
+  users                users    @relation(fields: [users_id], references: [users_id], onDelete: Cascade)
+}
+
+model users {
+  users_id           String            @id
+  email              String            @unique
+  password           String
+  name               String?
+  avatar             String?
+  role               users_role        @default(PERSONNEL)
+  isActive           Boolean           @default(true)
+  personnel_types_id String?
+  streetAddress      String?
+  barangay           String?
+  purok              String?
+  zipCode            String?
+  createdAt          DateTime          @default(now())
+  updatedAt          DateTime
+  activity_logs      activity_logs[]
+  deductions         deductions[]
+  loans              loans[]
+  overload_pays      overload_pays[]
+  payroll_entries    payroll_entries[]
+  sessions           sessions[]
+  user_settings      user_settings?
+  personnel_types    personnel_types?  @relation(fields: [personnel_types_id], references: [personnel_types_id])
+
+  @@index([personnel_types_id], map: "users_personnel_types_id_fkey")
+}
+
+enum activity_logs_action {
+  LOGIN
+  LOGOUT
+}
+
+enum holidays_type {
+  NATIONAL
+  RELIGIOUS
+  COMPANY
+}
+
+enum deduction_types_calculationType {
+  FIXED
+  PERCENTAGE
+}
+
+enum events_type {
+  PAYROLL
+  HR
+  MEETING
+  TRAINING
+  OTHER
+}
+
+enum users_role {
+  ADMIN
+  PERSONNEL
+}
+
+enum loans_status {
+  PENDING      // Waiting for admin approval
+  APPROVED     // Approved by admin, not yet active
+  ACTIVE       // Currently being paid
+  REJECTED     // Rejected by admin
+  COMPLETED    // Fully paid
+  DEFAULTED    // Payment defaulted
+}
+
+enum payroll_entries_status {
+  PENDING
+  RELEASED
+  ARCHIVED
+}

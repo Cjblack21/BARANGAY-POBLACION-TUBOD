@@ -16,10 +16,10 @@ export async function GET(
     const resolvedParams = await params
     const loanId = resolvedParams.id
 
-    const loan = await prisma.loan.findUnique({
+    const loan = await prisma.loans.findUnique({
       where: { loans_id: loanId },
       include: {
-        user: { 
+        users: { 
           select: { 
             users_id: true, 
             name: true, 
@@ -37,9 +37,9 @@ export async function GET(
     const loanDetails = {
       loans_id: loan.loans_id,
       users_id: loan.users_id,
-      userName: loan.user?.name ?? null,
-      userEmail: loan.user?.email || '',
-      userRole: loan.user?.role || '',
+      userName: loan.users?.name ?? null,
+      userEmail: loan.users?.email || '',
+      userRole: loan.users?.role || '',
       amount: Number(loan.amount),
       balance: Number(loan.balance),
       monthlyPaymentPercent: Number(loan.monthlyPaymentPercent),
@@ -92,7 +92,7 @@ export async function PATCH(
       if (!(term > 0)) return NextResponse.json({ error: 'Invalid termMonths' }, { status: 400 })
       data.termMonths = term
       // Recalculate endDate from startDate + term
-      const existing = await prisma.loan.findUnique({ where: { loans_id: loanId }, select: { startDate: true } })
+      const existing = await prisma.loans.findUnique({ where: { loans_id: loanId }, select: { startDate: true } })
       if (existing?.startDate) {
         const newEnd = new Date(existing.startDate)
         newEnd.setMonth(newEnd.getMonth() + term)
@@ -113,7 +113,7 @@ export async function PATCH(
       return NextResponse.json({ error: 'No fields to update' }, { status: 400 })
     }
 
-    const updated = await prisma.loan.update({ where: { loans_id: loanId }, data })
+    const updated = await prisma.loans.update({ where: { loans_id: loanId }, data })
     return NextResponse.json({ success: true, loans_id: updated.loans_id })
   } catch (error) {
     console.error('Error updating loan:', error)
@@ -134,7 +134,7 @@ export async function DELETE(
     const resolvedParams = await params
     const loanId = resolvedParams.id
 
-    await prisma.loan.delete({ where: { loans_id: loanId } })
+    await prisma.loans.delete({ where: { loans_id: loanId } })
     return NextResponse.json({ success: true })
   } catch (error) {
     console.error('Error deleting loan:', error)

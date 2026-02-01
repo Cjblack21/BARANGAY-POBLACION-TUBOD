@@ -46,7 +46,7 @@ export async function POST(request: Request) {
     const avatarUrl = `/uploads/avatars/${filename}`
 
     // Update user avatar in database
-    await prisma.user.update({
+    await prisma.users.update({
       where: { users_id: session.user.id },
       data: { avatar: avatarUrl },
     })

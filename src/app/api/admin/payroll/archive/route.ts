@@ -40,7 +40,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Update all released payroll entries to 'Archived' status
-    const archiveResult = await prisma.payrollEntry.updateMany({
+    const archiveResult = await prisma.payroll_entries.updateMany({
       where: {
         periodStart: startDate,
         periodEnd: endDate,
@@ -75,16 +75,16 @@ export async function GET(request: NextRequest) {
     }
 
     // Get archived payrolls grouped by period (include both RELEASED and ARCHIVED)
-    const archivedPayrolls = await prisma.payrollEntry.findMany({
+    const archivedPayrolls = await prisma.payroll_entries.findMany({
       where: {
         status: {
           in: ['RELEASED', 'ARCHIVED']
         }
       },
       include: {
-        user: {
+        users: {
           include: {
-            personnelType: true
+            personnel_types: true
           }
         }
       },

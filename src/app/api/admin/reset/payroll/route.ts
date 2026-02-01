@@ -12,7 +12,7 @@ export async function DELETE() {
     }
 
     // Check if user is admin
-    const user = await prisma.user.findUnique({
+    const user = await prisma.users.findUnique({
       where: { users_id: session.user.id },
       select: { role: true },
     })
@@ -23,8 +23,8 @@ export async function DELETE() {
 
     // Delete all related payroll data to reset everything to zero
     const [deductions, payrollEntries] = await Promise.all([
-      prisma.deduction.deleteMany({}),
-      prisma.payrollEntry.deleteMany({}),
+      prisma.deductions.deleteMany({}),
+      prisma.payroll_entries.deleteMany({}),
     ])
 
     return NextResponse.json({ 

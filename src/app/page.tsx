@@ -67,11 +67,11 @@ export default function Home() {
 
       {/* Left Side - Login Form */}
       <div className="flex-1 bg-slate-50 dark:bg-[#0a1628] flex items-center justify-center px-4 py-12 transition-colors duration-500">
-        <div className="w-full max-w-md">
+        <div className="w-full max-w-lg">
           <div className="flex flex-col items-center space-y-6">
             {/* Logo */}
             <div className="flex justify-center">
-              <img src="/brgy-logo.png" alt="Barangay Logo" className="w-40 h-40 object-contain transform translate-y-12" />
+              <img src="/brgy-logo.png" alt="Barangay Logo" className="w-52 h-52 object-contain transform translate-y-12" />
             </div>
 
             {/* Title */}
@@ -85,7 +85,7 @@ export default function Home() {
             </div>
 
             {/* Login Card */}
-            <div className="w-full bg-white dark:bg-white/10 dark:backdrop-blur-xl rounded-2xl p-8 border border-slate-200 dark:border-white/20 shadow-xl">
+            <div className="w-full bg-white dark:bg-white/10 dark:backdrop-blur-xl rounded-2xl p-10 border border-slate-200 dark:border-white/20 shadow-xl">
               <LoginForm />
             </div>
 

@@ -50,7 +50,7 @@ export async function getPersonnelDashboard(): Promise<{
 }> {
   try {
     const session = await getServerSession(authOptions)
-    
+
     if (!session?.user?.id || session.user.role !== 'PERSONNEL') {
       return { success: false, error: 'Unauthorized' }
     }
@@ -68,16 +68,16 @@ export async function getPersonnelDashboard(): Promise<{
     const nextPeriodStart = new Date(periodEnd)
     nextPeriodStart.setDate(nextPeriodStart.getDate() + 1)
     nextPeriodStart.setHours(0, 0, 0, 0)
-    
+
     const nextPeriodEnd = new Date(nextPeriodStart)
     nextPeriodEnd.setDate(nextPeriodEnd.getDate() + (nextPeriodStart.getDate() <= 15 ? 14 : 15))
     nextPeriodEnd.setHours(23, 59, 59, 999)
 
     // Get user with personnel type
-    const user = await prisma.user.findUnique({
+    const user = await prisma.users.findUnique({
       where: { users_id: userId },
       include: {
-        personnelType: true
+        personnel_types: true
       }
     })
 
@@ -163,7 +163,7 @@ export async function getPersonnelDashboard(): Promise<{
     const workingDaysInPeriod = 22 // Default fallback
     const attendanceDeductions = monthlyAttendance.reduce((total, attendance) => {
       let dayDeductions = 0
-      
+
       if (attendance.status === 'LATE' && attendance.timeIn) {
         // Calculate late deduction
         const timeIn = new Date(attendance.timeIn)
@@ -181,7 +181,7 @@ export async function getPersonnelDashboard(): Promise<{
         const workHours = timeOut ? (timeOut.getTime() - timeIn.getTime()) / (1000 * 60 * 60) : 0
         dayDeductions = calculatePartialDeduction(Number(user.personnelType?.basicSalary || 0), workHours, 8, workingDaysInPeriod)
       }
-      
+
       return total + dayDeductions
     }, 0)
 
@@ -249,12 +249,12 @@ export async function getPersonnelTypes(): Promise<{
 }> {
   try {
     const session = await getServerSession(authOptions)
-    
+
     if (!session || session.user.role !== 'ADMIN') {
       return { success: false, error: 'Unauthorized' }
     }
 
-    const personnelTypes = await prisma.personnelType.findMany({
+    const personnelTypes = await prisma.personnel_types.findMany({
       orderBy: {
         createdAt: 'desc'
       }
@@ -287,18 +287,20 @@ export async function createPersonnelType(data: {
 }> {
   try {
     const session = await getServerSession(authOptions)
-    
+
     if (!session || session.user.role !== 'ADMIN') {
       return { success: false, error: 'Unauthorized' }
     }
 
-    const personnelType = await prisma.personnelType.create({
+    const personnelType = await prisma.personnel_types.create({
       data: {
+        personnel_types_id: crypto.randomUUID(),
         name: data.name,
         type: data.type,
         department: data.department,
         basicSalary: data.basicSalary,
-        isActive: data.isActive ?? true
+        isActive: data.isActive ?? true,
+        updatedAt: new Date()
       }
     })
 
@@ -312,12 +314,12 @@ export async function createPersonnelType(data: {
     return { success: true, personnelType: serializedPersonnelType }
   } catch (error) {
     console.error('Error in createPersonnelType:', error)
-    
+
     // Handle duplicate name error
     if (error instanceof Error && error.message.includes('Unique constraint failed') && error.message.includes('personnel_types_name_key')) {
       return { success: false, error: `A position named "${data.name}" already exists. Please use a different name.` }
     }
-    
+
     const errorMessage = error instanceof Error ? error.message : 'Failed to create personnel type'
     return { success: false, error: errorMessage }
   }
@@ -340,12 +342,12 @@ export async function updatePersonnelType(
 }> {
   try {
     const session = await getServerSession(authOptions)
-    
+
     if (!session || session.user.role !== 'ADMIN') {
       return { success: false, error: 'Unauthorized' }
     }
 
-    const personnelType = await prisma.personnelType.update({
+    const personnelType = await prisma.personnel_types.update({
       where: { personnel_types_id: personnelTypesId },
       data: {
         ...(data.name && { name: data.name }),
@@ -377,13 +379,13 @@ export async function deletePersonnelType(personnelTypesId: string): Promise<{
 }> {
   try {
     const session = await getServerSession(authOptions)
-    
+
     if (!session || session.user.role !== 'ADMIN') {
       return { success: false, error: 'Unauthorized' }
     }
 
     // Check if personnel type is being used by any users
-    const usersCount = await prisma.user.count({
+    const usersCount = await prisma.users.count({
       where: {
         personnel_types_id: personnelTypesId
       }
@@ -393,7 +395,7 @@ export async function deletePersonnelType(personnelTypesId: string): Promise<{
       return { success: false, error: 'Cannot delete personnel type that is assigned to users' }
     }
 
-    await prisma.personnelType.delete({
+    await prisma.personnel_types.delete({
       where: { personnel_types_id: personnelTypesId }
     })
 

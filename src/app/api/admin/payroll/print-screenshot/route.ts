@@ -85,13 +85,15 @@ export async function POST(request: NextRequest) {
     console.log('🔧 Using stored payroll data from archive (correct breakdown)...')
 
     // Get header settings or create default
-    let headerSettings = await prisma.headerSettings.findFirst()
+    let headerSettings = await prisma.header_settings.findFirst()
     console.log('📋 Header settings found:', !!headerSettings)
 
     if (!headerSettings) {
       console.log('⚠️ No header settings found, creating defaults...')
-      headerSettings = await prisma.headerSettings.create({
+      const { randomUUID } = require('crypto')
+      headerSettings = await prisma.header_settings.create({
         data: {
+          id: randomUUID(),
           schoolName: "TUBOD BARANGAY POBLACION",
           schoolAddress: "Tubod, Lanao del Norte",
           systemName: "POBLACION - PMS",
@@ -100,19 +102,20 @@ export async function POST(request: NextRequest) {
           headerAlignment: 'center',
           fontSize: 'medium',
           customText: "",
-          workingDays: JSON.stringify(["Monday", "Tuesday", "Wednesday", "Thursday", "Friday"])
+          workingDays: JSON.stringify(["Monday", "Tuesday", "Wednesday", "Thursday", "Friday"]),
+          updatedAt: new Date()
         }
       })
       console.log('✅ Default header settings created')
     }
 
     // Get all users with their personnel type info first
-    const usersWithPersonnelType = await prisma.user.findMany({
+    const usersWithPersonnelType = await prisma.users.findMany({
       select: {
         users_id: true,
         name: true,
         email: true,
-        personnelType: {
+        personnel_types: {
           select: {
             name: true,
             department: true,
@@ -124,13 +127,13 @@ export async function POST(request: NextRequest) {
     console.log('👥 Users with personnel type:', usersWithPersonnelType.map(u => ({
       id: u.users_id,
       name: u.name,
-      dept: u.personnelType?.department,
-      pos: u.personnelType?.name
+      dept: u.personnel_types?.department,
+      pos: u.personnel_types?.name
     })))
 
     // Get stored payroll entries for the period (same as archive route)
     // First, let's see what's actually in the database
-    const allPayrollEntries = await prisma.payrollEntry.findMany({
+    const allPayrollEntries = await prisma.payroll_entries.findMany({
       select: {
         periodStart: true,
         periodEnd: true,
@@ -150,18 +153,19 @@ export async function POST(request: NextRequest) {
     })))
 
     // First try exact date match
-    let payrollEntries = await prisma.payrollEntry.findMany({
+    let payrollEntries = await prisma.payroll_entries.findMany({
       where: {
         periodStart: periodStart,
-        periodEnd: periodEnd
+        periodEnd: periodEnd,
+        status: { not: 'ARCHIVED' } // Include PENDING and RELEASED
       },
       include: {
-        user: {
+        users: {
           select: {
             users_id: true,
             name: true,
             email: true,
-            personnelType: {
+            personnel_types: {
               select: {
                 name: true,
                 department: true,
@@ -178,19 +182,22 @@ export async function POST(request: NextRequest) {
     // If no exact match, try with date range tolerance for timezone differences
     if (payrollEntries.length === 0) {
       console.log('⚠️ No exact match found, trying with date range tolerance...')
-      payrollEntries = await prisma.payrollEntry.findMany({
+      payrollEntries = await prisma.payroll_entries.findMany({
         where: {
           periodStart: { gte: new Date(periodStart.getTime() - 86400000), lte: new Date(periodStart.getTime() + 86400000) },
-          periodEnd: { gte: new Date(periodEnd.getTime() - 86400000), lte: new Date(periodEnd.getTime() + 86400000) }
+          periodEnd: { gte: new Date(periodEnd.getTime() - 86400000), lte: new Date(periodEnd.getTime() + 86400000) },
+          status: { not: 'ARCHIVED' } // Include PENDING and RELEASED
         },
         include: {
-          user: {
+          users: {
             select: {
               users_id: true,
               name: true,
               email: true,
-              personnelType: {
+              personnel_types: {
                 select: {
+                  name: true,
+                  department: true,
                   basicSalary: true
                 }
               }
@@ -204,6 +211,7 @@ export async function POST(request: NextRequest) {
     // Use stored payroll data directly - no need for fresh calculations
     if (payrollEntries.length === 0) {
       console.log('❌ No stored payroll entries found for this period')
+      console.log('💡 TIP: Make sure you have generated payroll for this period first')
       return NextResponse.json(
         { error: 'No payroll data found for the specified period. Please generate payroll first.' },
         { status: 404 }
@@ -211,31 +219,27 @@ export async function POST(request: NextRequest) {
     }
 
     // Get detailed breakdown data (same logic as archive route)
-    const payslipData = await Promise.all(payrollEntries.map(async (entry) => {
+    const payslipData = await Promise.all(payrollEntries.map(async (entry: any) => {
       // Get attendance records for this user and period
-      const attendanceRecords = await prisma.attendance.findMany({
-        where: {
-          users_id: entry.users_id,
-          date: { gte: entry.periodStart, lte: entry.periodEnd }
-        }
-      })
+      // Attendance system removed
+      const attendanceRecords: any[] = []
 
       // Get deduction records for this user
       // For mandatory deductions (PhilHealth, SSS, Pag-IBIG), don't filter by date - they apply to every period
       // For other deductions, only include those within the current period
-      const deductionRecords = await prisma.deduction.findMany({
+      const deductionRecords = await prisma.deductions.findMany({
         where: {
           users_id: entry.users_id,
           OR: [
             // Mandatory deductions - always include
             {
-              deductionType: {
+              deduction_types: {
                 isMandatory: true
               }
             },
             // Other deductions - only within period
             {
-              deductionType: {
+              deduction_types: {
                 isMandatory: false
               },
               appliedAt: { gte: entry.periodStart, lte: entry.periodEnd }
@@ -243,12 +247,12 @@ export async function POST(request: NextRequest) {
           ]
         },
         include: {
-          deductionType: true
+          deduction_types: true
         }
       })
 
       // Get loan records for this user
-      const loanRecords = await prisma.loan.findMany({
+      const loanRecords = await prisma.loans.findMany({
         where: {
           users_id: entry.users_id,
           status: 'ACTIVE'
@@ -256,7 +260,7 @@ export async function POST(request: NextRequest) {
       })
 
       // Get overload pay for this user
-      const overloadPayRecords = await prisma.overloadPay.findMany({
+      const overloadPayRecords = await prisma.overload_pays.findMany({
         where: {
           users_id: entry.users_id,
           archivedAt: null
@@ -269,7 +273,8 @@ export async function POST(request: NextRequest) {
       }))
 
       // Get attendance settings
-      const attendanceSettings = await prisma.attendanceSettings.findFirst()
+      // Attendance settings removed
+      const attendanceSettings = null
 
       // Calculate attendance details
       const attendanceDetails = attendanceRecords.map(record => {
@@ -288,9 +293,12 @@ export async function POST(request: NextRequest) {
         }
       })
 
-      // SIMPLE SOLUTION: Use personnel type monthly salary and standard 22 working days
-      const monthlyBasicSalary = entry.user?.personnelType?.basicSalary ? Number(entry.user.personnelType.basicSalary) : Number(entry.basicSalary) * 2
-      const semiMonthlyBasicSalary = monthlyBasicSalary / 2
+      // Calculate monthly basic salary from stored payroll data
+      // entry.basicSalary is the stored value, entry.overtime is additional pay
+      // Actual basic = stored basicSalary - overtime (additional pay)
+      const storedBasicSalary = Number(entry.basicSalary || 0)
+      const storedOvertime = Number(entry.overtime || 0)
+      const monthlyBasicSalary = storedBasicSalary - storedOvertime
 
       // Daily salary = Monthly ÷ 22 (standard working days per month)
       const dailySalary = monthlyBasicSalary / 22
@@ -368,18 +376,18 @@ export async function POST(request: NextRequest) {
 
       // Get other deduction records (non-attendance related)
       const otherDeductionRecords = deductionRecords.filter(deduction =>
-        !['Late Arrival', 'Late Penalty', 'Absence Deduction', 'Absent', 'Late', 'Tardiness', 'Early Time-Out', 'Partial Attendance'].includes(deduction.deductionType.name)
+        !['Late Arrival', 'Late Penalty', 'Absence Deduction', 'Absent', 'Late', 'Tardiness', 'Early Time-Out', 'Partial Attendance'].includes(deduction.deduction_types.name)
       )
 
       // Map deduction records with isMandatory flag preserved
       const otherDeductionDetails = otherDeductionRecords.map(deduction => ({
-        type: deduction.deductionType.name,
+        type: deduction.deduction_types.name,
         amount: Number(deduction.amount),
-        description: deduction.deductionType.description || '',
+        description: deduction.deduction_types.description || '',
         appliedAt: deduction.appliedAt.toISOString().split('T')[0],
-        isMandatory: deduction.deductionType.isMandatory,
-        calculationType: deduction.deductionType.calculationType,
-        percentageValue: deduction.deductionType.percentageValue ? Number(deduction.deductionType.percentageValue) : null
+        isMandatory: deduction.deduction_types.isMandatory,
+        calculationType: deduction.deduction_types.calculationType,
+        percentageValue: deduction.deduction_types.percentageValue ? Number(deduction.deduction_types.percentageValue) : null
       }))
 
       // Calculate loan details with purpose label
@@ -403,8 +411,8 @@ export async function POST(request: NextRequest) {
       const totalOtherDeductions = otherDeductionDetails.reduce((sum, detail) => sum + detail.amount, 0)
       const totalDeductions = totalAttendanceDeductions + totalLoanPayments + totalOtherDeductions
 
-      // Calculate correct net pay: Semi-Monthly Basic + Overload - Total Deductions
-      const grossPay = semiMonthlyBasicSalary + totalOverloadPay
+      // Calculate correct net pay: Monthly Basic + Overload - Total Deductions
+      const grossPay = monthlyBasicSalary + totalOverloadPay
       const correctNetPay = grossPay - totalDeductions
 
       // Get user data from the separately queried list
@@ -413,29 +421,30 @@ export async function POST(request: NextRequest) {
       // Debug logging
       console.log('🔍 User data:', {
         userId: entry.users_id,
-        userName: entry.user?.name,
+        userName: entry.users?.name,
         fromEntry: {
-          dept: entry.user?.personnelType?.department,
-          pos: entry.user?.personnelType?.name
+          dept: entry.users?.personnel_types?.department,
+          pos: entry.users?.personnel_types?.name
         },
         fromSeparateQuery: {
-          dept: userData?.personnelType?.department,
-          pos: userData?.personnelType?.name
+          dept: userData?.personnel_types?.department,
+          pos: userData?.personnel_types?.name
         }
       });
 
       return {
         users_id: entry.users_id,
-        name: entry.user?.name || null,
-        email: entry.user?.email || '',
-        department: userData?.personnelType?.department || entry.user?.personnelType?.department || null,
-        position: userData?.personnelType?.name || entry.user?.personnelType?.name || null,
+        name: entry.users?.name || null,
+        email: entry.users?.email || '',
+        idNumber: entry.users_id, // Show user ID
+        department: userData?.personnel_types?.department || entry.users?.personnel_types?.department || null,
+        position: userData?.personnel_types?.name || entry.users?.personnel_types?.name || null,
         totalHours: attendanceDetails.reduce((sum, detail) => sum + detail.workHours, 0),
         totalSalary: correctNetPay, // Use calculated net pay
         released: entry.status === 'RELEASED',
         breakdown: {
-          biweeklyBasicSalary: semiMonthlyBasicSalary, // Use semi-monthly basic salary
-          realTimeEarnings: semiMonthlyBasicSalary + totalOverloadPay,
+          biweeklyBasicSalary: monthlyBasicSalary, // Use full monthly basic salary
+          realTimeEarnings: monthlyBasicSalary + totalOverloadPay,
           realWorkHours: attendanceDetails.reduce((sum, detail) => sum + detail.workHours, 0),
           overtimePay: totalOverloadPay, // This is actually overload pay
           overloadPayDetails: overloadPayDetails, // Additional pay details with types
@@ -453,8 +462,8 @@ export async function POST(request: NextRequest) {
           totalAttendanceDeductions: totalAttendanceDeductions,
           loanDetails: loanDetails,
           otherDeductionDetails: otherDeductionDetails,
-          // personnelType name not selected in query
-          personnelBasicSalary: Number(entry.user?.personnelType?.basicSalary || 0)
+          // personnel_types name not selected in query
+          personnelBasicSalary: Number(entry.users?.personnel_types?.basicSalary || 0)
         }
       }
     }))
@@ -481,8 +490,12 @@ export async function POST(request: NextRequest) {
           
           <div class="employee-info">
             <div class="info-row">
-              <span class="label">Personnel:</span>
+              <span class="label">Staff:</span>
               <span class="value">${employee.name || employee.email}</span>
+            </div>
+            <div class="info-row">
+              <span class="label">Staff ID:</span>
+              <span class="value">${employee.idNumber || 'N/A'}</span>
             </div>
             <div class="info-row">
               <span class="label">Email:</span>
@@ -490,7 +503,7 @@ export async function POST(request: NextRequest) {
             </div>
             <div class="info-row">
               <span class="label">Department:</span>
-              <span class="value">${employee.department || 'N/A'}</span>
+              <span class="value">BLGU</span>
             </div>
             <div class="info-row">
               <span class="label">Position:</span>
@@ -500,38 +513,34 @@ export async function POST(request: NextRequest) {
               <span class="label">Period:</span>
               <span class="value">${new Date(periodStart).toLocaleDateString()} - ${new Date(periodEnd).toLocaleDateString()}</span>
             </div>
+            <div class="info-row">
+              <span class="label">Status:</span>
+              <span class="value">Released</span>
+            </div>
           </div>
           
           <div class="payroll-details">
-            <!-- Monthly Reference (Information Only) -->
-            <div class="detail-row" style="color: #666; font-size: 0.9em; font-style: italic;">
-              <span>Monthly Basic Salary (Reference):</span>
-              <span>₱${(breakdown.personnelBasicSalary || 0).toLocaleString(undefined, { maximumFractionDigits: 2 })}</span>
+            <!-- Earnings Section Header -->
+            <div style="padding: 4px 0; margin-bottom: 4px; font-weight: bold; font-size: 11px; color: #16a34a;">
+              EARNINGS
             </div>
             
-            <!-- Earnings Section -->
-            <div class="detail-row">
-              <span>Basic Salary (Semi-Monthly):</span>
-              <span>₱${(breakdown.biweeklyBasicSalary || 0).toLocaleString(undefined, { maximumFractionDigits: 2 })}</span>
-            </div>
             ${breakdown.overloadPayDetails && breakdown.overloadPayDetails.length > 0 ? `
-              <div style="font-size: 10px; font-weight: bold; color: #666; margin-top: 4px; margin-bottom: 2px;">Additional Pay:</div>
               ${breakdown.overloadPayDetails.map((detail: any) => `
-            <div class="detail-row" style="color: #2e7d32;">
-              <span>+ ${detail.type === 'POSITION_PAY' ? 'Position Pay' :
+            <div class="detail-row">
+              <span>${detail.type === 'POSITION_PAY' ? 'Position Pay' :
           detail.type === 'BONUS' ? 'Bonus' :
             detail.type === '13TH_MONTH' ? '13th Month Pay' :
               detail.type === 'OVERTIME' ? 'Overtime' :
                 detail.type}:</span>
-              <span>₱${Number(detail.amount).toLocaleString(undefined, { maximumFractionDigits: 2 })}</span>
+              <span style="color: #16a34a;">₱${Number(detail.amount).toLocaleString(undefined, { maximumFractionDigits: 2 })}</span>
             </div>
               `).join('')}
             ` :
           ((breakdown.overtimePay || 0) > 0 ? `
-              <div style="font-size: 10px; font-weight: bold; color: #666; margin-top: 4px; margin-bottom: 2px;">Additional Pay:</div>
-            <div class="detail-row" style="color: #2e7d32;">
-              <span>+ Overtime:</span>
-              <span>₱${(breakdown.overtimePay || 0).toLocaleString(undefined, { maximumFractionDigits: 2 })}</span>
+            <div class="detail-row">
+              <span>Additional Pay:</span>
+              <span style="color: #16a34a;">₱${(breakdown.overtimePay || 0).toLocaleString(undefined, { maximumFractionDigits: 2 })}</span>
             </div>
               ` : '')
         }
@@ -540,16 +549,25 @@ export async function POST(request: NextRequest) {
               <span>₱${(breakdown.grossPay || 0).toLocaleString(undefined, { maximumFractionDigits: 2 })}</span>
             </div>
             
+            <!-- Deductions Section Header -->
+            <div style="padding: 4px 0; margin: 6px 0 4px 0; font-weight: bold; font-size: 11px; color: #dc2626;">
+              DEDUCTIONS
+            </div>
+            
             <!-- Detailed Deductions Section -->
             ${breakdown.attendanceDeductionDetails && breakdown.attendanceDeductionDetails.length > 0 ? `
               <div class="deduction-section">
-                <div class="deduction-title">Attendance Deductions:</div>
+                <div class="deduction-title">Attendance Deductions: (${breakdown.attendanceDeductionDetails.length} item${breakdown.attendanceDeductionDetails.length > 1 ? 's' : ''})</div>
                 ${breakdown.attendanceDeductionDetails.map((deduction: any) => `
                   <div class="detail-row deduction-detail">
                     <span>${deduction.date}: ${deduction.description}</span>
                     <span class="deduction">-₱${deduction.amount.toLocaleString(undefined, { maximumFractionDigits: 2 })}</span>
                   </div>
                 `).join('')}
+                <div class="detail-row deduction-detail" style="border-top: 1px solid #ddd; margin-top: 2px; padding-top: 2px; font-weight: bold;">
+                  <span>Subtotal:</span>
+                  <span class="deduction">-₱${(breakdown.totalAttendanceDeductions || 0).toLocaleString(undefined, { maximumFractionDigits: 2 })}</span>
+                </div>
               </div>
             ` : ''}
             
@@ -562,9 +580,10 @@ export async function POST(request: NextRequest) {
           let html = ''
 
           if (actualLoans.length > 0) {
+            const loansTotal = actualLoans.reduce((sum: number, loan: any) => sum + loan.amount, 0);
             html += `
                   <div class="deduction-section">
-                    <div class="deduction-title">Loan Payments:</div>
+                    <div class="deduction-title">Loan Payments: (${actualLoans.length} loan${actualLoans.length > 1 ? 's' : ''})</div>
                     ${actualLoans.map((loan: any) => {
               // Clean up loan name - remove percentage details
               const loanName = (loan.description || loan.type || 'Loan Payment').split('(')[0].trim();
@@ -578,6 +597,10 @@ export async function POST(request: NextRequest) {
                         ${loan.remainingBalance && loan.remainingBalance > 0 ? `<div style="font-size: 7px; color: #999; margin-left: 12px;">Remaining Balance: ₱${loan.remainingBalance.toLocaleString(undefined, { maximumFractionDigits: 2 })}</div>` : ''}
                       </div>
                     `}).join('')}
+                    <div class="detail-row deduction-detail" style="border-top: 1px solid #ddd; margin-top: 2px; padding-top: 2px; font-weight: bold;">
+                      <span>Subtotal:</span>
+                      <span class="deduction">-₱${loansTotal.toLocaleString(undefined, { maximumFractionDigits: 2 })}</span>
+                    </div>
                   </div>
                 `
           }
@@ -614,9 +637,10 @@ export async function POST(request: NextRequest) {
           let html = ''
 
           if (mandatoryDeductions.length > 0) {
+            const mandatoryTotal = mandatoryDeductions.reduce((sum: number, d: any) => sum + d.amount, 0);
             html += `
                   <div class="deduction-section">
-                    <div class="deduction-title">Mandatory Deductions:</div>
+                    <div class="deduction-title">Mandatory Deductions: (${mandatoryDeductions.length} item${mandatoryDeductions.length > 1 ? 's' : ''})</div>
                     ${mandatoryDeductions.map((deduction: any) => {
               // Clean up mandatory deduction name - remove percentage details
               const deductionName = (deduction.type || 'Deduction').split('(')[0].trim();
@@ -632,6 +656,10 @@ export async function POST(request: NextRequest) {
                         <div style="font-size: 7px; color: #999; margin-left: 12px;">${calcType}</div>
                       </div>
                     `}).join('')}
+                    <div class="detail-row deduction-detail" style="border-top: 1px solid #ddd; margin-top: 2px; padding-top: 2px; font-weight: bold;">
+                      <span>Subtotal:</span>
+                      <span class="deduction">-₱${mandatoryTotal.toLocaleString(undefined, { maximumFractionDigits: 2 })}</span>
+                    </div>
                   </div>
                 `
           }
@@ -667,7 +695,18 @@ export async function POST(request: NextRequest) {
             </div>
           </div>
           
-          <div class="status">Status: RELEASED</div>
+          <div class="signatures">
+            <div class="sig-box">
+              <div class="sig-line"></div>
+              <div class="sig-label">Emma L. Mactao</div>
+              <div class="sig-sublabel">Brgy Treasurer</div>
+            </div>
+            <div class="sig-box">
+              <div class="sig-line"></div>
+              <div class="sig-label">${employee.name || 'Staff Name'}</div>
+              <div class="sig-sublabel">Received by</div>
+            </div>
+          </div>
         </div>
       `
     }
@@ -685,7 +724,11 @@ export async function POST(request: NextRequest) {
       <!DOCTYPE html>
       <html>
       <head>
+        <!-- Version: ${Date.now()} -->
         <meta charset="utf-8">
+        <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+        <meta http-equiv="Pragma" content="no-cache">
+        <meta http-equiv="Expires" content="0">
         <title>Payroll Slips - Perfect Layout</title>
         <style>
           @page {
@@ -704,7 +747,7 @@ export async function POST(request: NextRequest) {
             padding: 0;
           }
           .page {
-            width: 8.2in;
+            width: 8.4in;
             height: 12.7in;
             margin: 0;
             padding: 0.05in;
@@ -715,13 +758,13 @@ export async function POST(request: NextRequest) {
             page-break-after: avoid;
           }
           .payslip-card {
-            width: 3.6in;
-            min-height: 3.8in;
+            width: 4.0in;
+            min-height: 4.2in;
             height: auto;
-            border: 1px solid #000;
-            padding: 6px;
-            font-size: 12px;
-            line-height: 1.3;
+            border: 2px solid #000;
+            padding: 8px;
+            font-size: 14px;
+            line-height: 1.4;
             display: flex;
             flex-direction: column;
             background: white;
@@ -729,52 +772,52 @@ export async function POST(request: NextRequest) {
             overflow: visible;
             position: absolute;
           }
-          .payslip-card:nth-child(1) { top: 0.1in; left: 0.1in; }
-          .payslip-card:nth-child(2) { top: 0.1in; left: 3.8in; }
-          .payslip-card:nth-child(3) { top: 4.0in; left: 0.1in; }
-          .payslip-card:nth-child(4) { top: 4.0in; left: 3.8in; }
-          .payslip-card:nth-child(5) { top: 7.9in; left: 0.1in; }
-          .payslip-card:nth-child(6) { top: 7.9in; left: 3.8in; }
+          .payslip-card:nth-child(1) { top: 0.1in; left: 0.05in; }
+          .payslip-card:nth-child(2) { top: 0.1in; left: 4.15in; }
+          .payslip-card:nth-child(3) { top: 4.0in; left: 0.05in; }
+          .payslip-card:nth-child(4) { top: 4.0in; left: 4.15in; }
+          .payslip-card:nth-child(5) { top: 7.9in; left: 0.05in; }
+          .payslip-card:nth-child(6) { top: 7.9in; left: 4.15in; }
           .payslip-header {
             text-align: center;
-            margin-bottom: 6px;
-            border-bottom: 1px solid #000;
-            padding-bottom: 6px;
-            font-size: 14px;
+            margin-bottom: 8px;
+            border-bottom: 2px solid #000;
+            padding-bottom: 8px;
+            font-size: 16px;
           }
           .logo-container {
             margin-bottom: 2px;
           }
           .logo {
-            height: 30px;
+            height: 40px;
             width: auto;
-            max-width: 100px;
+            max-width: 120px;
             object-fit: contain;
           }
           .school-name {
             font-weight: bold;
-            font-size: 9px;
-            margin-bottom: 1px;
+            font-size: 11px;
+            margin-bottom: 2px;
           }
           .school-address, .system-name, .custom-text {
-            font-size: 7px;
+            font-size: 9px;
             color: #666;
-            margin-bottom: 1px;
+            margin-bottom: 2px;
           }
           .payslip-title {
             font-weight: bold;
-            margin-top: 3px;
-            font-size: 13px;
+            margin-top: 4px;
+            font-size: 15px;
             text-align: center;
             border-top: 1px solid #ccc;
-            padding-top: 3px;
+            padding-top: 4px;
           }
           .employee-info {
-            margin-bottom: 2px;
-            font-size: 10px;
+            margin-bottom: 4px;
+            font-size: 12px;
           }
           .info-row {
-            margin-bottom: 1px;
+            margin-bottom: 2px;
             display: flex;
             justify-content: space-between;
           }
@@ -793,8 +836,8 @@ export async function POST(request: NextRequest) {
           .detail-row {
             display: flex;
             justify-content: space-between;
-            margin-bottom: 1px;
-            font-size: 10px;
+            margin-bottom: 2px;
+            font-size: 12px;
           }
           .detail-row.total {
             border-top: 1px solid #000;
@@ -803,10 +846,10 @@ export async function POST(request: NextRequest) {
           }
           .detail-row.net-pay {
             border-top: 2px solid #000;
-            padding-top: 3px;
+            padding-top: 4px;
             font-weight: bold;
-            font-size: 11px;
-            margin-top: 2px;
+            font-size: 13px;
+            margin-top: 3px;
           }
           .deduction {
             color: #d32f2f;
@@ -827,10 +870,42 @@ export async function POST(request: NextRequest) {
             font-size: 9px;
           }
           .status {
-            margin-top: 2px;
-            font-size: 9px;
+            margin-top: 4px;
+            font-size: 11px;
             text-align: center;
             color: #666;
+          }
+          .signatures {
+            margin-top: 8px;
+            display: flex;
+            justify-content: space-between;
+            gap: 4px;
+            border-top: 1px solid #ccc;
+            padding-top: 6px;
+          }
+          .sig-box {
+            flex: 1;
+            text-align: center;
+            font-size: 9px;
+          }
+          .sig-line {
+            border-top: 1px solid #000;
+            margin: 20px 4px 2px 4px;
+          }
+          .sig-label {
+            font-weight: bold;
+            font-size: 10px;
+            margin-top: 2px;
+          }
+          .sig-sublabel {
+            font-size: 8px;
+            color: #666;
+            margin-top: 1px;
+          }
+          .sig-date {
+            font-size: 8px;
+            color: #666;
+            margin-top: 3px;
           }
         </style>
         <script>
@@ -855,10 +930,13 @@ export async function POST(request: NextRequest) {
 
     console.log('✅ Generated HTML content successfully')
 
-    // Return HTML content
+    // Return HTML content with cache-busting headers
     return new NextResponse(htmlContent, {
       headers: {
         'Content-Type': 'text/html',
+        'Cache-Control': 'no-store, no-cache, must-revalidate, proxy-revalidate',
+        'Pragma': 'no-cache',
+        'Expires': '0',
       },
     })
 

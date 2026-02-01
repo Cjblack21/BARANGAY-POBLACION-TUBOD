@@ -1,114 +1,106 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
-import { prisma } from '@/lib/prisma'
+import { PrismaClient } from '@prisma/client'
+
+// Initialize Prisma client
+const prisma = new PrismaClient()
 
 export async function GET(request: NextRequest) {
   try {
+    // Check authentication
     const session = await getServerSession(authOptions)
-    
+
     if (!session?.user?.id) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
     const userId = session.user.id
-    
-    // Check if requesting archived loans
     const { searchParams } = new URL(request.url)
     const archived = searchParams.get('archived') === 'true'
 
-    // Get all loans for the user
-    const loans = await prisma.loan.findMany({
+    // Test database connection first
+    try {
+      await prisma.$connect()
+    } catch (connectionError) {
+      console.error('Database connection failed:', connectionError)
+      return NextResponse.json(
+        {
+          error: 'Database connection failed',
+          details: 'Please ensure MySQL is running and DATABASE_URL is configured'
+        },
+        { status: 500 }
+      )
+    }
+
+    // Fetch loans
+    const loans = await prisma.loans.findMany({
       where: {
         users_id: userId,
         archivedAt: archived ? { not: null } : null
-      },
-      include: {
-        user: {
-          select: {
-            name: true,
-            email: true
-          }
-        }
       },
       orderBy: {
         createdAt: 'desc'
       }
     })
 
-    // Get user's payroll entries to calculate payment history
-    const payrollEntries = await prisma.payrollEntry.findMany({
-      where: {
-        users_id: userId,
-        status: 'RELEASED'
-      },
-      orderBy: {
-        periodEnd: 'desc'
-      }
-    })
-
-    // Calculate loan progress for each loan
-    const loansWithProgress = loans.map(loan => {
-      const loanAmount = Number(loan.amount)
-      const remainingBalance = Number(loan.balance)
-      const monthlyPaymentPercent = Number(loan.monthlyPaymentPercent)
+    // Transform data
+    const loansData = loans.map(loan => {
+      const loanAmount = Number(loan.amount || 0)
+      const remainingBalance = Number(loan.balance || 0)
+      const monthlyPaymentPercent = Number(loan.monthlyPaymentPercent || 0)
       const monthlyPayment = (loanAmount * monthlyPaymentPercent) / 100
       const biweeklyPayment = monthlyPayment / 2
 
-      // Calculate total payments made based on actual balance
-      const totalPaymentsMade = loanAmount - remainingBalance
-      const progressPercentage = loanAmount > 0 ? Math.min(100, (totalPaymentsMade / loanAmount) * 100) : 0
-
-      // Calculate estimated completion date
-      const paymentsRemaining = biweeklyPayment > 0 ? Math.ceil(remainingBalance / biweeklyPayment) : 0
-      const estimatedCompletionDate = new Date()
-      estimatedCompletionDate.setDate(estimatedCompletionDate.getDate() + (paymentsRemaining * 14)) // 14 days per biweekly period
-
       return {
-        ...loan,
+        loans_id: loan.loans_id,
+        users_id: loan.users_id,
         loanAmount,
+        amount: loanAmount,
+        balance: remainingBalance,
+        remainingBalance,
         monthlyPayment,
         biweeklyPayment,
-        totalPaymentsMade,
-        remainingBalance,
-        progressPercentage,
-        estimatedCompletionDate,
-        paymentsRemaining
+        monthlyPaymentPercent,
+        termMonths: loan.termMonths,
+        status: loan.status,
+        startDate: loan.startDate,
+        endDate: loan.endDate,
+        purpose: loan.purpose,
+        archivedAt: loan.archivedAt,
+        createdAt: loan.createdAt,
+        updatedAt: loan.updatedAt,
+        totalPaymentsMade: loanAmount - remainingBalance
       }
     })
 
-    // Calculate summary statistics
-    const activeLoans = loansWithProgress.filter(loan => loan.status === 'ACTIVE')
-    const totalActiveLoanAmount = activeLoans.reduce((sum, loan) => sum + loan.loanAmount, 0)
-    const totalMonthlyPayments = activeLoans.reduce((sum, loan) => sum + loan.monthlyPayment, 0)
-    const totalBiweeklyPayments = activeLoans.reduce((sum, loan) => sum + loan.biweeklyPayment, 0)
-    const totalRemainingBalance = activeLoans.reduce((sum, loan) => sum + loan.remainingBalance, 0)
+    const activeLoans = loansData.filter(l => l.status === 'ACTIVE')
 
     return NextResponse.json({
-      loans: loansWithProgress,
+      loans: loansData,
       summary: {
         totalLoans: loans.length,
         activeLoans: activeLoans.length,
-        completedLoans: loans.filter(loan => loan.status === 'COMPLETED').length,
-        totalActiveLoanAmount,
-        totalMonthlyPayments,
-        totalBiweeklyPayments,
-        totalRemainingBalance
+        completedLoans: loansData.filter(l => l.status === 'COMPLETED').length,
+        totalActiveLoanAmount: activeLoans.reduce((sum, l) => sum + l.loanAmount, 0),
+        totalMonthlyPayments: activeLoans.reduce((sum, l) => sum + l.monthlyPayment, 0),
+        totalBiweeklyPayments: activeLoans.reduce((sum, l) => sum + l.biweeklyPayment, 0),
+        totalRemainingBalance: activeLoans.reduce((sum, l) => sum + l.remainingBalance, 0)
       },
-      paymentHistory: payrollEntries.map(entry => ({
-        periodStart: entry.periodStart,
-        periodEnd: entry.periodEnd,
-        releasedAt: entry.releasedAt,
-        netPay: Number(entry.netPay)
-      }))
+      paymentHistory: []
     })
 
   } catch (error) {
-    console.error('Error fetching personnel loans:', error)
+    console.error('API Error:', error)
     return NextResponse.json(
-      { error: 'Failed to fetch loans data' },
+      {
+        error: 'Failed to fetch loans data',
+        details: error instanceof Error ? error.message : 'Unknown error'
+      },
       { status: 500 }
     )
+  } finally {
+    await prisma.$disconnect()
   }
 }
 

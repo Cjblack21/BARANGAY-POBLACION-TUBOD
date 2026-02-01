@@ -11,7 +11,7 @@ export async function GET() {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
-    const holidays = await prisma.holiday.findMany({
+    const holidays = await prisma.holidays.findMany({
       orderBy: { date: 'asc' }
     })
 
@@ -56,7 +56,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Check if holiday already exists on this date
-    const existingHoliday = await prisma.holiday.findFirst({
+    const existingHoliday = await prisma.holidays.findFirst({
       where: { date: holidayDate }
     })
 
@@ -67,7 +67,7 @@ export async function POST(request: NextRequest) {
 
     console.log('Creating holiday with data:', { name, date: holidayDate, type, description })
     
-    const holiday = await prisma.holiday.create({
+    const holiday = await prisma.holidays.create({
       data: {
         name: name.trim(),
         date: holidayDate,

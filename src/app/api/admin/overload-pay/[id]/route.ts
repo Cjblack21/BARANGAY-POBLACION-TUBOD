@@ -17,7 +17,7 @@ export async function DELETE(
     const params = await context.params
     const { id } = params
 
-    await prisma.overloadPay.delete({
+    await prisma.overload_pays.delete({
       where: { overload_pays_id: id }
     })
 
@@ -48,11 +48,12 @@ export async function PUT(
       return NextResponse.json({ error: "Invalid amount" }, { status: 400 })
     }
 
-    const updatedOverloadPay = await prisma.overloadPay.update({
+    const updatedOverloadPay = await prisma.overload_pays.update({
       where: { overload_pays_id: id },
       data: {
         amount: Number(amount),
-        notes: notes || null
+        notes: notes || null,
+        updatedAt: new Date()
       }
     })
 

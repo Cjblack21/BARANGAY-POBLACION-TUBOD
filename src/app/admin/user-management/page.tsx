@@ -9,9 +9,9 @@ export default function UserManagementPage() {
         <div>
           <h2 className="text-3xl font-bold tracking-tight flex items-center gap-2">
             <Users className="h-6 w-6 sm:h-8 sm:w-8 text-blue-600" />
-            Personnel Management
+            Staff Management
           </h2>
-          <p className="text-muted-foreground">Manage personnel accounts, roles, and information</p>
+          <p className="text-muted-foreground">Manage staff accounts, roles, and information</p>
         </div>
       </div>
       <Suspense fallback={<div>Loading...</div>}>

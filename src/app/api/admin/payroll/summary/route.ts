@@ -147,11 +147,13 @@ export async function GET() {
   
   console.log('Total attendance records (including virtual):', allAttendanceRecords.length)
 
-  // Get ALL deductions but separate attendance-related from non-attendance deductions
+  // Get ALL non-archived deductions but separate attendance-related from non-attendance deductions
+  // Only fetch deductions that haven't been archived yet (archived ones are already in payroll snapshot)
   const allDeductions = await prisma.deduction.findMany({
     where: { 
       users_id: { in: userIds }, 
-      appliedAt: { gte: periodStart, lte: periodEnd }
+      appliedAt: { gte: periodStart, lte: periodEnd },
+      archivedAt: null  // Only get active deductions, not archived ones
     },
     include: {
       deductionType: {

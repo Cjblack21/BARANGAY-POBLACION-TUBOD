@@ -16,7 +16,9 @@ const geistMono = Geist_Mono({
 export const metadata: Metadata = {
   title: "POBLACION - PMS",
   description: "Payroll Management System for Tubod Barangay Poblacion",
-
+  icons: {
+    icon: '/brgy-logo.png',
+  },
 };
 
 export default function RootLayout({

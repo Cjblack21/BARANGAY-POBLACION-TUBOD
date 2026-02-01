@@ -215,51 +215,57 @@ export async function POST(request: NextRequest) {
       return `
         <div class="payslip" style="
           width: 3.7in;
-          height: 3.9in;
-          border: 1px solid #000;
+          height: 4.3in;
+          border: 2px solid #000;
           margin: 0;
-          padding: 4px;
+          padding: 6px;
           box-sizing: border-box;
           font-family: Arial, sans-serif;
-          font-size: 7px;
-          line-height: 1.1;
+          font-size: 9px;
+          line-height: 1.2;
           float: left;
           page-break-inside: avoid;
           overflow: hidden;
         ">
           <div style="text-align: center; margin-bottom: 4px; border-bottom: 1px solid #000; padding-bottom: 2px;">
             ${headerSettings?.showLogo ? `
-              <div style="margin-bottom: 1px;">
-                <img src="${headerSettings.logoUrl}" alt="Logo" style="height: 16px; width: auto;" onerror="this.src='/brgy-logo.png'">
+              <div style="margin-bottom: 2px;">
+                <img src="${headerSettings.logoUrl}" alt="Logo" style="height: 24px; width: auto;" onerror="this.src='/brgy-logo.png'">
               </div>
             ` : ''}
-            <div style="font-weight: bold; font-size: 8px; margin-bottom: 1px;">
+            <div style="font-weight: bold; font-size: 11px; margin-bottom: 2px;">
               ${headerSettings?.schoolName || 'PAYSLIP'}
             </div>
-            <div style="font-size: 6px; color: #666; margin-bottom: 1px;">
+            <div style="font-size: 8px; color: #666; margin-bottom: 2px;">
               ${headerSettings?.schoolAddress || ''}
             </div>
-            <div style="font-size: 6px; color: #666; margin-bottom: 1px;">
+            <div style="font-size: 8px; color: #666; margin-bottom: 2px;">
               ${headerSettings?.systemName || ''}
             </div>
             ${headerSettings?.customText ? `
-              <div style="font-size: 6px; color: #666; margin-bottom: 1px;">
+              <div style="font-size: 8px; color: #666; margin-bottom: 2px;">
                 ${headerSettings.customText}
               </div>
             ` : ''}
-            <div style="font-weight: bold; margin-top: 1px; border-top: 1px solid #ccc; padding-top: 1px; font-size: 8px;">
+            <div style="font-weight: bold; margin-top: 2px; border-top: 1px solid #ccc; padding-top: 2px; font-size: 11px;">
               PAYSLIP
             </div>
           </div>
           
           <div style="margin-bottom: 2px;">
-            <strong>Employee:</strong> ${employee.name || employee.email}
+            <strong>Staff:</strong> ${employee.name || employee.email}
           </div>
           <div style="margin-bottom: 2px;">
             <strong>Email:</strong> ${employee.email}
           </div>
           <div style="margin-bottom: 2px;">
+            <strong>ID Number:</strong> ${employee.users_id}
+          </div>
+          <div style="margin-bottom: 2px;">
             <strong>Period:</strong> ${new Date(periodStart).toLocaleDateString()} - ${new Date(periodEnd).toLocaleDateString()}
+          </div>
+          <div style="margin-bottom: 2px;">
+            <strong>Status:</strong> Released
           </div>
           
           <div style="margin: 4px 0; border-top: 1px solid #ccc; padding-top: 2px;">
@@ -303,8 +309,23 @@ export async function POST(request: NextRequest) {
             </div>
           </div>
           
-          <div style="margin-top: 2px; font-size: 6px; text-align: center; color: #666;">
-            Status: ${employee.released ? 'RELEASED' : 'PENDING'}
+          <div style="margin-top: 4px; border-top: 1px solid #ccc; padding-top: 4px; display: flex; justify-content: space-between; gap: 2px;">
+            <div style="flex: 1; text-align: center; font-size: 6px;">
+              <div style="border-top: 1px solid #000; margin: 12px 2px 1px 2px;"></div>
+              <div style="font-weight: bold; font-size: 7px;">Brgy Treasurer</div>
+              <div style="color: #666;">Prepared by</div>
+            </div>
+            <div style="flex: 1; text-align: center; font-size: 6px;">
+              <div style="border-top: 1px solid #000; margin: 12px 2px 1px 2px;"></div>
+              <div style="font-weight: bold; font-size: 7px;">Punong Barangay</div>
+              <div style="color: #666;">Approved by</div>
+            </div>
+            <div style="flex: 1; text-align: center; font-size: 6px;">
+              <div style="border-top: 1px solid #000; margin: 12px 2px 1px 2px;"></div>
+              <div style="font-weight: bold; font-size: 7px;">Staff Signature</div>
+              <div style="color: #666;">Received by</div>
+              <div style="margin-top: 2px;">Date: _______</div>
+            </div>
           </div>
         </div>
       `

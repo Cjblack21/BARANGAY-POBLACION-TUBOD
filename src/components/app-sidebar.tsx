@@ -20,6 +20,7 @@ import {
   Minus,
   Plus,
   BarChart3,
+  ClipboardMinus,
 } from "lucide-react"
 
 import { NavUser } from "@/components/nav-user"
@@ -88,17 +89,17 @@ export function AppSidebar({ user, ...props }: AppSidebarProps) {
       <SidebarHeader>
         <SidebarMenu>
           <SidebarMenuItem>
-            <div className="flex items-center gap-2 px-2 py-2 group-data-[collapsible=icon]:justify-center">
-              <div className="flex aspect-square size-8 items-center justify-center rounded-lg">
+            <div className="flex items-center gap-2 px-2 pt-7 pb-2 group-data-[collapsible=icon]:justify-center">
+              <div className="flex aspect-square size-20 items-center justify-center rounded-lg">
                 <img
                   src="/brgy-logo.png"
                   alt="Barangay Logo"
-                  className="h-8 w-8 object-contain"
+                  className="h-20 w-20 object-contain"
                 />
               </div>
               <div className="group-data-[collapsible=icon]:hidden flex flex-col gap-0.5 leading-none">
-                <span className="font-semibold">POBLACION - PMS</span>
-                <span className="text-xs text-muted-foreground">Welcome to PMS</span>
+                <span className="font-bold text-lg">POBLACION - PMS</span>
+                <span className="text-sm text-muted-foreground">Welcome to PMS</span>
               </div>
             </div>
           </SidebarMenuItem>
@@ -115,11 +116,11 @@ export function AppSidebar({ user, ...props }: AppSidebarProps) {
 
         {/* Main Dashboard */}
         <SidebarGroup>
-          <SidebarGroupLabel>Overview</SidebarGroupLabel>
+          <SidebarGroupLabel className="text-sm font-semibold text-sidebar-foreground/80">Overview</SidebarGroupLabel>
           <SidebarGroupContent className="w-full min-w-0">
             <SidebarMenu>
               <SidebarMenuItem>
-                <SidebarMenuButton asChild>
+                <SidebarMenuButton asChild className="h-10 font-medium [&>svg]:size-[18px]">
                   <Link href="/admin/dashboard">
                     <Home />
                     <span>Dashboard</span>
@@ -134,21 +135,13 @@ export function AppSidebar({ user, ...props }: AppSidebarProps) {
 
         {/* Payroll Operations */}
         <SidebarGroup>
-          <SidebarGroupLabel>Payroll Operations</SidebarGroupLabel>
+          <SidebarGroupLabel className="text-sm font-semibold text-sidebar-foreground/80">Payroll Operations</SidebarGroupLabel>
           <SidebarGroupContent className="w-full min-w-0">
             <SidebarMenu>
               <SidebarMenuItem>
-                <SidebarMenuButton asChild>
-                  <Link href="/admin/attendance">
-                    <Clock />
-                    <span>Attendance</span>
-                  </Link>
-                </SidebarMenuButton>
-              </SidebarMenuItem>
-              <SidebarMenuItem>
-                <SidebarMenuButton asChild>
+                <SidebarMenuButton asChild className="h-10 font-medium [&>svg]:size-[18px]">
                   <Link href="/admin/payroll" className="relative">
-                    <span className="flex items-center justify-center w-4 h-4 text-lg font-normal">₱</span>
+                    <span className="flex items-center justify-center w-[18px] h-[18px] text-lg font-normal">₱</span>
                     <span className="flex items-center gap-1.5">
                       <span>Payroll</span>
                       {hasNotification && (
@@ -162,18 +155,42 @@ export function AppSidebar({ user, ...props }: AppSidebarProps) {
                 </SidebarMenuButton>
               </SidebarMenuItem>
               <SidebarMenuItem>
-                <SidebarMenuButton asChild>
+                <SidebarMenuButton asChild className="h-10 font-medium [&>svg]:size-[18px]">
                   <Link href="/admin/loans">
                     <Banknote />
-                    <span>Loans & Deductions</span>
+                    <span>Loans</span>
                   </Link>
                 </SidebarMenuButton>
               </SidebarMenuItem>
               <SidebarMenuItem>
-                <SidebarMenuButton asChild>
+                <SidebarMenuButton asChild className="h-10 font-medium [&>svg]:size-[18px]">
+                  <Link href="/admin/personal-deductions">
+                    <BadgeMinus />
+                    <span>Staff Deductions</span>
+                  </Link>
+                </SidebarMenuButton>
+              </SidebarMenuItem>
+              <SidebarMenuItem>
+                <SidebarMenuButton asChild className="h-10 font-medium [&>svg]:size-[18px]">
                   <Link href="/admin/deductions">
                     <Receipt />
-                    <span>Mandatory & Add Pay</span>
+                    <span>Mandatory Deductions</span>
+                  </Link>
+                </SidebarMenuButton>
+              </SidebarMenuItem>
+              <SidebarMenuItem>
+                <SidebarMenuButton asChild className="h-10 font-medium [&>svg]:size-[18px]">
+                  <Link href="/admin/add-pay">
+                    <BadgePlus />
+                    <span>Add Pay</span>
+                  </Link>
+                </SidebarMenuButton>
+              </SidebarMenuItem>
+              <SidebarMenuItem>
+                <SidebarMenuButton asChild className="h-10 font-medium [&>svg]:size-[18px]">
+                  <Link href="/admin/attendance-deduction">
+                    <ClipboardMinus />
+                    <span>Attendance Deduction</span>
                   </Link>
                 </SidebarMenuButton>
               </SidebarMenuItem>
@@ -185,19 +202,19 @@ export function AppSidebar({ user, ...props }: AppSidebarProps) {
 
         {/* User Management */}
         <SidebarGroup>
-          <SidebarGroupLabel>Personnel Management</SidebarGroupLabel>
+          <SidebarGroupLabel className="text-sm font-semibold text-sidebar-foreground/80">Staff Management</SidebarGroupLabel>
           <SidebarGroupContent className="w-full min-w-0">
             <SidebarMenu>
               <SidebarMenuItem>
-                <SidebarMenuButton asChild>
+                <SidebarMenuButton asChild className="h-10 font-medium [&>svg]:size-[18px]">
                   <Link href="/admin/user-management">
                     <Users />
-                    <span>Personnel</span>
+                    <span>Staff</span>
                   </Link>
                 </SidebarMenuButton>
               </SidebarMenuItem>
               <SidebarMenuItem>
-                <SidebarMenuButton asChild>
+                <SidebarMenuButton asChild className="h-10 font-medium [&>svg]:size-[18px]">
                   <Link href="/admin/personnel-types">
                     <UserCheck />
                     <span>Position</span>
@@ -212,11 +229,11 @@ export function AppSidebar({ user, ...props }: AppSidebarProps) {
 
         {/* Holidays */}
         <SidebarGroup>
-          <SidebarGroupLabel>Holidays</SidebarGroupLabel>
+          <SidebarGroupLabel className="text-sm font-semibold text-sidebar-foreground/80">Holidays</SidebarGroupLabel>
           <SidebarGroupContent className="w-full min-w-0">
             <SidebarMenu>
               <SidebarMenuItem>
-                <SidebarMenuButton asChild>
+                <SidebarMenuButton asChild className="h-10 font-medium [&>svg]:size-[18px]">
                   <Link href="/admin/holidays">
                     <Calendar />
                     <span>Holidays</span>
@@ -231,19 +248,11 @@ export function AppSidebar({ user, ...props }: AppSidebarProps) {
 
         {/* System Settings */}
         <SidebarGroup>
-          <SidebarGroupLabel>System Settings</SidebarGroupLabel>
+          <SidebarGroupLabel className="text-sm font-semibold text-sidebar-foreground/80">System Settings</SidebarGroupLabel>
           <SidebarGroupContent className="w-full min-w-0">
             <SidebarMenu>
               <SidebarMenuItem>
-                <SidebarMenuButton asChild>
-                  <Link href="/admin/attendance-settings">
-                    <Settings />
-                    <span>Attendance Settings</span>
-                  </Link>
-                </SidebarMenuButton>
-              </SidebarMenuItem>
-              <SidebarMenuItem>
-                <SidebarMenuButton asChild>
+                <SidebarMenuButton asChild className="h-10 font-medium [&>svg]:size-[18px]">
                   <Link href="/admin/header-settings">
                     <FileText />
                     <span>Header Settings</span>
@@ -254,37 +263,12 @@ export function AppSidebar({ user, ...props }: AppSidebarProps) {
           </SidebarGroupContent>
         </SidebarGroup>
 
-        <SidebarSeparator />
 
-        {/* Reports & Data */}
-        <SidebarGroup>
-          <SidebarGroupLabel>Reports & Data</SidebarGroupLabel>
-          <SidebarGroupContent className="w-full min-w-0">
-            <SidebarMenu>
-              <SidebarMenuItem>
-                <SidebarMenuButton asChild>
-                  <Link href="/admin/reports">
-                    <BarChart3 />
-                    <span>Reports</span>
-                  </Link>
-                </SidebarMenuButton>
-              </SidebarMenuItem>
-              <SidebarMenuItem>
-                <SidebarMenuButton asChild>
-                  <Link href="/admin/archive">
-                    <Archive />
-                    <span>Archive</span>
-                  </Link>
-                </SidebarMenuButton>
-              </SidebarMenuItem>
-            </SidebarMenu>
-          </SidebarGroupContent>
-        </SidebarGroup>
       </SidebarContent>
       <SidebarFooter>
         <div className="group-data-[collapsible=icon]:hidden px-3 py-2 text-center border-t">
-          <p className="text-xs font-medium">POBLACION - PMS</p>
-          <p className="text-xs text-muted-foreground">© 2026 PMS. All rights reserved.</p>
+          <p className="text-xs font-semibold">BRGY POBLACION-PMS</p>
+          <p className="text-xs text-muted-foreground mt-1">© 2026 All rights reserved.</p>
         </div>
       </SidebarFooter>
       <SidebarRail />

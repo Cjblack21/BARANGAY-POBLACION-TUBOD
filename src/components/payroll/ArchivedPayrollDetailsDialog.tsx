@@ -1,7 +1,9 @@
 'use client'
 
-import React, { useState, useEffect } from 'react'
+import React, { useState, useEffect, useRef } from 'react'
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
+import { Button } from '@/components/ui/button'
+import { Printer } from 'lucide-react'
 import { formatDateForDisplay } from '@/lib/timezone'
 
 interface ArchivedPayrollDetailsDialogProps {
@@ -19,6 +21,217 @@ export default function ArchivedPayrollDetailsDialog({
 }: ArchivedPayrollDetailsDialogProps) {
   const [liveData, setLiveData] = useState<any>(null)
   const [loading, setLoading] = useState(false)
+  const printRef = useRef<HTMLDivElement | null>(null)
+
+  const handlePrint = () => {
+    if (!entry || !period) return
+
+    const formatCurrencyPrint = (amount: number) => {
+      const safeAmount = Number.isFinite(amount) ? amount : 0
+      return '₱' + new Intl.NumberFormat('en-PH', {
+        minimumFractionDigits: 2,
+        maximumFractionDigits: 2
+      }).format(safeAmount)
+    }
+
+    const periodStart = formatDateForDisplay(new Date(period.periodStart))
+    const periodEnd = formatDateForDisplay(new Date(period.periodEnd))
+    const logoUrl = '/brgy-logo.png'
+
+    // Use live data if available
+    const overloadPayDetails = liveData?.overloadPayDetails || []
+    const deductionDetails = liveData?.deductionDetails || []
+    const loanDetails = liveData?.loanDetails || []
+
+    const monthlyBasic = Number(entry.user?.personnelType?.basicSalary || 0)
+    const deductions = Number(entry.deductions || 0)
+
+    let overloadPay = overloadPayDetails.reduce((sum: number, detail: any) => sum + Number(detail.amount), 0)
+    const dbNetPay = Number(entry.netPay || 0)
+    if (overloadPay === 0 && dbNetPay > monthlyBasic) {
+      overloadPay = dbNetPay - monthlyBasic + deductions
+    }
+
+    const grossPay = monthlyBasic + overloadPay
+    const netPay = grossPay - deductions
+
+    const additionalRows = overloadPayDetails.length
+      ? overloadPayDetails
+        .filter((x: any) => (Number(x.amount) || 0) > 0)
+        .map((x: any) => {
+          const label =
+            x.type === 'POSITION_PAY' ? 'Position Pay' :
+              x.type === 'BONUS' ? 'Bonus' :
+                x.type === '13TH_MONTH' ? '13th Month Pay' :
+                  x.type === 'OVERTIME' ? 'Overtime' :
+                    x.type === 'OVERLOAD' ? 'Overload' :
+                      String(x.type || 'Additional Pay')
+          return `
+            <tr>
+              <td class="td">${label}</td>
+              <td class="td right">${formatCurrencyPrint(Number(x.amount || 0))}</td>
+            </tr>
+          `
+        })
+        .join('')
+      : (overloadPay > 0 ? `
+          <tr>
+            <td class="td">Additional Pay</td>
+            <td class="td right">${formatCurrencyPrint(overloadPay)}</td>
+          </tr>
+        ` : '')
+
+    const deductionsRows = (() => {
+      const mandatory = deductionDetails.filter((d: any) => d.isMandatory)
+      const attendance = deductionDetails.filter((d: any) => {
+        const type = d.type?.toLowerCase() || ''
+        return !d.isMandatory && (type.includes('late') || type.includes('early') || type.includes('absent') || type.includes('tardiness') || type.includes('partial'))
+      })
+      const other = deductionDetails.filter((d: any) => {
+        const type = d.type?.toLowerCase() || ''
+        return !d.isMandatory && !type.includes('late') && !type.includes('early') && !type.includes('absent') && !type.includes('tardiness') && !type.includes('partial')
+      })
+
+      const actualLoans = loanDetails.filter((l: any) => !l.type?.startsWith('[DEDUCTION]'))
+      const deductionPayments = loanDetails.filter((l: any) => l.type?.startsWith('[DEDUCTION]'))
+
+      const rows: string[] = []
+
+      attendance.forEach((d: any) => {
+        rows.push(`<tr><td class="td">Attendance: ${String(d.type || 'Attendance')}</td><td class="td right">${formatCurrencyPrint(Number(d.amount || 0))}</td></tr>`)
+      })
+      mandatory.forEach((d: any) => {
+        rows.push(`<tr><td class="td">Mandatory: ${String(d.type || 'Mandatory')}</td><td class="td right">${formatCurrencyPrint(Number(d.amount || 0))}</td></tr>`)
+      })
+      actualLoans.forEach((l: any) => {
+        rows.push(`<tr><td class="td">Loan: ${String(l.type || 'Loan')}</td><td class="td right">${formatCurrencyPrint(Number(l.amount || 0))}</td></tr>`)
+      })
+      deductionPayments.forEach((d: any) => {
+        const label = String(d.type || '').replace(/^\[DEDUCTION\]\s*/i, '') || 'Deduction'
+        rows.push(`<tr><td class="td">Deduction: ${label}</td><td class="td right">${formatCurrencyPrint(Number(d.amount || 0))}</td></tr>`)
+      })
+      other.forEach((d: any) => {
+        rows.push(`<tr><td class="td">Other: ${String(d.type || 'Other')}</td><td class="td right">${formatCurrencyPrint(Number(d.amount || 0))}</td></tr>`)
+      })
+
+      return rows.join('')
+    })()
+
+    const html = `
+      <html>
+        <head>
+          <title>Payroll Details</title>
+          <meta charset="utf-8" />
+          <meta name="viewport" content="width=device-width, initial-scale=1" />
+          <style>
+            * { box-sizing: border-box; }
+            body { font-family: Arial, Helvetica, sans-serif; color: #111827; padding: 32px; font-size: 16px; }
+            .header { display:flex; align-items:center; gap:18px; padding-bottom: 16px; border-bottom: 3px solid #e5e7eb; }
+            .logo { width: 80px; height: 80px; object-fit: contain; }
+            .title { font-size: 24px; font-weight: 800; margin: 0; }
+            .subtitle { font-size: 16px; color: #6b7280; margin-top: 6px; }
+            .meta { margin-top: 12px; font-size: 16px; color: #374151; }
+            .section { margin-top: 18px; border: 2px solid #e5e7eb; border-radius: 12px; overflow: hidden; }
+            .section-title { padding: 14px 16px; border-bottom: 2px solid #e5e7eb; font-weight: 800; font-size: 16px; background: #f9fafb; }
+            table { width: 100%; border-collapse: collapse; }
+            .td { font-size: 16px; border-bottom: 1px solid #f3f4f6; padding: 12px 10px; vertical-align: top; }
+            .right { text-align: right; }
+            .sign { margin-top: 32px; display:flex; justify-content: space-between; gap: 20px; }
+            .sigbox { width: 30%; text-align: center; }
+            .signame { font-size: 18px; font-weight: 700; margin-top: 50px; }
+            .line { border-top: 2px solid #9ca3af; margin-top: 6px; }
+            .siglabel { font-size: 14px; color: #6b7280; margin-top: 6px; }
+            @media print { body { padding: 0; } }
+          </style>
+        </head>
+        <body>
+          <div class="header">
+            <img class="logo" src="${logoUrl}" alt="Logo" />
+            <div>
+              <div class="title">Payslip</div>
+              <div class="subtitle">Barangay Payroll Management System</div>
+              <div class="meta"><b>${entry.user?.name || 'N/A'}</b>${entry.user?.personnelType?.name ? ` • ${entry.user.personnelType.name}` : ''}${entry.user?.personnelType?.department ? ` • ${entry.user.personnelType.department}` : ''}</div>
+              <div class="meta">Period: <b>${periodStart}</b> - <b>${periodEnd}</b> &nbsp; | &nbsp; Staff ID: <b>${entry.users_id || ''}</b></div>
+              <div class="meta">Status: <b>Released</b> &nbsp; | &nbsp; ID Number: <b>${entry.users_id || 'N/A'}</b></div>
+            </div>
+          </div>
+
+          <div class="section">
+            <div class="section-title">Salary Summary</div>
+            <table>
+              <tbody>
+                <tr>
+                  <td class="td">Monthly Basic Salary</td>
+                  <td class="td right">${formatCurrencyPrint(monthlyBasic)}</td>
+                </tr>
+                ${additionalRows}
+                <tr>
+                  <td class="td"><b>Gross Pay</b></td>
+                  <td class="td right"><b>${formatCurrencyPrint(grossPay)}</b></td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+
+          <div class="section">
+            <div class="section-title">Deductions</div>
+            <table>
+              <tbody>
+                ${deductionsRows || `<tr><td class=\"td\">No deductions</td><td class=\"td right\">${formatCurrencyPrint(0)}</td></tr>`}
+                <tr>
+                  <td class="td"><b>Total Deductions</b></td>
+                  <td class="td right"><b>${formatCurrencyPrint(deductions)}</b></td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+
+          <div class="section">
+            <div class="section-title">Net Pay</div>
+            <table>
+              <tbody>
+                <tr>
+                  <td class="td"><b>Net Pay</b></td>
+                  <td class="td right"><b>${formatCurrencyPrint(netPay)}</b></td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+
+          <div class="sign">
+            <div class="sigbox">
+              <div class="signame">EMMA L. MACTAO</div>
+              <div class="line"></div>
+              <div class="siglabel">Brgy Treasurer</div>
+              <div class="siglabel">Prepared by</div>
+            </div>
+            <div class="sigbox">
+              <div class="signame">ARSENIO Q. SIMANGAN</div>
+              <div class="line"></div>
+              <div class="siglabel">Punong Barangay</div>
+              <div class="siglabel">Approved by</div>
+            </div>
+            <div class="sigbox">
+              <div class="signame">${entry.user?.name || 'N/A'}</div>
+              <div class="line"></div>
+              <div class="siglabel">Staff Signature</div>
+              <div class="siglabel">Received by</div>
+              <div class="siglabel" style="margin-top: 12px;">Date: _________________</div>
+            </div>
+          </div>
+        </body>
+      </html>
+    `
+
+    const win = window.open('', '_blank', 'width=1200,height=800,scrollbars=yes,resizable=yes')
+    if (!win) return
+    win.document.open()
+    win.document.write(html)
+    win.document.close()
+    win.focus()
+    win.print()
+    win.close()
+  }
 
   useEffect(() => {
     async function fetchLiveBreakdown() {
@@ -46,55 +259,72 @@ export default function ArchivedPayrollDetailsDialog({
         deductionDetails = snapshot?.deductionDetails || []
         loanDetails = snapshot?.loanDetails || []
 
-        // If snapshot doesn't have detailed breakdown, fetch live data
-        if (overloadPayDetails.length === 0 || deductionDetails.length === 0) {
-          // Fetch overload pays
-          const overloadRes = await fetch('/api/admin/overload-pay')
-          if (overloadRes.ok) {
-            const allOverload = await overloadRes.json()
-            const userOverload = allOverload.filter((op: any) => op.users_id === entry.users_id)
-            if (userOverload.length > 0) {
-              overloadPayDetails = userOverload.map((op: any) => ({
-                type: op.type || 'OVERTIME',
-                amount: Number(op.amount)
-              }))
-            }
-          }
+        // If snapshot doesn't have detailed breakdown, fetch live data as fallback
+        if (deductionDetails.length === 0 && loanDetails.length === 0) {
+          console.log('📦 Snapshot missing details, fetching live data for user:', entry.users_id)
 
-          // Fetch deductions
-          const deductionsRes = await fetch('/api/admin/deductions')
-          if (deductionsRes.ok) {
-            const allDeductions = await deductionsRes.json()
-            const userDeductions = allDeductions.filter((d: any) => d.users_id === entry.users_id && !d.archivedAt)
-            if (userDeductions.length > 0) {
-              deductionDetails = userDeductions.map((d: any) => ({
-                type: d.deductionType.name,
-                amount: Number(d.amount),
-                description: d.deductionType.description || '',
-                isMandatory: d.deductionType.isMandatory,
-                calculationType: d.deductionType.calculationType,
-                percentageValue: d.deductionType.percentageValue
-              }))
-            }
-          }
+          try {
+            // Fetch live deductions
+            const deductionsRes = await fetch('/api/admin/deductions')
+            if (deductionsRes.ok) {
+              const allDeductions = await deductionsRes.json()
+              const userDeductions = allDeductions.filter((d: any) =>
+                d.users_id === entry.users_id && !d.archivedAt
+              )
 
-          // Fetch loans
-          const loansRes = await fetch('/api/admin/loans')
-          if (loansRes.ok) {
-            const allLoans = await loansRes.json()
-            const userLoans = (allLoans.items || []).filter((l: any) => l.users_id === entry.users_id && l.status === 'ACTIVE')
-            if (userLoans.length > 0) {
-              loanDetails = userLoans.map((l: any) => {
-                const monthlyPayment = Number(l.amount) * (Number(l.monthlyPaymentPercent) / 100)
-                const paymentAmount = monthlyPayment / 2
-                return {
-                  type: l.purpose || 'Loan',
-                  amount: paymentAmount,
-                  remainingBalance: Number(l.balance),
-                  originalAmount: Number(l.amount)
-                }
-              })
+              if (userDeductions.length > 0) {
+                deductionDetails = userDeductions.map((d: any) => ({
+                  type: d.deduction_types?.name || 'Unknown',
+                  amount: Number(d.amount),
+                  description: d.deduction_types?.description || '',
+                  isMandatory: d.deduction_types?.isMandatory || false,
+                  calculationType: d.deduction_types?.calculationType || 'FIXED',
+                  percentageValue: Number(d.deduction_types?.percentageValue || 0)
+                }))
+                console.log('📦 Loaded', deductionDetails.length, 'live deductions')
+              }
             }
+
+            // Fetch live loans
+            const loansRes = await fetch('/api/admin/loans')
+            if (loansRes.ok) {
+              const loansData = await loansRes.json()
+              const allLoans = loansData.items || loansData
+              const userLoans = allLoans.filter((l: any) =>
+                l.users_id === entry.users_id && l.status === 'ACTIVE'
+              )
+
+              if (userLoans.length > 0) {
+                loanDetails = userLoans.map((l: any) => {
+                  const monthlyPayment = Number(l.amount) * (Number(l.monthlyPaymentPercent) / 100)
+                  return {
+                    type: l.purpose || 'Loan',
+                    amount: monthlyPayment,
+                    remainingBalance: Number(l.balance),
+                    originalAmount: Number(l.amount)
+                  }
+                })
+                console.log('📦 Loaded', loanDetails.length, 'live loans')
+              }
+            }
+
+            // Fetch overload pays
+            const overloadRes = await fetch('/api/admin/overload-pay')
+            if (overloadRes.ok) {
+              const allOverload = await overloadRes.json()
+              const userOverload = allOverload.filter((op: any) =>
+                op.users_id === entry.users_id && !op.archivedAt
+              )
+              if (userOverload.length > 0) {
+                overloadPayDetails = userOverload.map((op: any) => ({
+                  type: op.type || 'OVERTIME',
+                  amount: Number(op.amount)
+                }))
+                console.log('📦 Loaded', overloadPayDetails.length, 'overload pays')
+              }
+            }
+          } catch (error) {
+            console.error('Error fetching live data:', error)
           }
         }
 
@@ -122,7 +352,7 @@ export default function ArchivedPayrollDetailsDialog({
   }
 
   const monthlyBasic = Number(entry.user?.personnelType?.basicSalary || 20000)
-  const periodSalary = monthlyBasic / 2
+  const periodSalary = monthlyBasic // Use full monthly salary
   const dbNetPay = Number(entry.netPay || 0)
   const deductions = Number(entry.deductions || 0)
 
@@ -155,10 +385,34 @@ export default function ArchivedPayrollDetailsDialog({
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="max-w-[1200px] w-[95vw] max-h-[95vh] overflow-y-auto">
-        <DialogHeader>
-          <DialogTitle>Archived Payroll Details</DialogTitle>
-        </DialogHeader>
+      <DialogContent className="!w-[85vw] !max-w-[1200px] max-h-[90vh] overflow-y-auto scrollbar-hide p-0">
+        {/* Header Section */}
+        <div className="sticky top-0 z-10 bg-background border-b px-4 py-3">
+          <DialogHeader>
+            <div className="flex items-center justify-between">
+              <div>
+                <DialogTitle className="text-xl font-bold">{entry.user?.name || 'N/A'}</DialogTitle>
+                <div className="flex flex-wrap items-center gap-2 mt-2">
+                  <p className="text-sm text-muted-foreground">
+                    {formatDateForDisplay(new Date(period.periodStart))} - {formatDateForDisplay(new Date(period.periodEnd))}
+                  </p>
+                  <span className="text-muted-foreground">•</span>
+                  <p className="text-sm text-muted-foreground">{entry.user?.email || 'N/A'}</p>
+                  {entry.user?.personnelType?.department && (
+                    <>
+                      <span className="text-muted-foreground">•</span>
+                      <p className="text-sm text-muted-foreground">{entry.user.personnelType.department}</p>
+                    </>
+                  )}
+                </div>
+              </div>
+              <Button variant="outline" size="sm" onClick={handlePrint} className="gap-2">
+                <Printer className="h-4 w-4" />
+                Print
+              </Button>
+            </div>
+          </DialogHeader>
+        </div>
 
         {loading && (
           <div className="flex items-center justify-center py-8">
@@ -167,203 +421,117 @@ export default function ArchivedPayrollDetailsDialog({
         )}
 
         {!loading && (
-          <div className="space-y-4 pb-8">
-            {/* Header with Logo */}
-            <div className="text-center border-b-2 border-gray-300 dark:border-gray-700 pb-4">
-              <div className="flex justify-center mb-3">
-                <img src="/brgy-logo.png" alt="Barangay Logo" className="h-16 w-16" />
-              </div>
-              <h3 className="font-bold text-base">TUBOD BARANGAY POBLACION</h3>
-              <p className="text-xs text-muted-foreground">Tubod, Lanao del Norte</p>
-              <p className="text-xs text-muted-foreground">POBLACION - PMS</p>
-              <h2 className="font-bold text-xl mt-3">PAYROLL DETAILS</h2>
-            </div>
-
-            {/* Personnel Information */}
-            <div className="space-y-1 text-sm border-b pb-3">
-              <div className="flex justify-between">
-                <span className="font-semibold">Personnel:</span>
-                <span>{entry.user?.name || 'N/A'}</span>
-              </div>
-              <div className="flex justify-between">
-                <span className="font-semibold">Email:</span>
-                <span className="text-xs">{entry.user?.email || 'N/A'}</span>
-              </div>
-              <div className="flex justify-between">
-                <span className="font-semibold">Department:</span>
-                <span>{entry.user?.personnelType?.department || 'N/A'}</span>
-              </div>
-              <div className="flex justify-between">
-                <span className="font-semibold">Position:</span>
-                <span>{entry.user?.personnelType?.name || 'N/A'}</span>
-              </div>
-              <div className="flex justify-between">
-                <span className="font-semibold">Period:</span>
-                <span>{formatDateForDisplay(new Date(period.periodStart))} - {formatDateForDisplay(new Date(period.periodEnd))}</span>
+          <div className="px-4 py-4 space-y-4" ref={printRef}>
+            <div>
+              <div className="text-lg font-bold">{entry.user?.name || 'N/A'}</div>
+              <div className="muted">
+                {formatDateForDisplay(new Date(period.periodStart))} - {formatDateForDisplay(new Date(period.periodEnd))}
+                {entry.user?.email ? ` • ${entry.user.email}` : ''}
+                {entry.user?.personnelType?.department ? ` • ${entry.user.personnelType.department}` : ''}
               </div>
             </div>
 
-            {/* Salary Details */}
-            <div className="space-y-2">
-              <div className="flex justify-between py-2 border-b">
-                <span className="font-semibold">Monthly Basic Salary (MONTHLY)</span>
-                <span>{formatCurrency(monthlyBasic)}</span>
+            {/* Simplified Salary Summary */}
+            <div className="border rounded-lg">
+              <div className="border-b px-4 py-3">
+                <h3 className="text-base font-semibold">Salary Summary</h3>
               </div>
-              <div className="flex justify-between py-2 border-b bg-green-50 dark:bg-green-950/20 px-2">
-                <span className="font-semibold">Basic Salary (Semi-Monthly)</span>
-                <span className="text-green-600 font-bold">{formatCurrency(periodSalary)}</span>
-              </div>
-
-              {/* Additional Pay Section */}
-              {(overloadPayDetails.length > 0 || overloadPay > 0) && (
-                <p className="text-sm font-semibold text-muted-foreground mt-2">Additional Pay:</p>
-              )}
-
-              {/* Additional Pay Details */}
-              {overloadPayDetails.length > 0 ? (
-                overloadPayDetails.map((detail: any, idx: number) => (
-                  <div key={idx} className="flex justify-between py-2 border-b bg-emerald-50 dark:bg-emerald-950/20 px-2">
-                    <span className="font-semibold">
-                      + {detail.type === 'POSITION_PAY' ? 'Position Pay' :
-                        detail.type === 'BONUS' ? 'Bonus' :
-                          detail.type === '13TH_MONTH' ? '13th Month Pay' :
-                            detail.type === 'OVERTIME' ? 'Overtime' :
-                              detail.type === 'OVERLOAD' ? 'OVERLOAD' :
-                                detail.type}
-                    </span>
-                    <span className="text-emerald-600 font-bold">+{formatCurrency(Number(detail.amount))}</span>
-                  </div>
-                ))
-              ) : (
-                overloadPay > 0 && (
-                  <div className="flex justify-between py-2 border-b bg-emerald-50 dark:bg-emerald-950/20 px-2">
-                    <span className="font-semibold">+ Additional Pay</span>
-                    <span className="text-emerald-600 font-bold">+{formatCurrency(overloadPay)}</span>
-                  </div>
-                )
-              )}
-
-              {/* GROSS PAY */}
-              <div className="flex justify-between py-3 bg-blue-50 dark:bg-blue-950/20 px-2 rounded font-bold text-lg">
-                <span>GROSS PAY</span>
-                <span className="text-blue-600">{formatCurrency(grossPay)}</span>
-              </div>
-
-              {/* Loan Payments */}
-              {actualLoans.length > 0 && (
-                <>
-                  <p className="text-sm font-semibold text-muted-foreground mt-2">Loan Payments:</p>
-                  {actualLoans.map((loan: any, idx: number) => {
-                    // Clean up loan name - remove percentage details
-                    const loanName = (loan.type || 'Loan Payment').split('(')[0].trim();
-                    return (
-                      <div key={idx} className="border-b pl-4 py-1.5">
-                        <div className="flex justify-between">
-                          <span className="text-sm">{loanName}</span>
-                          <span className="text-sm text-red-600 font-semibold">-{formatCurrency(loan.amount)}</span>
-                        </div>
-                        <div className="text-xs text-muted-foreground mt-0.5 space-y-0.5">
-                          {loan.originalAmount && (
-                            <div>Total Amount: {formatCurrency(loan.originalAmount)}</div>
-                          )}
-                          {loan.remainingBalance > 0 && (
-                            <div>Remaining Balance: {formatCurrency(loan.remainingBalance)}</div>
-                          )}
-                        </div>
-                      </div>
-                    );
-                  })}
-                </>
-              )}
-
-              {/* Deduction Payments */}
-              {deductionPayments.length > 0 && (
-                <>
-                  <p className="text-sm font-semibold text-muted-foreground mt-2">Deduction Payments:</p>
-                  {deductionPayments.map((deduction: any, idx: number) => {
-                    // Clean up deduction name - remove [DEDUCTION] prefix and percentage details
-                    let deductionName = deduction.type || 'Deduction';
-                    deductionName = deductionName.replace(/^\[DEDUCTION\]\s*/i, '').split('(')[0].trim();
-                    return (
-                      <div key={idx} className="border-b pl-4 py-1.5">
-                        <div className="flex justify-between">
-                          <span className="text-sm">{deductionName}</span>
-                          <span className="text-sm text-red-600 font-semibold">-{formatCurrency(deduction.amount)}</span>
-                        </div>
-                        <div className="text-xs text-muted-foreground mt-0.5 space-y-0.5">
-                          {deduction.originalAmount && (
-                            <div>Total Amount: {formatCurrency(deduction.originalAmount)}</div>
-                          )}
-                          {deduction.remainingBalance > 0 && (
-                            <div>Remaining Balance: {formatCurrency(deduction.remainingBalance)}</div>
-                          )}
-                        </div>
-                      </div>
-                    );
-                  })}
-                </>
-              )}
-
-              {/* Mandatory Deduction Details */}
-              {mandatoryDeductions.length > 0 && (
-                <>
-                  <p className="text-sm font-semibold text-muted-foreground mt-2">Mandatory Deductions:</p>
-                  {mandatoryDeductions.map((deduction: any, idx: number) => {
-                    // Clean up mandatory deduction name - remove percentage details
-                    const deductionName = (deduction.type || 'Deduction').split('(')[0].trim();
-                    return (
-                      <div key={idx} className="border-b pl-4 py-1.5">
-                        <div className="flex justify-between">
-                          <span className="text-sm">{deductionName}</span>
-                          <span className="text-sm text-red-600 font-semibold">-{formatCurrency(deduction.amount)}</span>
-                        </div>
-                        <div className="text-xs text-muted-foreground mt-0.5">
-                          {deduction.calculationType === 'PERCENTAGE' && deduction.percentageValue
-                            ? `${deduction.percentageValue}% of salary`
-                            : 'Fixed amount'}
-                        </div>
-                      </div>
-                    );
-                  })}
-                </>
-              )}
-
-              {/* Attendance Deductions */}
-              {attendanceDeductions.length > 0 && (
-                <>
-                  <p className="text-sm font-semibold text-muted-foreground mt-2">Attendance Deductions:</p>
-                  {attendanceDeductions.map((deduction: any, idx: number) => (
-                    <div key={idx} className="flex justify-between py-1.5 border-b pl-4">
-                      <span className="text-sm">{deduction.type}</span>
-                      <span className="text-sm text-red-600 font-semibold">-{formatCurrency(deduction.amount)}</span>
-                    </div>
-                  ))}
-                </>
-              )}
-
-              {otherDeductions.length > 0 && (
-                <>
-                  <p className="text-sm font-semibold text-muted-foreground mt-2">Other Deductions:</p>
-                  {otherDeductions.map((deduction: any, idx: number) => (
-                    <div key={idx} className="flex justify-between py-1.5 border-b pl-4">
-                      <span className="text-sm">{deduction.type}</span>
-                      <span className="text-sm text-red-600 font-semibold">-{formatCurrency(deduction.amount)}</span>
-                    </div>
-                  ))}
-                </>
-              )}
-
-              {(mandatoryDeductions.length === 0 && otherDeductions.length === 0) && deductions > 0 && (
-                <div className="flex justify-between py-2 border-b bg-red-50 dark:bg-red-950/20 px-2">
-                  <span className="font-semibold">- Total Deductions</span>
-                  <span className="text-red-600 font-bold">-{formatCurrency(deductions)}</span>
+              <div className="p-4 space-y-2">
+                <div className="flex justify-between items-center py-2 border-b">
+                  <span className="text-xs font-medium">Monthly Basic Salary</span>
+                  <span className="text-sm font-bold">{formatCurrency(periodSalary)}</span>
                 </div>
-              )}
 
-              {/* NET PAY */}
-              <div className="flex justify-between py-3 bg-primary/10 px-2 rounded">
-                <span className="text-lg font-bold">NET PAY</span>
-                <span className="text-lg font-bold text-primary">{formatCurrency(netPay)}</span>
+                {/* Additional Pay Section */}
+                {(overloadPayDetails.length > 0 || overloadPay > 0) && (
+                  <>
+                    <div className="pt-2">
+                      <span className="text-xs font-semibold text-green-700 dark:text-green-400 uppercase tracking-wide">Additional Pay:</span>
+                    </div>
+                    {overloadPayDetails.length > 0 ? (
+                      overloadPayDetails.map((detail: any, idx: number) => (
+                        <div key={idx} className="flex justify-between items-center py-2 border-b pl-3">
+                          <span className="text-xs font-medium text-green-600">
+                            • {detail.type === 'POSITION_PAY' ? 'Position Pay' :
+                              detail.type === 'BONUS' ? 'Bonus' :
+                                detail.type === '13TH_MONTH' ? '13th Month Pay' :
+                                  detail.type === 'OVERTIME' ? 'Overtime' :
+                                    detail.type === 'OVERLOAD' ? 'Overload' :
+                                      detail.type}
+                          </span>
+                          <span className="text-sm font-bold text-green-600">+{formatCurrency(Number(detail.amount))}</span>
+                        </div>
+                      ))
+                    ) : (
+                      overloadPay > 0 && (
+                        <div className="flex justify-between items-center py-2 border-b pl-3">
+                          <span className="text-xs font-medium text-green-600">• Additional Pay</span>
+                          <span className="text-sm font-bold text-green-600">+{formatCurrency(overloadPay)}</span>
+                        </div>
+                      )
+                    )}
+                  </>
+                )}
+
+                <div className="flex justify-between items-center py-2 border-b">
+                  <span className="text-xs font-medium">Gross Pay</span>
+                  <span className="text-sm font-bold">{formatCurrency(grossPay)}</span>
+                </div>
+
+                {/* Deductions Section */}
+                {deductions > 0 && (
+                  <>
+                    <div className="pt-2">
+                      <span className="text-xs font-semibold text-red-700 dark:text-red-400 uppercase tracking-wide">Deductions:</span>
+                    </div>
+                    {/* Attendance Deductions */}
+                    {attendanceDeductions.map((deduction: any, idx: number) => (
+                      <div key={idx} className="flex justify-between items-center py-2 border-b pl-3">
+                        <span className="text-xs font-medium text-red-600">• {deduction.type}</span>
+                        <span className="text-sm font-bold text-red-600">-{formatCurrency(deduction.amount)}</span>
+                      </div>
+                    ))}
+                    {/* Mandatory Deductions */}
+                    {mandatoryDeductions.map((deduction: any, idx: number) => (
+                      <div key={idx} className="flex justify-between items-center py-2 border-b pl-3">
+                        <span className="text-xs font-medium text-red-600">• {(deduction.type || 'Deduction').split('(')[0].trim()}</span>
+                        <span className="text-sm font-bold text-red-600">-{formatCurrency(deduction.amount)}</span>
+                      </div>
+                    ))}
+                    {/* Loan Payments */}
+                    {actualLoans.map((loan: any, idx: number) => (
+                      <div key={idx} className="flex justify-between items-center py-2 border-b pl-3">
+                        <span className="text-xs font-medium text-red-600">• {(loan.type || 'Loan').split('(')[0].trim()}</span>
+                        <span className="text-sm font-bold text-red-600">-{formatCurrency(loan.amount)}</span>
+                      </div>
+                    ))}
+                    {/* Deduction Payments */}
+                    {deductionPayments.map((deduction: any, idx: number) => (
+                      <div key={idx} className="flex justify-between items-center py-2 border-b pl-3">
+                        <span className="text-xs font-medium text-red-600">• {(deduction.type || 'Deduction').replace(/^\[DEDUCTION\]\s*/i, '').split('(')[0].trim()}</span>
+                        <span className="text-sm font-bold text-red-600">-{formatCurrency(deduction.amount)}</span>
+                      </div>
+                    ))}
+                    {/* Other Deductions */}
+                    {otherDeductions.map((deduction: any, idx: number) => (
+                      <div key={idx} className="flex justify-between items-center py-2 border-b pl-3">
+                        <span className="text-xs font-medium text-red-600">• {deduction.type}</span>
+                        <span className="text-sm font-bold text-red-600">-{formatCurrency(deduction.amount)}</span>
+                      </div>
+                    ))}
+                    {/* Total Deductions */}
+                    <div className="flex justify-between items-center py-2 border-b pl-3 bg-red-50 dark:bg-red-950/20">
+                      <span className="text-xs font-semibold text-red-700 dark:text-red-300">Total Deductions</span>
+                      <span className="text-sm font-bold text-red-700 dark:text-red-300">-{formatCurrency(deductions)}</span>
+                    </div>
+                  </>
+                )}
+
+                {/* NET PAY */}
+                <div className="flex justify-between items-center py-3 bg-primary/5 rounded-lg px-3 mt-2">
+                  <span className="text-sm font-semibold">Net Pay</span>
+                  <span className="text-xl font-bold text-primary">{formatCurrency(netPay)}</span>
+                </div>
               </div>
             </div>
           </div>

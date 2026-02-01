@@ -10,25 +10,25 @@ import { prisma } from '@/lib/prisma'
 function getCurrentBiweeklyPeriod() {
   const now = new Date()
   const year = now.getFullYear()
-  
+
   // Find the first Monday of the year
   const firstMonday = new Date(year, 0, 1)
   const dayOfWeek = firstMonday.getDay()
   const daysToAdd = dayOfWeek === 0 ? 1 : 8 - dayOfWeek
   firstMonday.setDate(firstMonday.getDate() + daysToAdd)
-  
+
   // Calculate which biweekly period we're in
   const daysSinceFirstMonday = Math.floor((now.getTime() - firstMonday.getTime()) / (1000 * 60 * 60 * 24))
   const biweeklyPeriod = Math.floor(daysSinceFirstMonday / 14)
-  
+
   // Calculate start and end of current biweekly period
   const periodStart = new Date(firstMonday)
   periodStart.setDate(periodStart.getDate() + (biweeklyPeriod * 14))
-  
+
   const periodEnd = new Date(periodStart)
   periodEnd.setDate(periodEnd.getDate() + 13)
   periodEnd.setHours(23, 59, 59, 999)
-  
+
   return { periodStart, periodEnd }
 }
 
@@ -38,24 +38,24 @@ export async function GET(request: NextRequest) {
     console.log('Request URL:', request.url)
     console.log('Request method:', request.method)
     console.log('Request headers:', Object.fromEntries(request.headers.entries()))
-    
+
     const session = await getServerSession(authOptions)
     console.log('Session data:', JSON.stringify(session, null, 2))
-    
+
     if (!session) {
       console.log('❌ No session found')
       return NextResponse.json({ error: 'No session found' }, { status: 401 })
     }
-    
+
     if (!session.user) {
       console.log('❌ No user in session')
       return NextResponse.json({ error: 'No user in session' }, { status: 401 })
     }
-    
+
     // Resolve userId from session
     let userId = session.user.id as string | undefined
     if (!userId && session.user.email) {
-      const user = await prisma.user.findUnique({
+      const user = await prisma.users.findUnique({
         where: { email: session.user.email },
         select: { users_id: true }
       })
@@ -68,17 +68,26 @@ export async function GET(request: NextRequest) {
 
     console.log('User ID:', userId)
 
-    // Use attendance settings period (same as admin)
-    const attendanceSettings = await prisma.attendanceSettings.findFirst()
-    
-    if (!attendanceSettings?.periodStart || !attendanceSettings?.periodEnd) {
-      return NextResponse.json({ error: 'No attendance period configured' }, { status: 400 })
+    // Try to use attendance settings period, but fall back to calculated period if not configured
+    const attendanceSettings = await prisma.attendance_settings.findFirst()
+
+    let periodStart: Date
+    let periodEnd: Date
+
+    if (attendanceSettings?.periodStart && attendanceSettings?.periodEnd) {
+      // Use configured period
+      periodStart = attendanceSettings.periodStart
+      periodEnd = attendanceSettings.periodEnd
+      console.log('Using configured attendance period')
+    } else {
+      // Fall back to calculated biweekly period
+      const calculated = getCurrentBiweeklyPeriod()
+      periodStart = calculated.periodStart
+      periodEnd = calculated.periodEnd
+      console.log('Using calculated biweekly period (no attendance settings configured)')
     }
-    
-    const periodStart = attendanceSettings.periodStart
-    const periodEnd = attendanceSettings.periodEnd
-    
-    console.log('Personnel payroll period (from attendance settings):', {
+
+    console.log('Personnel payroll period:', {
       periodStart: periodStart.toISOString(),
       periodEnd: periodEnd.toISOString(),
     })
@@ -86,9 +95,9 @@ export async function GET(request: NextRequest) {
     // Get most recent RELEASED (not ARCHIVED) payroll
     // When admin generates new payroll, old one becomes ARCHIVED and personnel should see nothing
     console.log(`Getting most recent RELEASED (non-archived) payroll for user: ${userId}`)
-    
-    let currentPayroll = await prisma.payrollEntry.findFirst({
-      where: { 
+
+    let currentPayroll = await prisma.payroll_entries.findFirst({
+      where: {
         users_id: userId,
         status: 'RELEASED',
         // Exclude archived payrolls
@@ -109,11 +118,11 @@ export async function GET(request: NextRequest) {
         status: true,
         releasedAt: true,
         breakdownSnapshot: true, // INCLUDE SNAPSHOT
-        user: {
+        users: {
           select: {
             name: true,
             email: true,
-            personnelType: {
+            personnel_types: {
               select: {
                 name: true,
                 basicSalary: true
@@ -123,9 +132,9 @@ export async function GET(request: NextRequest) {
         }
       }
     })
-    
+
     console.log(`Found RELEASED (non-archived) payroll:`, currentPayroll ? 'YES' : 'NO')
-    
+
     if (currentPayroll) {
       console.log(`Payroll details:`, {
         id: currentPayroll.payroll_entries_id,
@@ -134,19 +143,19 @@ export async function GET(request: NextRequest) {
         releasedAt: currentPayroll.releasedAt
       })
     }
-    
+
     // Fallback: Try by email if userId didn't work
     if (!currentPayroll && session.user.email) {
       console.log(`Trying email fallback: ${session.user.email}`)
-      currentPayroll = await prisma.payrollEntry.findFirst({
-        where: { 
+      currentPayroll = await prisma.payroll_entries.findFirst({
+        where: {
           status: 'RELEASED',
           NOT: {
             status: 'ARCHIVED'
           },
-          user: { 
-            email: session.user.email 
-          } 
+          users: {
+            email: session.user.email
+          }
         },
         orderBy: { releasedAt: 'desc' },
         select: {
@@ -161,11 +170,11 @@ export async function GET(request: NextRequest) {
           status: true,
           releasedAt: true,
           breakdownSnapshot: true, // INCLUDE SNAPSHOT
-          user: {
+          users: {
             select: {
               name: true,
               email: true,
-              personnelType: {
+              personnel_types: {
                 select: {
                   name: true,
                   basicSalary: true
@@ -177,7 +186,7 @@ export async function GET(request: NextRequest) {
       })
       console.log(`Found RELEASED (non-archived) payroll by email:`, currentPayroll ? 'YES' : 'NO')
     }
-    
+
     console.log('Current payroll found:', currentPayroll ? 'Yes' : 'No')
     if (currentPayroll) {
       console.log('Current payroll details:', {
@@ -193,10 +202,10 @@ export async function GET(request: NextRequest) {
     const effectiveStart = currentPayroll?.periodStart ?? periodStart
     const effectiveEndRaw = currentPayroll?.periodEnd ?? periodEnd  // Use full periodEnd, not capped
     const effectiveEnd = new Date(effectiveEndRaw)
-    effectiveEnd.setHours(23,59,59,999)
+    effectiveEnd.setHours(23, 59, 59, 999)
 
     // Get archived payroll entries (RELEASED or ARCHIVED status, excluding current payroll)
-    const archivedEntries = await prisma.payrollEntry.findMany({
+    const archivedEntries = await prisma.payroll_entries.findMany({
       where: {
         users_id: userId,
         status: { in: ['RELEASED', 'ARCHIVED'] },
@@ -204,11 +213,11 @@ export async function GET(request: NextRequest) {
         ...(currentPayroll ? { NOT: { payroll_entries_id: currentPayroll.payroll_entries_id } } : {})
       },
       include: {
-        user: {
+        users: {
           select: {
             name: true,
             email: true,
-            personnelType: {
+            personnel_types: {
               select: {
                 name: true,
                 basicSalary: true
@@ -221,7 +230,7 @@ export async function GET(request: NextRequest) {
         periodEnd: 'desc'
       }
     })
-    
+
     // Group archived payrolls by period (same start and end dates)
     const groupedArchived = new Map<string, any>()
     archivedEntries.forEach(entry => {
@@ -232,20 +241,20 @@ export async function GET(request: NextRequest) {
           periodEnd: entry.periodEnd,
           status: entry.status,
           payroll_entries_id: entry.payroll_entries_id, // Use first entry's ID
-          user: entry.user,
+          user: entry.users,
           netPay: entry.netPay,
           deductions: entry.deductions,
           breakdownSnapshot: entry.breakdownSnapshot
         })
       }
     })
-    
+
     const archivedPayrolls = Array.from(groupedArchived.values())
-    
+
     console.log(`Found ${archivedEntries.length} archived payroll entries, grouped into ${archivedPayrolls.length} periods`)
 
     // Get user's deductions and loans for current period
-    const deductions = await prisma.deduction.findMany({
+    const deductions = await prisma.deductions.findMany({
       where: {
         users_id: userId,
         appliedAt: {
@@ -254,7 +263,7 @@ export async function GET(request: NextRequest) {
         }
       },
       include: {
-        deductionType: {
+        deduction_types: {
           select: {
             name: true,
             amount: true,
@@ -269,10 +278,10 @@ export async function GET(request: NextRequest) {
     const isAttendanceType = (name: string) => (
       name.includes('Late') || name.includes('Absent') || name.includes('Early')
     )
-    const otherDeductions = deductions.filter(d => !isAttendanceType(d.deductionType.name))
+    const otherDeductions = deductions.filter(d => !isAttendanceType(d.deduction_types.name))
 
     // Compute real-time attendance deductions similar to admin logic
-    const attendanceSettingsForCalc = await prisma.attendanceSettings.findFirst()
+    const attendanceSettingsForCalc = await prisma.attendance_settings.findFirst()
     const timeInEnd = attendanceSettingsForCalc?.timeInEnd || '09:30'
     // Working days in period (exclude Sundays), use full period end
     let workingDaysInPeriod = 0
@@ -288,23 +297,25 @@ export async function GET(request: NextRequest) {
       }
       if (workingDaysInPeriod === 0) workingDaysInPeriod = 22
     }
-    const user = await prisma.user.findUnique({ where: { users_id: userId }, select: { personnelType: { select: { basicSalary: true } } } })
-    const basicSalary = user?.personnelType?.basicSalary ? Number(user.personnelType.basicSalary) : 0
+    const user = await prisma.users.findUnique({ where: { users_id: userId }, select: { personnel_types: { select: { basicSalary: true } } } })
+    const basicSalary = user?.personnel_types?.basicSalary ? Number(user.personnel_types.basicSalary) : 0
 
     // Only fetch attendance up to today, not future dates
     const today = new Date()
     today.setHours(23, 59, 59, 999)
     const attendanceEndDate = effectiveEnd > today ? today : effectiveEnd
-    
-    const attendanceRecords = await prisma.attendance.findMany({
-      where: { users_id: userId, date: { gte: effectiveStart, lte: attendanceEndDate } },
-      orderBy: { date: 'asc' }
-    })
+
+    // Attendance table doesn't exist - return empty array
+    const attendanceRecords: any[] = []
+    // const attendanceRecords = await prisma.attendances.findMany({
+    //   where: { users_id: userId, date: { gte: effectiveStart, lte: attendanceEndDate } },
+    //   orderBy: { date: 'asc' }
+    // })
     let attendanceDeductionsTotal = 0
     const attendanceDetails: any[] = []
     for (const rec of attendanceRecords) {
       let deduction = 0
-      
+
       if (rec.status === 'LATE' && rec.timeIn) {
         const timeIn = new Date(rec.timeIn)
         const expected = new Date(rec.date)
@@ -338,13 +349,13 @@ export async function GET(request: NextRequest) {
         deduction = hoursShort * hourlyRate
         attendanceDeductionsTotal += deduction
       }
-      
+
       // Calculate work hours
       let workHours = 0
       if (rec.timeIn && rec.timeOut) {
         workHours = (new Date(rec.timeOut).getTime() - new Date(rec.timeIn).getTime()) / (1000 * 60 * 60)
       }
-      
+
       // Add complete attendance detail
       attendanceDetails.push({
         date: rec.date,
@@ -356,7 +367,7 @@ export async function GET(request: NextRequest) {
       })
     }
 
-    const loans = await prisma.loan.findMany({
+    const loans = await prisma.loans.findMany({
       where: {
         users_id: userId,
         status: 'ACTIVE'
@@ -375,20 +386,20 @@ export async function GET(request: NextRequest) {
     }, 0)
 
     // Do NOT synthesize pending payroll for personnel view; if not released, show none
-    
+
     console.log('Total loan payments calculated:', totalLoanPayments)
     console.log('Active loans found:', loans.length)
 
     const serializePayroll = (p: any) => {
       if (!p) return null
-      
+
       // Parse breakdown snapshot if available
       let breakdownData = null
       if (p.breakdownSnapshot) {
         try {
           // Handle both string and object
-          breakdownData = typeof p.breakdownSnapshot === 'string' 
-            ? JSON.parse(p.breakdownSnapshot) 
+          breakdownData = typeof p.breakdownSnapshot === 'string'
+            ? JSON.parse(p.breakdownSnapshot)
             : p.breakdownSnapshot
           console.log('✅ SNAPSHOT PARSED:', JSON.stringify(breakdownData, null, 2))
         } catch (e) {
@@ -397,7 +408,7 @@ export async function GET(request: NextRequest) {
       } else {
         console.log('⚠️ NO SNAPSHOT FOUND for payroll:', p.payroll_entries_id)
       }
-      
+
       // DIRECT COPY - Return snapshot as-is
       if (breakdownData) {
         console.log('🔥 RETURNING EXACT SNAPSHOT:', breakdownData)
@@ -416,14 +427,14 @@ export async function GET(request: NextRequest) {
           user: p.user ? {
             name: p.user.name,
             email: p.user.email,
-            personnelType: p.user.personnelType ? {
-              name: p.user.personnelType.name,
-              basicSalary: Number(p.user.personnelType.basicSalary)
+            personnel_types: p.user.personnel_types ? {
+              name: p.user.personnel_types.name,
+              basicSalary: Number(p.user.personnel_types.basicSalary)
             } : null
           } : null
         }
       }
-      
+
       // Fallback for payroll without snapshot (shouldn't happen for released payroll)
       return {
         payroll_entries_id: p.payroll_entries_id,
@@ -440,9 +451,9 @@ export async function GET(request: NextRequest) {
         user: p.user ? {
           name: p.user.name,
           email: p.user.email,
-          personnelType: p.user.personnelType ? {
-            name: p.user.personnelType.name,
-            basicSalary: Number(p.user.personnelType.basicSalary)
+          personnel_types: p.user.personnel_types ? {
+            name: p.user.personnel_types.name,
+            basicSalary: Number(p.user.personnel_types.basicSalary)
           } : null
         } : null
       }
@@ -451,7 +462,7 @@ export async function GET(request: NextRequest) {
     // Fetch mandatory deductions to mark them properly
     let mandatoryDeductions: any[] = []
     try {
-      const types = await prisma.deductionType.findMany({
+      const types = await prisma.deduction_types.findMany({
         where: { isMandatory: true, isActive: true }
       })
       mandatoryDeductions = types.map(t => ({
@@ -465,15 +476,15 @@ export async function GET(request: NextRequest) {
     }
 
     const mandatoryTypeNames = new Set(mandatoryDeductions.map((md: any) => md.type))
-    
+
     const serializedOtherDeductions = otherDeductions.map(d => ({
-      name: d.deductionType.name,
+      name: d.deduction_types.name,
       amount: Number(d.amount),
       appliedAt: d.appliedAt,
-      description: d.deductionType.description || '-',
-      isMandatory: mandatoryTypeNames.has(d.deductionType.name)
+      description: d.deduction_types.description || '-',
+      isMandatory: mandatoryTypeNames.has(d.deduction_types.name)
     }))
-    
+
     // Add mandatory deductions that aren't already in the list
     mandatoryDeductions.forEach((md: any) => {
       const exists = serializedOtherDeductions.find((d: any) => d.name === md.type)
@@ -501,7 +512,7 @@ export async function GET(request: NextRequest) {
       const fs = require('fs')
       const path = require('path')
       const scheduleFile = path.join(process.cwd(), 'payroll-schedule.json')
-      
+
       if (fs.existsSync(scheduleFile)) {
         const scheduleData = JSON.parse(fs.readFileSync(scheduleFile, 'utf8'))
         scheduledRelease = scheduleData.releaseAt
@@ -523,7 +534,7 @@ export async function GET(request: NextRequest) {
       totalDeductions: totalDatabaseDeductions + attendanceDeductionsTotal + totalLoanPayments,
       totalLoanPayments
     }
-    
+
     // Override with snapshot data if available (released payroll)
     if (currentPayroll?.breakdownSnapshot) {
       try {
@@ -559,7 +570,7 @@ export async function GET(request: NextRequest) {
       },
       breakdown: breakdownResponse
     }
-    
+
     console.log('Response data prepared:', {
       hasCurrentPayroll: !!currentPayroll,
       archivedCount: archivedPayrolls.length,
@@ -575,12 +586,12 @@ export async function GET(request: NextRequest) {
       message: error instanceof Error ? error.message : 'Unknown error',
       stack: error instanceof Error ? error.stack : undefined
     })
-    
+
     // Return a safe default payload with 200 to avoid client fetch failure while surfacing error details
     const now = new Date()
     const start = new Date(now.getFullYear(), now.getMonth(), 1)
     const end = new Date(now.getFullYear(), now.getMonth() + 1, 0)
-    end.setHours(23,59,59,999)
+    end.setHours(23, 59, 59, 999)
     return NextResponse.json({
       currentPayroll: null,
       archivedPayrolls: [],

@@ -24,7 +24,7 @@ export async function GET() {
     }
 
     console.log("[Profile API] Fetching user with ID:", session.user.id)
-    const user = await prisma.user.findUnique({
+    const user = await prisma.users.findUnique({
       where: { users_id: session.user.id },
       select: {
         users_id: true,

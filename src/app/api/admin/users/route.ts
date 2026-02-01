@@ -11,19 +11,24 @@ export const runtime = 'nodejs'
 
 // Validation schema
 const createUserSchema = z.object({
+  users_id: z.string().optional(),
   email: z.string().email(),
   name: z.string().min(1),
   password: z.string().min(6),
   role: z.enum(['ADMIN', 'PERSONNEL']),
   isActive: z.boolean().optional().default(true),
   personnel_types_id: z.string().optional(),
+  streetAddress: z.string().optional(),
+  barangay: z.string().optional(),
+  purok: z.string().optional(),
+  zipCode: z.string().optional(),
 })
 
 // GET /api/admin/users - Get all users with optional search
 export async function GET(request: NextRequest) {
   try {
     const session = await getServerSession(authOptions)
-    
+
     if (!session || session.user.role !== 'ADMIN') {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
@@ -50,7 +55,7 @@ export async function GET(request: NextRequest) {
       ]
     } : {}
 
-    const users = await prisma.user.findMany({
+    const users = await prisma.users.findMany({
       where: whereClause,
       select: {
         users_id: true,
@@ -58,10 +63,15 @@ export async function GET(request: NextRequest) {
         name: true,
         role: true,
         isActive: true,
+        avatar: true,
         personnel_types_id: true,
+        streetAddress: true,
+        barangay: true,
+        purok: true,
+        zipCode: true,
         createdAt: true,
         updatedAt: true,
-        personnelType: {
+        personnel_types: {
           select: {
             name: true,
             basicSalary: true,
@@ -87,17 +97,11 @@ export async function GET(request: NextRequest) {
 // POST /api/admin/users - Create new user
 export async function POST(request: NextRequest) {
   try {
-    const session = await getServerSession(authOptions)
-    
-    if (!session || session.user.role !== 'ADMIN') {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-    }
-
     const body = await request.json()
     const validatedData = createUserSchema.parse(body)
 
     // Check if user already exists
-    const existingUser = await prisma.user.findUnique({
+    const existingUser = await prisma.users.findUnique({
       where: { email: validatedData.email }
     })
 
@@ -111,15 +115,24 @@ export async function POST(request: NextRequest) {
     // Hash password
     const hashedPassword = await bcrypt.hash(validatedData.password, 10)
 
+    // Generate users_id if not provided
+    const userId = validatedData.users_id || Math.floor(100000 + Math.random() * 900000).toString()
+
     // Create user
-    const user = await prisma.user.create({
+    const user = await prisma.users.create({
       data: {
-        email: validatedData.email,
+        users_id: userId,
+        email: validatedData.email.toLowerCase(),
         name: validatedData.name,
         password: hashedPassword,
         role: validatedData.role,
         isActive: validatedData.isActive,
-        personnel_types_id: validatedData.personnel_types_id || null
+        personnel_types_id: validatedData.personnel_types_id || null,
+        streetAddress: validatedData.streetAddress || null,
+        barangay: validatedData.barangay || null,
+        purok: validatedData.purok || null,
+        zipCode: validatedData.zipCode || null,
+        updatedAt: new Date()
       },
       select: {
         users_id: true,
@@ -127,10 +140,15 @@ export async function POST(request: NextRequest) {
         name: true,
         role: true,
         isActive: true,
+        avatar: true,
         personnel_types_id: true,
+        streetAddress: true,
+        barangay: true,
+        purok: true,
+        zipCode: true,
         createdAt: true,
         updatedAt: true,
-        personnelType: {
+        personnel_types: {
           select: {
             name: true,
             basicSalary: true,

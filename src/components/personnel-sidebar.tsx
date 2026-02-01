@@ -55,17 +55,17 @@ export function PersonnelSidebar({ user, ...props }: PersonnelSidebarProps) {
       <SidebarHeader>
         <SidebarMenu>
           <SidebarMenuItem>
-            <div className="flex items-center gap-2 px-2 py-2 group-data-[collapsible=icon]:justify-center">
-              <div className="flex aspect-square size-8 items-center justify-center rounded-lg">
+            <div className="flex items-center gap-2 px-2 pt-7 pb-2 group-data-[collapsible=icon]:justify-center">
+              <div className="flex aspect-square size-12 items-center justify-center rounded-lg">
                 <img
                   src="/brgy-logo.png"
                   alt="Barangay Logo"
-                  className="h-8 w-8 object-contain"
+                  className="h-12 w-12 object-contain"
                 />
               </div>
               <div className="group-data-[collapsible=icon]:hidden flex flex-col gap-0.5 leading-none">
-                <span className="font-semibold">POBLACION - PMS</span>
-                <span className="text-xs text-muted-foreground">Welcome to PMS</span>
+                <span className="font-bold text-lg">POBLACION - PMS</span>
+                <span className="text-sm text-muted-foreground">Welcome to PMS</span>
               </div>
             </div>
           </SidebarMenuItem>
@@ -82,11 +82,11 @@ export function PersonnelSidebar({ user, ...props }: PersonnelSidebarProps) {
 
         {/* Main Dashboard */}
         <SidebarGroup key="personnel-main-v2">
-          <SidebarGroupLabel>Overview</SidebarGroupLabel>
+          <SidebarGroupLabel className="text-sm font-semibold text-sidebar-foreground/80">Overview</SidebarGroupLabel>
           <SidebarGroupContent className="w-full min-w-0">
             <SidebarMenu>
               <SidebarMenuItem>
-                <SidebarMenuButton asChild>
+                <SidebarMenuButton asChild className="h-10 font-medium [&>svg]:size-[18px]">
                   <Link href="/personnel/dashboard">
                     <Home />
                     <span>Dashboard</span>
@@ -101,22 +101,30 @@ export function PersonnelSidebar({ user, ...props }: PersonnelSidebarProps) {
 
         {/* Financial */}
         <SidebarGroup key="personnel-financial-v2">
-          <SidebarGroupLabel>Payroll</SidebarGroupLabel>
+          <SidebarGroupLabel className="text-sm font-semibold text-sidebar-foreground/80">Payroll</SidebarGroupLabel>
           <SidebarGroupContent className="w-full min-w-0">
             <SidebarMenu key="personnel-menu-fin-v2">
               <SidebarMenuItem>
-                <SidebarMenuButton asChild>
+                <SidebarMenuButton asChild className="h-10 font-medium [&>svg]:size-[18px]">
                   <Link href="/personnel/payroll">
-                    <span className="flex items-center justify-center w-4 h-4 text-lg font-normal">₱</span>
+                    <span className="flex items-center justify-center w-[18px] h-[18px] text-lg font-normal">₱</span>
                     <span>Payroll</span>
                   </Link>
                 </SidebarMenuButton>
               </SidebarMenuItem>
               <SidebarMenuItem>
-                <SidebarMenuButton asChild>
+                <SidebarMenuButton asChild className="h-10 font-medium [&>svg]:size-[18px]">
                   <Link href="/personnel/loans">
                     <Banknote />
-                    <span>Loans & Deductions</span>
+                    <span>Loans</span>
+                  </Link>
+                </SidebarMenuButton>
+              </SidebarMenuItem>
+              <SidebarMenuItem>
+                <SidebarMenuButton asChild className="h-10 font-medium [&>svg]:size-[18px]">
+                  <Link href="/personnel/deductions">
+                    <CreditCard />
+                    <span>Deductions</span>
                   </Link>
                 </SidebarMenuButton>
               </SidebarMenuItem>
@@ -128,11 +136,11 @@ export function PersonnelSidebar({ user, ...props }: PersonnelSidebarProps) {
 
         {/* Attendance */}
         <SidebarGroup key="personnel-info-v2">
-          <SidebarGroupLabel>Attendance</SidebarGroupLabel>
+          <SidebarGroupLabel className="text-sm font-semibold text-sidebar-foreground/80">Attendance</SidebarGroupLabel>
           <SidebarGroupContent className="w-full min-w-0">
             <SidebarMenu key="personnel-menu-info-v2">
               <SidebarMenuItem>
-                <SidebarMenuButton asChild>
+                <SidebarMenuButton asChild className="h-10 font-medium [&>svg]:size-[18px]">
                   <Link href="/personnel/attendance">
                     <Clock />
                     <span>Attendance</span>
@@ -147,11 +155,11 @@ export function PersonnelSidebar({ user, ...props }: PersonnelSidebarProps) {
 
         {/* Holidays */}
         <SidebarGroup key="personnel-holidays-v2">
-          <SidebarGroupLabel>Holidays</SidebarGroupLabel>
+          <SidebarGroupLabel className="text-sm font-semibold text-sidebar-foreground/80">Holidays</SidebarGroupLabel>
           <SidebarGroupContent className="w-full min-w-0">
             <SidebarMenu key="personnel-menu-holidays-v2">
               <SidebarMenuItem>
-                <SidebarMenuButton asChild>
+                <SidebarMenuButton asChild className="h-10 font-medium [&>svg]:size-[18px]">
                   <Link href="/personnel/holidays">
                     <Calendar />
                     <span>Holidays</span>

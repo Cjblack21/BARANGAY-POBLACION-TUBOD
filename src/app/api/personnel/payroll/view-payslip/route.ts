@@ -47,12 +47,14 @@ export async function POST(request: NextRequest) {
       console.error('Failed to parse snapshot:', e)
     }
 
-    // Get values directly from snapshot (no calculation needed)
-    const monthlyBasicSalary = snapshot?.monthlyBasicSalary || 0
-    const semiMonthlyBase = monthlyBasicSalary / 2
+    // Get values directly from snapshot
+    // IMPORTANT: snapshot.periodSalary is GROSS PAY (basicSalary + overload)
+    // To get actual basic salary, subtract additional pay from gross pay
     const overloadPay = snapshot?.totalAdditions || 0
-    const overloadPayDetails = snapshot?.overloadPayDetails || []
     const grossPay = snapshot?.periodSalary || 0
+    const monthlyBasicSalary = grossPay - overloadPay // Actual basic salary
+    const semiMonthlyBase = monthlyBasicSalary / 2
+    const overloadPayDetails = snapshot?.overloadPayDetails || []
     const attendanceDeductions = snapshot?.attendanceDeductions || 0
     const totalDeductions = snapshot?.totalDeductions || 0
     const netPay = snapshot?.netPay || 0
@@ -80,10 +82,10 @@ export async function POST(request: NextRequest) {
       background: #f5f5f5;
     }
     .payslip {
-      width: 400px;
+      width: 500px;
       background: white;
-      border: 2px solid #000;
-      padding: 20px;
+      border: 3px solid #000;
+      padding: 30px;
     }
     .header {
       text-align: center;
@@ -92,8 +94,8 @@ export async function POST(request: NextRequest) {
       margin-bottom: 15px;
     }
     .logo {
-      width: 60px;
-      height: 60px;
+      width: 80px;
+      height: 80px;
       margin: 0 auto 10px;
       background: #e74c3c;
       border-radius: 50%;
@@ -101,47 +103,47 @@ export async function POST(request: NextRequest) {
       align-items: center;
       justify-content: center;
       color: white;
-      font-size: 30px;
+      font-size: 40px;
       font-weight: bold;
     }
     .school-name {
-      font-size: 14px;
+      font-size: 18px;
       font-weight: bold;
-      margin-bottom: 3px;
+      margin-bottom: 5px;
     }
     .school-address {
-      font-size: 10px;
+      font-size: 14px;
       color: #666;
-      margin-bottom: 2px;
+      margin-bottom: 3px;
     }
     .title {
-      font-size: 16px;
+      font-size: 20px;
       font-weight: bold;
-      margin-top: 10px;
-      border-top: 1px solid #ccc;
-      padding-top: 8px;
+      margin-top: 12px;
+      border-top: 2px solid #ccc;
+      padding-top: 10px;
     }
     .info-row {
       display: flex;
       justify-content: space-between;
-      padding: 5px 0;
-      font-size: 11px;
+      padding: 8px 0;
+      font-size: 14px;
       border-bottom: 1px solid #eee;
     }
     .label {
       font-weight: bold;
     }
     .section-title {
-      font-size: 12px;
+      font-size: 15px;
       font-weight: bold;
       font-style: italic;
-      margin: 15px 0 8px 0;
+      margin: 18px 0 10px 0;
     }
     .amount-row {
       display: flex;
       justify-content: space-between;
-      padding: 6px 10px;
-      font-size: 11px;
+      padding: 8px 12px;
+      font-size: 14px;
       border-bottom: 1px solid #eee;
     }
     .gross-row {
@@ -159,18 +161,49 @@ export async function POST(request: NextRequest) {
       font-weight: bold;
       border: 2px solid #4caf50;
       margin-top: 10px;
-      font-size: 13px;
+      font-size: 16px;
     }
     .status {
       text-align: center;
       margin-top: 15px;
-      padding: 10px;
+      padding: 12px;
       background: #e8f5e9;
       border: 2px solid #4caf50;
       border-radius: 5px;
       font-weight: bold;
-      font-size: 11px;
+      font-size: 14px;
       color: #2e7d32;
+    }
+    .signatures {
+      margin-top: 20px;
+      display: flex;
+      justify-content: space-between;
+      gap: 10px;
+      border-top: 2px solid #ccc;
+      padding-top: 15px;
+    }
+    .sig-box {
+      flex: 1;
+      text-align: center;
+    }
+    .sig-line {
+      border-top: 2px solid #000;
+      margin: 30px 5px 5px 5px;
+    }
+    .sig-label {
+      font-weight: bold;
+      font-size: 13px;
+      margin-top: 5px;
+    }
+    .sig-sublabel {
+      font-size: 11px;
+      color: #666;
+      margin-top: 2px;
+    }
+    .sig-date {
+      font-size: 11px;
+      color: #666;
+      margin-top: 5px;
     }
   </style>
 </head>
@@ -185,7 +218,7 @@ export async function POST(request: NextRequest) {
     </div>
 
     <div class="info-row">
-      <span class="label">Personnel:</span>
+      <span class="label">Staff:</span>
       <span>${payrollEntry.user?.name || 'N/A'}</span>
     </div>
     <div class="info-row">
@@ -193,8 +226,16 @@ export async function POST(request: NextRequest) {
       <span>${payrollEntry.user?.email || 'N/A'}</span>
     </div>
     <div class="info-row">
+      <span class="label">ID Number:</span>
+      <span>${payrollEntry.users_id}</span>
+    </div>
+    <div class="info-row">
       <span class="label">Period:</span>
       <span>${formatDate(periodStart)} - ${formatDate(periodEnd)}</span>
+    </div>
+    <div class="info-row">
+      <span class="label">Status:</span>
+      <span>Released</span>
     </div>
 
     <div class="section-title">Monthly Basic Salary (Reference):</div>
@@ -243,6 +284,25 @@ export async function POST(request: NextRequest) {
     </div>
 
     <div class="status">Status: ${payrollEntry.status}</div>
+
+    <div class="signatures">
+      <div class="sig-box">
+        <div class="sig-line"></div>
+        <div class="sig-label">Brgy Treasurer</div>
+        <div class="sig-sublabel">Prepared by</div>
+      </div>
+      <div class="sig-box">
+        <div class="sig-line"></div>
+        <div class="sig-label">Punong Barangay</div>
+        <div class="sig-sublabel">Approved by</div>
+      </div>
+      <div class="sig-box">
+        <div class="sig-line"></div>
+        <div class="sig-label">Staff Signature</div>
+        <div class="sig-sublabel">Received by</div>
+        <div class="sig-date">Date: ______________</div>
+      </div>
+    </div>
   </div>
 </body>
 </html>

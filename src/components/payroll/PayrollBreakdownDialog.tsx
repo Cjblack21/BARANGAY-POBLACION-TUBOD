@@ -4,7 +4,7 @@ import React from 'react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
-import { X, ChevronDown, ChevronUp, Archive } from 'lucide-react'
+import { X, ChevronDown, ChevronUp, Archive, Printer } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 import { Clock, TrendingDown, TrendingUp, Calendar, AlertCircle, UserCheck } from 'lucide-react'
@@ -45,7 +45,7 @@ type PayrollBreakdown = {
   loanDeductions: number
   otherDeductions: number
   overloadPay?: number // Overload pay (additional salary)
-  overloadPayDetails?: Array<{type: string, amount: number}> // Additional pay breakdown by type
+  overloadPayDetails?: Array<{ type: string, amount: number }> // Additional pay breakdown by type
   attendanceDetails: AttendanceDetail[]
   loanDetails: LoanDetail[]
   otherDeductionDetails: DeductionDetail[]
@@ -94,7 +94,170 @@ export default function PayrollBreakdownDialog({
   const [liveLoans, setLiveLoans] = React.useState<any[]>([])
   const [liveAttendance, setLiveAttendance] = React.useState<any[]>([])
   const [todayAttendanceStatus, setTodayAttendanceStatus] = React.useState<string | null>(null)
-  
+  const printRef = React.useRef<HTMLDivElement | null>(null)
+
+  const handlePrint = () => {
+    if (!entry) return
+
+    const formatCurrencyPrint = (amount: number) => {
+      const safeAmount = Number.isFinite(amount) ? amount : 0
+      return '₱' + new Intl.NumberFormat('en-PH', {
+        minimumFractionDigits: 2,
+        maximumFractionDigits: 2
+      }).format(safeAmount)
+    }
+
+    const periodLabel = currentPeriod
+      ? `${formatDateForDisplay(new Date(currentPeriod.periodStart))} - ${formatDateForDisplay(new Date(currentPeriod.periodEnd))}`
+      : 'N/A'
+
+    const logoUrl = '/brgy-logo.png'
+
+    const additionalPayDetails = (entry.breakdown?.overloadPayDetails || [])
+      .map((d: any) => ({
+        label:
+          d.type === 'POSITION_PAY' ? 'Position Pay' :
+            d.type === 'BONUS' ? 'Bonus' :
+              d.type === '13TH_MONTH' ? '13th Month Pay' :
+                d.type === 'OVERTIME' ? 'Overtime' :
+                  d.type === 'OVERLOAD' ? 'Overload' :
+                    String(d.type || 'Additional Pay'),
+        amount: Number(d.amount || 0)
+      }))
+
+    const additionalRows = additionalPayDetails.length
+      ? additionalPayDetails
+        .filter((x) => (Number(x.amount) || 0) > 0)
+        .map((x) => `
+          <tr>
+            <td class="td">${x.label}</td>
+            <td class="td right">${formatCurrencyPrint(x.amount)}</td>
+          </tr>
+        `)
+        .join('')
+      : (Number(entry.breakdown?.overloadPay || 0) > 0 ? `
+          <tr>
+            <td class="td">Additional Pay</td>
+            <td class="td right">${formatCurrencyPrint(Number(entry.breakdown?.overloadPay || 0))}</td>
+          </tr>
+        ` : '')
+
+    const html = `
+      <html>
+        <head>
+          <title>Payroll Details</title>
+          <meta charset="utf-8" />
+          <meta name="viewport" content="width=device-width, initial-scale=1" />
+          <style>
+            * { box-sizing: border-box; }
+            body { font-family: Arial, Helvetica, sans-serif; color: #111827; padding: 24px; }
+            .header { display:flex; align-items:center; gap:14px; padding-bottom: 12px; border-bottom: 2px solid #e5e7eb; }
+            .logo { width: 62px; height: 62px; object-fit: contain; }
+            .title { font-size: 18px; font-weight: 800; margin: 0; }
+            .subtitle { font-size: 12px; color: #6b7280; margin-top: 4px; }
+            .meta { margin-top: 10px; font-size: 12px; color: #374151; }
+            .section { margin-top: 14px; border: 1px solid #e5e7eb; border-radius: 10px; overflow: hidden; }
+            .section-title { padding: 10px 12px; border-bottom: 1px solid #e5e7eb; font-weight: 800; font-size: 12px; background: #f9fafb; }
+            table { width: 100%; border-collapse: collapse; }
+            th { text-align: left; font-size: 12px; color: #374151; border-bottom: 1px solid #e5e7eb; padding: 10px 8px; }
+            .td { font-size: 12px; border-bottom: 1px solid #f3f4f6; padding: 10px 8px; vertical-align: top; }
+            .right { text-align: right; }
+            tfoot td { border-top: 2px solid #e5e7eb; font-weight: 800; }
+            .sign { margin-top: 22px; display:flex; justify-content: space-between; gap: 24px; }
+            .sigbox { width: 40%; text-align: center; }
+            .signame { font-size: 14px; font-weight: 700; margin-top: 42px; }
+            .line { border-top: 1px solid #9ca3af; margin-top: 4px; }
+            .siglabel { font-size: 12px; color: #6b7280; margin-top: 4px; }
+            @media print { body { padding: 0; } }
+          </style>
+        </head>
+        <body>
+          <div class="header">
+            <img class="logo" src="${logoUrl}" alt="Logo" />
+            <div>
+              <div class="title">Payroll Details</div>
+              <div class="subtitle">Barangay Payroll Management System</div>
+              <div class="meta"><b>${entry.name}</b>${entry.personnelType ? ` • ${entry.personnelType}` : ''}${entry.department ? ` • ${entry.department}` : ''}</div>
+              <div class="meta">Period: <b>${periodLabel}</b> &nbsp; | &nbsp; Personnel ID: <b>${entry.users_id}</b></div>
+            </div>
+          </div>
+
+          <div class="section">
+            <div class="section-title">Salary Summary</div>
+            <table>
+              <tbody>
+                <tr>
+                  <td class="td">Monthly Basic Salary</td>
+                  <td class="td right">${formatCurrencyPrint(Number(entry.breakdown?.basicSalary || 0))}</td>
+                </tr>
+                ${additionalRows}
+                <tr>
+                  <td class="td"><b>Gross Pay</b></td>
+                  <td class="td right"><b>${formatCurrencyPrint(Number(entry.breakdown?.basicSalary || 0) + Number(entry.breakdown?.overloadPay || 0))}</b></td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+
+          <div class="section">
+            <div class="section-title">Deductions & Net Pay</div>
+            <table>
+              <tbody>
+                <tr>
+                  <td class="td">Attendance Deductions</td>
+                  <td class="td right">${formatCurrencyPrint(Number(entry.breakdown?.attendanceDeductions || 0))}</td>
+                </tr>
+                <tr>
+                  <td class="td">Loan Deductions</td>
+                  <td class="td right">${formatCurrencyPrint(Number(entry.breakdown?.loanDeductions || 0))}</td>
+                </tr>
+                <tr>
+                  <td class="td">Other Deductions</td>
+                  <td class="td right">${formatCurrencyPrint(Number(entry.breakdown?.otherDeductions || 0))}</td>
+                </tr>
+                <tr>
+                  <td class="td"><b>Total Deductions</b></td>
+                  <td class="td right"><b>${formatCurrencyPrint(Number(entry.breakdown?.attendanceDeductions || 0) + Number(entry.breakdown?.loanDeductions || 0) + Number(entry.breakdown?.otherDeductions || 0))}</b></td>
+                </tr>
+                <tr>
+                  <td class="td"><b>Net Pay</b></td>
+                  <td class="td right"><b>${formatCurrencyPrint(Number(entry.finalNetPay || 0))}</b></td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+
+          <div class="sign">
+            <div class="sigbox">
+              <div class="signame">EMMA L. MACTAO</div>
+              <div class="line"></div>
+              <div class="siglabel">Brgy Treasurer</div>
+              <div class="siglabel">Prepared by</div>
+            </div>
+            <div class="sigbox">
+              <div class="signame">ARSENIO Q. SIMANGAN</div>
+              <div class="line"></div>
+              <div class="siglabel">Punong Barangay</div>
+              <div class="siglabel">Approved by</div>
+            </div>
+          </div>
+        </body>
+      </html>
+    `
+
+    const win = window.open('', '_blank', 'width=1200,height=800,scrollbars=yes,resizable=yes')
+    if (!win) return
+    win.document.open()
+    win.document.write(html)
+    win.document.close()
+    win.focus()
+    win.print()
+    win.close()
+  }
+
+  // Use breakdown data from entry instead of fetching - eliminates loading flicker
+  const actualBasicSalary = entry?.breakdown?.basicSalary || null
+
   // Load attendance settings for early timeout detection
   React.useEffect(() => {
     async function loadSettings() {
@@ -112,18 +275,18 @@ export default function PayrollBreakdownDialog({
       loadSettings()
     }
   }, [isOpen])
-  
+
   // Load today's attendance status (skip for archived entries)
   React.useEffect(() => {
     async function loadTodayAttendance() {
       if (!entry?.users_id) return
-      
+
       // Skip live data for archived entries
       if (entry.status === 'Archived') {
         console.log('⏭️ Skipping live attendance fetch for archived entry')
         return
       }
-      
+
       try {
         const result = await getCurrentDayAttendance()
         console.log('🔍 Breakdown Dialog - Fetching attendance for:', entry.name, entry.users_id)
@@ -132,10 +295,10 @@ export default function PayrollBreakdownDialog({
           user: r.users_id,
           status: r.status
         })))
-        
+
         if (result.success && result.attendance) {
           // getCurrentDayAttendance only returns today's records, so just find by user ID
-          const todayRecord = result.attendance.find((record: any) => 
+          const todayRecord = result.attendance.find((record: any) =>
             record.users_id === entry.users_id
           )
           console.log('🔍 Found record for user:', todayRecord)
@@ -155,29 +318,29 @@ export default function PayrollBreakdownDialog({
   React.useEffect(() => {
     async function loadLiveDeductions() {
       if (!entry?.users_id) return
-      
+
       // Skip live data for archived entries - use snapshot data instead
       if (entry.status === 'Archived') {
         console.log('⏭️ Skipping live deductions fetch for archived entry')
         return
       }
-      
+
       console.log('🔍🔍🔍 FETCHING LIVE DEDUCTIONS for user:', entry.name, entry.users_id)
-      
+
       try {
         // Add cache busting to ensure fresh data
         const response = await fetch(`/api/admin/deductions?_t=${Date.now()}`)
         if (response.ok) {
           const allDeductions = await response.json()
           console.log('🔍 Total deductions fetched:', allDeductions.length)
-          
+
           // Filter to only this user's non-archived deductions
-          const userDeductions = allDeductions.filter((d: any) => 
+          const userDeductions = allDeductions.filter((d: any) =>
             d.users_id === entry.users_id && !d.archivedAt
           )
-          
-          console.log('🔍🔍🔍 USER DEDUCTIONS for', entry.name, ':', userDeductions.map((d: any) => `${d.deductionType.name}: ₱${d.amount} (Mandatory: ${d.deductionType.isMandatory})`))
-          
+
+          console.log('🔍🔍🔍 USER DEDUCTIONS for', entry.name, ':', userDeductions.map((d: any) => `${d.deduction_types.name}: ₱${d.amount} (Mandatory: ${d.deduction_types.isMandatory})`))
+
           setLiveDeductions(userDeductions)
         }
       } catch (error) {
@@ -190,20 +353,20 @@ export default function PayrollBreakdownDialog({
       loadLiveDeductions()
     }
   }, [isOpen, entry?.users_id, entry?.status])
-  
+
   // Load live attendance data for this user
   React.useEffect(() => {
     async function loadLiveAttendance() {
       if (!entry?.users_id) return
-      
+
       // Skip live data for archived entries
       if (entry.status === 'Archived') {
         console.log('⏭️ Skipping live attendance fetch for archived entry')
         return
       }
-      
+
       console.log('🔍 FETCHING LIVE ATTENDANCE for user:', entry.name, entry.users_id)
-      
+
       try {
         const response = await fetch(`/api/admin/attendance/personnel-history?userId=${entry.users_id}&_t=${Date.now()}`)
         if (response.ok) {
@@ -222,33 +385,33 @@ export default function PayrollBreakdownDialog({
       loadLiveAttendance()
     }
   }, [isOpen, entry?.users_id, entry?.status])
-  
+
   // Load live loans for this user to show all active loans/deductions (skip for archived)
   React.useEffect(() => {
     async function loadLiveLoans() {
       if (!entry?.users_id) return
-      
+
       // Skip live data for archived entries - use snapshot data instead
       if (entry.status === 'Archived') {
         console.log('⏭️ Skipping live loans fetch for archived entry')
         return
       }
-      
+
       console.log('🔍🔍🔍 FETCHING LIVE LOANS/DEDUCTIONS for user:', entry.name, entry.users_id)
-      
+
       try {
         const response = await fetch(`/api/admin/loans?_t=${Date.now()}`)
         if (response.ok) {
           const allLoans = await response.json()
           console.log('🔍 Total loans fetched:', allLoans.items?.length)
-          
+
           // Filter to only this user's active loans/deductions
-          const userLoans = (allLoans.items || []).filter((l: any) => 
+          const userLoans = (allLoans.items || []).filter((l: any) =>
             l.users_id === entry.users_id && l.status === 'ACTIVE'
           )
-          
+
           console.log('🔍🔍🔍 USER LOANS for', entry.name, ':', userLoans.map((l: any) => `${l.purpose}: ₱${l.amount} (Balance: ₱${l.balance})`))
-          
+
           setLiveLoans(userLoans)
         }
       } catch (error) {
@@ -260,7 +423,7 @@ export default function PayrollBreakdownDialog({
       loadLiveLoans()
     }
   }, [isOpen, entry?.users_id, entry?.status])
-  
+
   // Toggle expand/collapse for attendance detail
   const toggleExpanded = (index: number) => {
     setExpandedItems(prev => {
@@ -273,15 +436,15 @@ export default function PayrollBreakdownDialog({
       return newSet
     })
   }
-  
+
   // Merge cached deductions from payroll with live deductions from database
   // IMPORTANT: This must be called before the early return to maintain hook order
   const mergedDeductions = React.useMemo(() => {
     if (!entry) return []
-    
+
     // Start with cached deductions from payroll snapshot
     const deductionsMap = new Map()
-    
+
     // Add all deductions from payroll data (with null check)
     const otherDeductionDetails = entry.breakdown?.otherDeductionDetails || []
     otherDeductionDetails.forEach((d: any) => {
@@ -292,12 +455,12 @@ export default function PayrollBreakdownDialog({
         isMandatory: d.isMandatory
       })
     })
-    
+
     // Override/add with live deductions from database (fresher data)
     liveDeductions.forEach((d: any) => {
-      const typeName = d.deductionType.name
+      const typeName = d.deduction_types.name
       const typeNameLower = typeName.toLowerCase()
-      
+
       // Skip attendance-related deductions (handled separately)
       if (
         typeNameLower.includes('late') ||
@@ -308,29 +471,29 @@ export default function PayrollBreakdownDialog({
       ) {
         return
       }
-      
+
       deductionsMap.set(typeNameLower, {
         type: typeName,
         amount: parseFloat(d.amount.toString()),
-        description: d.deductionType.description || d.notes || '',
-        isMandatory: d.deductionType.isMandatory,
-        calculationType: d.deductionType.calculationType,
-        percentageValue: d.deductionType.percentageValue,
-        basicSalary: d.user?.personnelType?.basicSalary
+        description: d.deduction_types.description || d.notes || '',
+        isMandatory: d.deduction_types.isMandatory,
+        calculationType: d.deduction_types.calculationType,
+        percentageValue: d.deduction_types.percentageValue,
+        basicSalary: d.users?.personnel_types?.basicSalary
       })
     })
-    
+
     const merged = Array.from(deductionsMap.values())
     console.log('🔍 MERGED deductions (cached + live):', merged.map((d: any) => `${d.type}: ₱${d.amount} (Mandatory: ${d.isMandatory})`))
     return merged
   }, [entry, liveDeductions])
-  
+
   // FORCE: Merge cached loan data with live loans from database
   const mergedLoans = React.useMemo(() => {
     if (!entry) return []
-    
+
     const loansMap = new Map()
-    
+
     // Add cached loans from payroll (with null check)
     const loanDetails = entry.breakdown?.loanDetails || []
     console.log('🔍 CACHED LOAN DETAILS from payroll:', loanDetails)
@@ -341,29 +504,29 @@ export default function PayrollBreakdownDialog({
         remainingBalance: item.remainingBalance
       })
     })
-    
+
     // Override/add with live loans
     console.log('🔍 LIVE LOANS to merge:', liveLoans)
     liveLoans.forEach((loan: any) => {
       const isDeduction = loan.purpose?.startsWith('[DEDUCTION]')
       const displayName = isDeduction ? loan.purpose : loan.purpose || 'Loan'
-      
-      // Calculate payment amount (monthly payment / 2 for semi-monthly)
+
+      // Calculate payment amount (full monthly payment)
       const monthlyPayment = loan.amount * (loan.monthlyPaymentPercent / 100)
-      const paymentAmount = monthlyPayment / 2
-      
+      const paymentAmount = monthlyPayment
+
       loansMap.set(displayName, {
         type: displayName,
         amount: paymentAmount,
         remainingBalance: loan.balance
       })
     })
-    
+
     const merged = Array.from(loansMap.values())
     console.log('🔍 MERGED LOANS RESULT:', merged)
     return merged
   }, [entry, liveLoans])
-  
+
   if (!entry) return null
 
   // Format currency - exactly 2 decimal places
@@ -383,7 +546,7 @@ export default function PayrollBreakdownDialog({
     const minutes = Math.round((hours - wholeHours) * 60)
     return `${wholeHours}h ${minutes.toString().padStart(2, '0')}m`
   }
-  
+
   // Calculate total work hours from attendance details for this period (with null check)
   // Use live attendance data if available, otherwise fall back to cached data
   const attendanceDetails = liveAttendance.length > 0 ? liveAttendance : (entry.breakdown?.attendanceDetails || [])
@@ -391,21 +554,21 @@ export default function PayrollBreakdownDialog({
     (sum, detail) => sum + (detail.workHours || 0),
     0
   )
-  
+
   // Add today's live absence deduction if applicable
   const todayString = new Date().toISOString().split('T')[0]
   const hasTodayInRecords = attendanceDetails.some(d => d.date.startsWith(todayString))
-  const todayAbsenceDeduction = (todayAttendanceStatus === 'ABSENT' && !hasTodayInRecords) 
-    ? (entry.breakdown?.basicSalary || 0) / 11 
+  const todayAbsenceDeduction = (todayAttendanceStatus === 'ABSENT' && !hasTodayInRecords)
+    ? (entry.breakdown?.basicSalary || 0) / 11
     : 0
 
-  // Debug: Log all deductions with their isMandatory flag
-  console.log('🔍 ALL otherDeductionDetails:', mergedDeductions.map((d: any) => ({
-    type: d.type,
-    amount: d.amount,
-    isMandatory: d.isMandatory,
-    isMandatoryType: typeof d.isMandatory
-  })))
+  // Debug: Log all deductions with their isMandatory flag (disabled for performance)
+  // console.log('🔍 ALL otherDeductionDetails:', mergedDeductions.map((d: any) => ({
+  //   type: d.type,
+  //   amount: d.amount,
+  //   isMandatory: d.isMandatory,
+  //   isMandatoryType: typeof d.isMandatory
+  // })))
 
   // Helper function to check if a deduction is mandatory by looking up live deduction type data
   const isMandatoryDeduction = (deduction: any): boolean => {
@@ -413,18 +576,18 @@ export default function PayrollBreakdownDialog({
     if (deduction.isMandatory === true || deduction.isMandatory === 1) {
       return true
     }
-    
+
     // If live deductions are loaded, check if this deduction type is mandatory
     if (liveDeductions.length > 0) {
-      const liveDeduction = liveDeductions.find((d: any) => 
-        d.type?.toLowerCase() === deduction.type?.toLowerCase()
+      const liveDeduction = liveDeductions.find((d: any) =>
+        d.deduction_types?.name?.toLowerCase() === deduction.type?.toLowerCase()
       )
-      if (liveDeduction && liveDeduction.isMandatory) {
-        console.log(`🔍 Live lookup for ${deduction.type}: isMandatory=${liveDeduction.isMandatory}`)
+      if (liveDeduction && liveDeduction.deduction_types?.isMandatory) {
+        console.log(`🔍 Live lookup for ${deduction.type}: isMandatory=${liveDeduction.deduction_types.isMandatory}`)
         return true
       }
     }
-    
+
     return false
   }
 
@@ -436,34 +599,34 @@ export default function PayrollBreakdownDialog({
       return isMand
     })
   const totalMandatoryDeductions = mandatoryDeductions.reduce((sum, d) => sum + d.amount, 0)
-  
-  console.log('🎯 MANDATORY DEDUCTIONS:', mandatoryDeductions.map((d: any) => d.type))
+
+  // console.log('🎯 MANDATORY DEDUCTIONS:', mandatoryDeductions.map((d: any) => d.type))
 
   // Other deductions (excluding mandatory and attendance-related) - using merged data
   const otherDeductionsOnly = mergedDeductions
     .filter((deduction: any) => {
       const type = deduction.type.toLowerCase()
       const isMandatory = isMandatoryDeduction(deduction)
-      const isAttendance = type.includes('late') || 
-                          type.includes('absent') || 
-                          type.includes('absence') ||
-                          type.includes('early') ||
-                          type.includes('tardiness') ||
-                          type.includes('partial')
+      const isAttendance = type.includes('late') ||
+        type.includes('absent') ||
+        type.includes('absence') ||
+        type.includes('early') ||
+        type.includes('tardiness') ||
+        type.includes('partial')
       const shouldInclude = !isMandatory && !isAttendance
       console.log(`🔍 ${type}: isMandatory=${isMandatory}, isAttendance=${isAttendance}, include=${shouldInclude}`)
       return shouldInclude
     })
   const totalOtherDeductions = otherDeductionsOnly.reduce((sum, d) => sum + d.amount, 0)
-  
-  console.log('🎯 OTHER DEDUCTIONS:', otherDeductionsOnly.map((d: any) => d.type))
+
+  // console.log('🎯 OTHER DEDUCTIONS:', otherDeductionsOnly.map((d: any) => d.type))
 
   // Separate loan payments from deduction payments
   const actualLoans = mergedLoans.filter((item: any) => !item.type?.startsWith('[DEDUCTION]'))
   const actualDeductions = mergedLoans.filter((item: any) => item.type?.startsWith('[DEDUCTION]'))
   const totalLoanPayments = actualLoans.reduce((sum, loan) => sum + loan.amount, 0)
   const totalDeductionPayments = actualDeductions.reduce((sum, ded) => sum + ded.amount, 0)
-  
+
   console.log('🎯 ACTUAL LOANS (filtered):', actualLoans)
   console.log('🎯 ACTUAL DEDUCTIONS (filtered):', actualDeductions)
   console.log('🎯 Total Loan Payments:', totalLoanPayments)
@@ -480,10 +643,10 @@ export default function PayrollBreakdownDialog({
       const [hours, minutes] = (attendanceSettings?.timeInEnd || '08:02').split(':').map(Number)
       const expectedTimeIn = new Date(recordDate)
       expectedTimeIn.setHours(hours, minutes + 1, 0, 0)
-      
+
       const lateSeconds = Math.max(0, (timeIn.getTime() - expectedTimeIn.getTime()) / 1000)
       const lateDeduction = (lateSeconds) * perSecondRate
-      
+
       let earlyDeduction = 0
       if (detail.timeOut && attendanceSettings?.timeOutStart) {
         const timeOut = new Date(detail.timeOut)
@@ -493,19 +656,19 @@ export default function PayrollBreakdownDialog({
         const earlySeconds = Math.max(0, (expectedTimeOut.getTime() - timeOut.getTime()) / 1000)
         earlyDeduction = (earlySeconds) * perSecondRate
       }
-      
+
       recalculatedAttendanceDeductions += lateDeduction + earlyDeduction
     } else if (detail.status === 'ABSENT') {
       // No time-in, use full deduction
       recalculatedAttendanceDeductions += detail.deduction || 0
     }
   })
-  
+
   const attendanceDeductionsAmount = recalculatedAttendanceDeductions > 0 ? recalculatedAttendanceDeductions : Number(entry.breakdown?.attendanceDeductions || 0)
 
   // Calculate total deductions from all deduction sources (with null checks)
   // Use recalculated attendance deductions instead of cached value
-  const totalDeductions = 
+  const totalDeductions =
     attendanceDeductionsAmount +
     todayAbsenceDeduction +
     totalLoanPayments +
@@ -516,22 +679,34 @@ export default function PayrollBreakdownDialog({
   // Get overload pay (additional salary)
   const overloadPay = Number(entry.breakdown?.overloadPay || 0)
 
-  // The breakdown.basicSalary is the semi-monthly base salary WITHOUT overload
-  // We need to add overload pay to get the gross pay
-  const storedBasicSalary = Number(entry.breakdown?.basicSalary || 0)
+  // FORCE FIX: Use actual salary from personnel_types if available
+  // If stored value is half of actual salary (semi-monthly), multiply by 2
+  let storedBasicSalary = Number(entry.breakdown?.basicSalary || 0)
+
+  if (actualBasicSalary !== null) {
+    // Use actual salary from personnel_types
+    storedBasicSalary = actualBasicSalary
+    console.log('✅ Using actual salary from personnel_types:', actualBasicSalary)
+  } else if (storedBasicSalary > 0 && storedBasicSalary < 10000) {
+    // If stored value looks like semi-monthly (less than 10k), double it
+    storedBasicSalary = storedBasicSalary * 2
+    console.log('✅ Doubled stored salary from', storedBasicSalary / 2, 'to', storedBasicSalary)
+  }
+
   const grossPay = storedBasicSalary + overloadPay
-  
+
   // Calculate net pay correctly: Gross Pay - Total Deductions
   const netPay = grossPay - totalDeductions
-  
-  console.log('💰 NET PAY CALCULATION:')
-  console.log('  Monthly Basic Salary:', entry.breakdown?.monthlyBasicSalary)
-  console.log('  Stored Basic Salary (includes overload):', storedBasicSalary)
-  console.log('  Overload Pay (for display only):', overloadPay)
-  console.log('  Gross Pay:', grossPay)
-  console.log('  Recalculated Attendance Deductions:', attendanceDeductionsAmount)
-  console.log('  Total Deductions:', totalDeductions)
-  console.log('  NET PAY:', netPay)
+
+  // Net pay calculation (logging disabled for performance)
+  // console.log('💰 NET PAY CALCULATION:')
+  // console.log('  Monthly Basic Salary:', entry.breakdown?.monthlyBasicSalary)
+  // console.log('  Stored Basic Salary (includes overload):', storedBasicSalary)
+  // console.log('  Overload Pay (for display only):', overloadPay)
+  // console.log('  Gross Pay:', grossPay)
+  // console.log('  Recalculated Attendance Deductions:', attendanceDeductionsAmount)
+  // console.log('  Total Deductions:', totalDeductions)
+  // console.log('  NET PAY:', netPay)
 
   // Build comprehensive deduction breakdown including all types
   const deductionBreakdown = [
@@ -562,12 +737,12 @@ export default function PayrollBreakdownDialog({
       amount: deduction.amount,
       percentage: totalDeductions > 0 ? (deduction.amount / totalDeductions) * 100 : 0,
       color: deduction.type.toLowerCase().includes('sss') ? 'bg-blue-500' :
-             deduction.type.toLowerCase().includes('philhealth') ? 'bg-green-500' :
-             deduction.type.toLowerCase().includes('pagibig') || deduction.type.toLowerCase().includes('pag-ibig') ? 'bg-teal-500' :
-             deduction.type.toLowerCase().includes('bir') ? 'bg-purple-500' :
-             'bg-indigo-500',
-      description: deduction.calculationType === 'PERCENTAGE' && deduction.percentageValue 
-        ? `${deduction.percentageValue}% of ${formatCurrency(entry.breakdown?.monthlyBasicSalary || storedBasicSalary * 2)}` 
+        deduction.type.toLowerCase().includes('philhealth') ? 'bg-green-500' :
+          deduction.type.toLowerCase().includes('pagibig') || deduction.type.toLowerCase().includes('pag-ibig') ? 'bg-teal-500' :
+            deduction.type.toLowerCase().includes('bir') ? 'bg-purple-500' :
+              'bg-indigo-500',
+      description: deduction.calculationType === 'PERCENTAGE' && deduction.percentageValue
+        ? `${deduction.percentageValue}% of ${formatCurrency(entry.breakdown?.monthlyBasicSalary || storedBasicSalary * 2)}`
         : (deduction.description || 'Mandatory payroll deduction'),
       calculationType: deduction.calculationType,
       percentageValue: deduction.percentageValue
@@ -583,24 +758,24 @@ export default function PayrollBreakdownDialog({
   ].filter(item => item.amount > 0)
 
   // Calculate net pay percentage
-  const netPayPercentage = storedBasicSalary > 0 
-    ? (netPay / storedBasicSalary) * 100 
+  const netPayPercentage = storedBasicSalary > 0
+    ? (netPay / storedBasicSalary) * 100
     : 0
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="!w-[99vw] !max-w-none max-h-[95vh] overflow-y-auto scrollbar-hide p-0" style={{maxWidth: 'none', width: '99vw'}}>
+      <DialogContent className="!w-[85vw] !max-w-[1200px] max-h-[90vh] overflow-y-auto scrollbar-hide p-0">
         {/* Header Section with Background */}
-        <div className="sticky top-0 z-10 bg-background border-b px-6 py-4">
+        <div className="sticky top-0 z-10 bg-background border-b px-4 py-3">
           <DialogHeader>
             <div className="flex items-center justify-between">
               <div>
-                <DialogTitle className="text-2xl font-bold">
+                <DialogTitle className="text-xl font-bold">
                   {entry.name}
                 </DialogTitle>
                 <div className="flex flex-wrap items-center gap-2 mt-2">
                   <p className="text-sm text-muted-foreground">
-                    {currentPeriod ? 
+                    {currentPeriod ?
                       `${formatDateForDisplay(new Date(currentPeriod.periodStart))} - ${formatDateForDisplay(new Date(currentPeriod.periodEnd))}` :
                       'N/A'
                     }
@@ -629,6 +804,10 @@ export default function PayrollBreakdownDialog({
                 <Badge variant="outline" className="text-sm px-4 py-2">
                   {entry.status}
                 </Badge>
+                <Button variant="outline" size="sm" onClick={handlePrint} className="gap-2">
+                  <Printer className="h-4 w-4" />
+                  Print
+                </Button>
                 <Button
                   variant="ghost"
                   size="icon"
@@ -642,104 +821,144 @@ export default function PayrollBreakdownDialog({
           </DialogHeader>
         </div>
 
-        <div className="px-6 py-6 space-y-6">
-          {/* Monthly Reference Card */}
-          {entry.breakdown?.monthlyBasicSalary && (
-            <Card className="border-2 border-blue-200 dark:border-blue-800 bg-blue-50 dark:bg-blue-950/20">
-              <CardContent className="p-4">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-xs font-medium text-blue-700 dark:text-blue-400 mb-1">Monthly Basic Salary (Reference)</p>
-                    <p className="text-2xl font-bold text-blue-900 dark:text-blue-300">
-                      {formatCurrency(entry.breakdown?.monthlyBasicSalary || 0)}
-                    </p>
+        <div className="px-4 py-4 space-y-4" ref={printRef}>
+          <div>
+            <div className="text-lg font-bold">{entry.name}</div>
+            <div className="muted">
+              {currentPeriod ? `${formatDateForDisplay(new Date(currentPeriod.periodStart))} - ${formatDateForDisplay(new Date(currentPeriod.periodEnd))}` : 'N/A'}
+              {entry.department ? ` • ${entry.department}` : ''}
+              {entry.personnelType ? ` • ${entry.personnelType}` : ''}
+            </div>
+          </div>
+          {/* Simplified Salary Summary */}
+          <Card>
+            <CardHeader className="pb-3">
+              <CardTitle className="text-base font-semibold">Salary Summary</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-2 pt-0">
+              <div className="flex justify-between items-center py-2 border-b">
+                <span className="text-xs font-medium">Monthly Basic Salary</span>
+                <span className="text-sm font-bold">{formatCurrency(storedBasicSalary)}</span>
+              </div>
+              {(entry.breakdown?.overloadPayDetails && entry.breakdown.overloadPayDetails.length > 0) || overloadPay > 0 ? (
+                <>
+                  <div className="pt-2">
+                    <span className="text-xs font-semibold text-green-700 dark:text-green-400 uppercase tracking-wide">Additional Pay:</span>
                   </div>
-                  <div className="text-center border-l border-blue-300 dark:border-blue-700 pl-4">
-                    <p className="text-xs text-blue-600 dark:text-blue-400 mb-1">Period Salary</p>
-                    <p className="text-lg font-semibold text-blue-800 dark:text-blue-300">
-                      {formatCurrency(storedBasicSalary)}
-                    </p>
-                    <p className="text-xs text-blue-600 dark:text-blue-400 mt-1">(÷ 2 for semi-monthly)</p>
+                  {entry.breakdown?.overloadPayDetails && entry.breakdown.overloadPayDetails.length > 0 ? (
+                    entry.breakdown.overloadPayDetails.map((detail, idx) => (
+                      <div key={idx} className="flex justify-between items-center py-2 border-b pl-3">
+                        <span className="text-xs font-medium text-green-600">
+                          • {detail.type === 'POSITION_PAY' ? 'Position Pay' :
+                            detail.type === 'BONUS' ? 'Bonus' :
+                              detail.type === '13TH_MONTH' ? '13th Month Pay' :
+                                detail.type === 'OVERTIME' ? 'Overtime' :
+                                  detail.type === 'OVERLOAD' ? 'Overload' :
+                                    detail.type}
+                        </span>
+                        <span className="text-sm font-bold text-green-600">+{formatCurrency(detail.amount)}</span>
+                      </div>
+                    ))
+                  ) : (
+                    overloadPay > 0 && (
+                      <div className="flex justify-between items-center py-2 border-b pl-3">
+                        <span className="text-xs font-medium text-green-600">• Additional Pay</span>
+                        <span className="text-sm font-bold text-green-600">+{formatCurrency(overloadPay)}</span>
+                      </div>
+                    )
+                  )}
+                </>
+              ) : null}
+              <div className="flex justify-between items-center py-2 border-b">
+                <span className="text-xs font-medium">Gross Pay</span>
+                <span className="text-sm font-bold">{formatCurrency(grossPay)}</span>
+              </div>
+              {totalDeductions > 0 ? (
+                <>
+                  <div className="pt-2">
+                    <span className="text-xs font-semibold text-red-700 dark:text-red-400 uppercase tracking-wide">Deductions:</span>
                   </div>
+                  {/* Attendance Deductions */}
+                  {(attendanceDeductionsAmount + todayAbsenceDeduction) > 0 && (
+                    <div className="flex justify-between items-center py-2 border-b pl-3">
+                      <span className="text-xs font-medium text-red-600">• Attendance</span>
+                      <span className="text-sm font-bold text-red-600">-{formatCurrency(attendanceDeductionsAmount + todayAbsenceDeduction)}</span>
+                    </div>
+                  )}
+                  {/* Mandatory Deductions (SSS, PhilHealth, Pag-IBIG, BIR) */}
+                  {mandatoryDeductions.map((deduction, idx) => (
+                    <div key={idx} className="flex justify-between items-center py-2 border-b pl-3">
+                      <span className="text-xs font-medium text-red-600">• {deduction.type}</span>
+                      <span className="text-sm font-bold text-red-600">-{formatCurrency(deduction.amount)}</span>
+                    </div>
+                  ))}
+                  {/* Loan Payments */}
+                  {actualLoans.map((loan, idx) => (
+                    <div key={idx} className="flex justify-between items-center py-2 border-b pl-3">
+                      <span className="text-xs font-medium text-red-600">• {loan.type}</span>
+                      <span className="text-sm font-bold text-red-600">-{formatCurrency(loan.amount)}</span>
+                    </div>
+                  ))}
+                  {/* Other Deduction Payments */}
+                  {actualDeductions.map((deduction, idx) => (
+                    <div key={idx} className="flex justify-between items-center py-2 border-b pl-3">
+                      <span className="text-xs font-medium text-red-600">• {deduction.type.replace('[DEDUCTION] ', '')}</span>
+                      <span className="text-sm font-bold text-red-600">-{formatCurrency(deduction.amount)}</span>
+                    </div>
+                  ))}
+                  {/* Non-mandatory Other Deductions */}
+                  {otherDeductionsOnly.map((deduction, idx) => (
+                    <div key={idx} className="flex justify-between items-center py-2 border-b pl-3">
+                      <span className="text-xs font-medium text-red-600">• {deduction.type}</span>
+                      <span className="text-sm font-bold text-red-600">-{formatCurrency(deduction.amount)}</span>
+                    </div>
+                  ))}
+                  {/* Total */}
+                  <div className="flex justify-between items-center py-2 border-b pl-3 bg-red-50 dark:bg-red-950/20">
+                    <span className="text-xs font-semibold text-red-700 dark:text-red-300">Total Deductions</span>
+                    <span className="text-sm font-bold text-red-700 dark:text-red-300">-{formatCurrency(totalDeductions)}</span>
+                  </div>
+                </>
+              ) : (
+                <div className="flex justify-between items-center py-2 border-b">
+                  <span className="text-xs font-medium text-muted-foreground">Total Deductions</span>
+                  <span className="text-sm font-bold text-muted-foreground">-{formatCurrency(totalDeductions)}</span>
                 </div>
+              )}
+              <div className="flex justify-between items-center py-3 bg-primary/5 rounded-lg px-3 mt-2">
+                <span className="text-sm font-semibold">Net Pay</span>
+                <span className="text-xl font-bold text-primary">{formatCurrency(netPay)}</span>
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Deductions Section */}
+          {totalDeductions > 0 && (
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-lg font-semibold flex items-center gap-2">
+                  <AlertCircle className="h-5 w-5" />
+                  Deduction Breakdown
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-3">
+                {deductionBreakdown.map((item, index) => (
+                  <div key={index} className="p-4 rounded-lg border bg-muted/30 hover:bg-muted/50 transition-colors">
+                    <div className="flex items-center justify-between mb-1">
+                      <p className="text-sm font-medium">{item.label}</p>
+                    </div>
+                    <p className="text-xl font-bold">{formatCurrency(item.amount)}</p>
+                    {item.description && (
+                      <p className="text-xs text-muted-foreground mt-1">{item.description}</p>
+                    )}
+                  </div>
+                ))}
               </CardContent>
             </Card>
           )}
-          
-          {/* Summary Cards - Larger Design */}
-          <div className="grid grid-cols-3 gap-6">
-            <Card className="border-l-4 border-l-red-500 hover:shadow-lg transition-shadow">
-              <CardContent className="p-6">
-                <div className="flex items-center justify-between mb-2">
-                  <p className="text-sm font-medium text-muted-foreground">Total Deductions</p>
-                  <TrendingDown className="h-5 w-5 text-red-500" />
-                </div>
-                <p className="text-3xl font-bold text-red-600 dark:text-red-400">
-                  {formatCurrency(totalDeductions)}
-                </p>
-              </CardContent>
-            </Card>
 
-            <Card className="border-l-4 border-l-blue-500 hover:shadow-lg transition-shadow">
-              <CardContent className="p-6">
-                <div className="flex items-center justify-between mb-2">
-                  <p className="text-sm font-medium text-muted-foreground">Total Work Hours</p>
-                  <Clock className="h-5 w-5 text-blue-500" />
-                </div>
-                <p className="text-3xl font-bold">
-                  {formatWorkHours(calculatedTotalWorkHours)}
-                </p>
-                <p className="text-xs text-muted-foreground mt-2">For this period only</p>
-              </CardContent>
-            </Card>
-
-            <Card className="border-l-4 border-l-primary hover:shadow-lg transition-shadow">
-              <CardContent className="p-6">
-                <div className="flex items-center justify-between mb-2">
-                  <p className="text-sm font-medium text-muted-foreground">Net Pay</p>
-                  <div className="h-6 w-6 rounded-full bg-primary/20 flex items-center justify-center text-primary font-bold text-xs">
-                    ₱
-                  </div>
-                </div>
-                <p className="text-3xl font-bold text-primary">
-                  {formatCurrency(netPay)}
-                </p>
-                <p className="text-xs text-muted-foreground mt-2">{netPayPercentage.toFixed(1)}% of basic salary</p>
-              </CardContent>
-            </Card>
-          </div>
-
-          {/* Two Column Layout */}
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-
-            {/* Left Column - Deductions */}
-            <div className="space-y-6">
-              {totalDeductions > 0 && (
-                <Card>
-                  <CardHeader>
-                    <CardTitle className="text-lg font-semibold flex items-center gap-2">
-                      <AlertCircle className="h-5 w-5" />
-                      Deduction Breakdown
-                    </CardTitle>
-                  </CardHeader>
-                  <CardContent className="space-y-3">
-                    {deductionBreakdown.map((item, index) => (
-                      <div key={index} className="p-4 rounded-lg border bg-muted/30 hover:bg-muted/50 transition-colors">
-                        <div className="flex items-center justify-between mb-1">
-                          <p className="text-sm font-medium">{item.label}</p>
-                        </div>
-                        <p className="text-xl font-bold">{formatCurrency(item.amount)}</p>
-                        {item.description && (
-                          <p className="text-xs text-muted-foreground mt-1">{item.description}</p>
-                        )}
-                      </div>
-                    ))}
-                  </CardContent>
-                </Card>
-              )}
-            </div>
-
-            {/* Right Column - Salary Calculation */}
+          {/* REMOVED: Salary Calculation section */}
+          <div style={{ display: 'none' }}>
             <Card className="border-2">
               <CardHeader className="bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-blue-950/30 dark:to-indigo-950/30">
                 <CardTitle className="text-lg font-semibold flex items-center gap-2">
@@ -749,37 +968,26 @@ export default function PayrollBreakdownDialog({
               </CardHeader>
               <CardContent className="p-6">
                 <div className="space-y-2">
-                  {/* Monthly Basic Salary Reference */}
-                  {entry.breakdown?.monthlyBasicSalary && (
-                    <div className="flex justify-between items-center p-3 bg-blue-50 dark:bg-blue-950/20 rounded-lg border border-blue-200 dark:border-blue-800">
-                      <div>
-                        <span className="text-sm font-medium text-blue-700 dark:text-blue-300">Monthly Basic Salary</span>
-                        <p className="text-xs text-blue-600 dark:text-blue-400 mt-0.5">(Reference)</p>
-                      </div>
-                      <span className="text-lg font-bold text-blue-900 dark:text-blue-100">{formatCurrency(entry.breakdown?.monthlyBasicSalary || 0)}</span>
-                    </div>
-                  )}
-                  
-                  {/* Period Salary */}
+                  {/* Monthly Basic Salary */}
                   <div className="flex justify-between items-center p-4 bg-green-50 dark:bg-green-950/20 rounded-lg border-2 border-green-300 dark:border-green-700">
                     <div>
-                      <span className="text-base font-bold text-green-900 dark:text-green-100">Period Salary (Semi-Monthly)</span>
-                      <p className="text-xs text-green-700 dark:text-green-300 mt-0.5">÷ 2 for semi-monthly</p>
+                      <span className="text-base font-bold text-green-900 dark:text-green-100">Monthly Basic Salary</span>
+                      <p className="text-xs text-green-700 dark:text-green-300 mt-0.5">Full monthly amount</p>
                     </div>
-                    <span className="text-2xl font-bold text-green-900 dark:text-green-100">{formatCurrency(entry.breakdown?.monthlyBasicSalary ? entry.breakdown.monthlyBasicSalary / 2 : storedBasicSalary)}</span>
+                    <span className="text-2xl font-bold text-green-900 dark:text-green-100">{formatCurrency(storedBasicSalary)}</span>
                   </div>
-                  
+
                   {/* Additional Pay - Show by type */}
                   {entry.breakdown?.overloadPayDetails && entry.breakdown.overloadPayDetails.length > 0 ? (
                     entry.breakdown.overloadPayDetails.map((detail, idx) => (
                       <div key={idx} className="flex justify-between items-center p-3 bg-emerald-50 dark:bg-emerald-950/20 rounded-lg border border-emerald-300 dark:border-emerald-700">
                         <div>
                           <span className="text-sm font-semibold text-emerald-700 dark:text-emerald-300">
-                            + {detail.type === 'POSITION_PAY' ? 'Position Pay' : 
-                               detail.type === 'BONUS' ? 'Bonus' : 
-                               detail.type === '13TH_MONTH' ? '13th Month Pay' : 
-                               detail.type === 'OVERTIME' ? 'Overtime' : 
-                               detail.type}
+                            + {detail.type === 'POSITION_PAY' ? 'Position Pay' :
+                              detail.type === 'BONUS' ? 'Bonus' :
+                                detail.type === '13TH_MONTH' ? '13th Month Pay' :
+                                  detail.type === 'OVERTIME' ? 'Overtime' :
+                                    detail.type}
                           </span>
                           <p className="text-xs text-emerald-600 dark:text-emerald-400 mt-0.5">Additional compensation</p>
                         </div>
@@ -800,11 +1008,11 @@ export default function PayrollBreakdownDialog({
 
                   {/* Divider */}
                   <div className="border-t-2 border-dashed my-3"></div>
-                  
+
                   {/* Deductions Section */}
                   <div className="space-y-2">
                     <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-2">Deductions</p>
-                    
+
                     {/* Attendance Deductions */}
                     {attendanceDeductionsAmount > 0 && (
                       <div className="flex justify-between items-center p-2.5 bg-red-50 dark:bg-red-950/20 rounded-lg">
@@ -887,7 +1095,7 @@ export default function PayrollBreakdownDialog({
                   <div className="flex justify-between items-center p-5 bg-gradient-to-r from-primary/20 to-primary/10 rounded-lg border-2 border-primary shadow-md">
                     <div>
                       <span className="text-lg font-bold text-primary">Net Pay</span>
-                      <p className="text-xs text-primary/80 mt-1">{netPayPercentage.toFixed(1)}% of period salary</p>
+                      <p className="text-xs text-primary/80 mt-1">{netPayPercentage.toFixed(1)}% of basic salary</p>
                     </div>
                     <span className="text-3xl font-bold text-primary">
                       {formatCurrency(netPay)}
@@ -916,10 +1124,10 @@ export default function PayrollBreakdownDialog({
               if (detail.status === 'ABSENT' && deductionAmount === 0) return false
               return true
             })
-            
+
             // Just use the filtered details directly - don't add today's status manually
             const allDetails = filteredDetails
-            
+
             return allDetails.length > 0 && (
               <Card>
                 <CardHeader>
@@ -937,361 +1145,360 @@ export default function PayrollBreakdownDialog({
                   <div className="space-y-3">
                     {allDetails.map((detail, index) => {
                       const isExpanded = expandedItems.has(index)
-                      
+
                       // Check if this is today's record
                       const recordDate = new Date(detail.date)
                       const todayDate = new Date()
                       const isToday = recordDate.toDateString() === todayDate.toDateString()
-                    
-                    // Debug logging
-                    console.log('Attendance Detail:', {
-                      date: detail.date,
-                      status: detail.status,
-                      deduction: detail.deduction,
-                      timeIn: detail.timeIn,
-                      timeOut: detail.timeOut
-                    })
-                    
-                    console.log('Absence Check:', {
-                      date: detail.date,
-                      statusIsAbsent: detail.status === 'ABSENT',
-                      noTimeInOut: !detail.timeIn && !detail.timeOut,
-                      notPresent: detail.status !== 'PRESENT',
-                      willShowAsAbsent: detail.status === 'ABSENT' || (!detail.timeIn && !detail.timeOut && detail.status !== 'PRESENT')
-                    })
-                    
-                    // Calculate expected times and delays
-                    const timeInDate = detail.timeIn ? new Date(detail.timeIn) : null
-                    const timeOutDate = detail.timeOut ? new Date(detail.timeOut) : null
-                    
-                    // Check for late arrival (same as admin/attendance)
-                    let isLate = false
-                    let lateMinutes = 0
-                    let lateDeduction = 0
-                    if (detail.timeIn && attendanceSettings?.timeInEnd) {
-                      const timeIn = new Date(detail.timeIn)
-                      const expectedTimeIn = new Date(recordDate)
-                      const [hours, minutes] = attendanceSettings.timeInEnd.split(':').map(Number)
-                      const expectedMinutes = minutes + 1
-                      if (expectedMinutes >= 60) {
-                        expectedTimeIn.setHours(hours + 1, expectedMinutes - 60, 0, 0)
-                      } else {
-                        expectedTimeIn.setHours(hours, expectedMinutes, 0, 0)
+
+                      // Debug logging
+                      console.log('Attendance Detail:', {
+                        date: detail.date,
+                        status: detail.status,
+                        deduction: detail.deduction,
+                        timeIn: detail.timeIn,
+                        timeOut: detail.timeOut
+                      })
+
+                      console.log('Absence Check:', {
+                        date: detail.date,
+                        statusIsAbsent: detail.status === 'ABSENT',
+                        noTimeInOut: !detail.timeIn && !detail.timeOut,
+                        notPresent: detail.status !== 'PRESENT',
+                        willShowAsAbsent: detail.status === 'ABSENT' || (!detail.timeIn && !detail.timeOut && detail.status !== 'PRESENT')
+                      })
+
+                      // Calculate expected times and delays
+                      const timeInDate = detail.timeIn ? new Date(detail.timeIn) : null
+                      const timeOutDate = detail.timeOut ? new Date(detail.timeOut) : null
+
+                      // Check for late arrival (same as admin/attendance)
+                      let isLate = false
+                      let lateMinutes = 0
+                      let lateDeduction = 0
+                      if (detail.timeIn && attendanceSettings?.timeInEnd) {
+                        const timeIn = new Date(detail.timeIn)
+                        const expectedTimeIn = new Date(recordDate)
+                        const [hours, minutes] = attendanceSettings.timeInEnd.split(':').map(Number)
+                        const expectedMinutes = minutes + 1
+                        if (expectedMinutes >= 60) {
+                          expectedTimeIn.setHours(hours + 1, expectedMinutes - 60, 0, 0)
+                        } else {
+                          expectedTimeIn.setHours(hours, expectedMinutes, 0, 0)
+                        }
+                        isLate = timeIn > expectedTimeIn
+                        if (isLate) {
+                          lateMinutes = Math.floor((timeIn.getTime() - expectedTimeIn.getTime()) / (1000 * 60))
+                        }
                       }
-                      isLate = timeIn > expectedTimeIn
-                      if (isLate) {
-                        lateMinutes = Math.floor((timeIn.getTime() - expectedTimeIn.getTime()) / (1000 * 60))
+
+                      // Check for early timeout (same as admin/attendance)
+                      let hasEarlyTimeout = false
+                      let earlyMinutes = 0
+                      let earlyDeduction = 0
+                      if (detail.timeOut && attendanceSettings?.timeOutStart) {
+                        const timeOut = new Date(detail.timeOut)
+                        const [hours, minutes] = attendanceSettings.timeOutStart.split(':').map(Number)
+                        const expectedTimeOut = new Date(recordDate)
+                        expectedTimeOut.setHours(hours, minutes, 0, 0)
+                        hasEarlyTimeout = timeOut < expectedTimeOut
+                        if (hasEarlyTimeout) {
+                          earlyMinutes = Math.floor((expectedTimeOut.getTime() - timeOut.getTime()) / (1000 * 60))
+                        }
                       }
-                    }
-                    
-                    // Check for early timeout (same as admin/attendance)
-                    let hasEarlyTimeout = false
-                    let earlyMinutes = 0
-                    let earlyDeduction = 0
-                    if (detail.timeOut && attendanceSettings?.timeOutStart) {
-                      const timeOut = new Date(detail.timeOut)
-                      const [hours, minutes] = attendanceSettings.timeOutStart.split(':').map(Number)
-                      const expectedTimeOut = new Date(recordDate)
-                      expectedTimeOut.setHours(hours, minutes, 0, 0)
-                      hasEarlyTimeout = timeOut < expectedTimeOut
-                      if (hasEarlyTimeout) {
-                        earlyMinutes = Math.floor((expectedTimeOut.getTime() - timeOut.getTime()) / (1000 * 60))
+
+                      // Calculate late and early deductions independently using per-second rate
+                      const perSecondRate = 0.031566 // This should ideally come from settings
+                      if (lateMinutes > 0) {
+                        lateDeduction = (lateMinutes * 60) * perSecondRate
                       }
-                    }
-                    
-                    // Calculate late and early deductions independently using per-second rate
-                    const perSecondRate = 0.031566 // This should ideally come from settings
-                    if (lateMinutes > 0) {
-                      lateDeduction = (lateMinutes * 60) * perSecondRate
-                    }
-                    if (earlyMinutes > 0) {
-                      earlyDeduction = (earlyMinutes * 60) * perSecondRate
-                    }
-                    
-                    // Check if this is a future date (shouldn't show as absent)
-                    const today = new Date()
-                    today.setHours(0, 0, 0, 0) // Start of today
-                    const isFutureDate = recordDate > today
-                    
-                    // Force absent detection: Only mark as absent if status is explicitly ABSENT
-                    // AND we're past the cutoff time (5:01 PM) AND no time-in recorded
-                    const now = new Date()
-                    const currentHour = now.getHours()
-                    const currentMinute = now.getMinutes()
-                    const currentTimeInMinutes = currentHour * 60 + currentMinute
-                    const cutoffTimeInMinutes = 17 * 60 + 1 // 5:01 PM
-                    const isPastCutoff = currentTimeInMinutes > cutoffTimeInMinutes
-                    
-                    // If there's a time-in, they're not absent - they're either LATE or PRESENT
-                    const hasTimeIn = !!detail.timeIn
-                    
-                    // Only show as ABSENT if no time-in AND past cutoff time
-                    const isAbsent = !hasTimeIn && !isFutureDate && (detail.status === 'ABSENT' || isPastCutoff)
-                    const isPartial = detail.status === 'PARTIAL' && !isAbsent
-                    const isLateWaiting = !hasTimeIn && !isFutureDate && !isPastCutoff && detail.status === 'ABSENT'
-                    
-                    console.log('🔍 ABSENT DETECTION:', {
-                      date: new Date(detail.date).toLocaleDateString(),
-                      status: detail.status,
-                      isFutureDate,
-                      hasTimeIn: !!detail.timeIn,
-                      hasTimeOut: !!detail.timeOut,
-                      isAbsent,
-                      cardColorWillBe: isAbsent ? 'RED' : isLate ? 'ORANGE' : 'GREEN'
-                    })
-                    
-                    // Calculate total deduction based on late and early deductions
-                    let displayDeduction = detail.deduction
-                    if (isAbsent && storedBasicSalary > 0) {
-                      // Always use the database deduction if available, otherwise calculate
-                      if (detail.deduction > 0) {
-                        displayDeduction = detail.deduction
-                      } else {
-                        // Calculate daily rate: Semi-Monthly Salary / Working Days
-                        // Estimate working days as ~11 for semi-monthly period
-                        const workingDays = 11
-                        displayDeduction = storedBasicSalary / workingDays
-                        console.log(`📊 Calculated absence deduction for ${new Date(detail.date).toLocaleDateString()}: ₱${displayDeduction.toFixed(2)}`)
+                      if (earlyMinutes > 0) {
+                        earlyDeduction = (earlyMinutes * 60) * perSecondRate
                       }
-                    } else if (isLate || hasEarlyTimeout) {
-                      // For late/early, use the sum of independently calculated deductions
-                      displayDeduction = lateDeduction + earlyDeduction
-                    }
-                    
-                    return (
-                      <Card 
-                        key={index} 
-                        className={`border-l-4 transition-all ${
-                          isAbsent ? 'border-l-red-600 bg-red-50 dark:bg-red-950/20' :
-                          (isLate || detail.status === 'LATE') ? 'border-l-orange-500 bg-orange-50 dark:bg-orange-950/20' :
-                          hasEarlyTimeout ? 'border-l-yellow-500 bg-yellow-50 dark:bg-yellow-950/20' :
-                          isPartial ? 'border-l-purple-500 bg-purple-50 dark:bg-purple-950/20' :
-                          'border-l-green-500 bg-green-50 dark:bg-green-950/20'
-                        }`}
-                      >
-                        <CardContent className="p-4">
-                          <div className="flex items-start justify-between gap-4">
-                            {/* Left: Date and Status */}
-                            <div className="flex items-start gap-3 flex-1">
-                              <div className="flex flex-col items-center min-w-[80px] pt-1">
-                                <div className="text-2xl font-bold">
-                                  {new Date(detail.date).toLocaleDateString('en-US', { day: '2-digit' })}
-                                </div>
-                                <div className="text-xs text-muted-foreground uppercase">
-                                  {new Date(detail.date).toLocaleDateString('en-US', { month: 'short', year: 'numeric' })}
-                                </div>
-                              </div>
-                              
-                              {/* Time In/Out Details - Show special layout for absent or late waiting */}
-                              {isLateWaiting ? (
-                                <div className="flex-1 flex items-center justify-center">
-                                  <div className="text-center py-2">
-                                    <Clock className="w-8 h-8 mx-auto mb-2 text-orange-500" />
-                                    <Badge variant="outline" className="text-sm px-3 py-1 font-bold bg-orange-50 text-orange-700 border-orange-200">
-                                      LATE
-                                    </Badge>
-                                    <div className="text-xs text-orange-600 dark:text-orange-400 font-medium mt-1">
-                                      Waiting for time in
-                                    </div>
+
+                      // Check if this is a future date (shouldn't show as absent)
+                      const today = new Date()
+                      today.setHours(0, 0, 0, 0) // Start of today
+                      const isFutureDate = recordDate > today
+
+                      // Force absent detection: Only mark as absent if status is explicitly ABSENT
+                      // AND we're past the cutoff time (5:01 PM) AND no time-in recorded
+                      const now = new Date()
+                      const currentHour = now.getHours()
+                      const currentMinute = now.getMinutes()
+                      const currentTimeInMinutes = currentHour * 60 + currentMinute
+                      const cutoffTimeInMinutes = 17 * 60 + 1 // 5:01 PM
+                      const isPastCutoff = currentTimeInMinutes > cutoffTimeInMinutes
+
+                      // If there's a time-in, they're not absent - they're either LATE or PRESENT
+                      const hasTimeIn = !!detail.timeIn
+
+                      // Only show as ABSENT if no time-in AND past cutoff time
+                      const isAbsent = !hasTimeIn && !isFutureDate && (detail.status === 'ABSENT' || isPastCutoff)
+                      const isPartial = detail.status === 'PARTIAL' && !isAbsent
+                      const isLateWaiting = !hasTimeIn && !isFutureDate && !isPastCutoff && detail.status === 'ABSENT'
+
+                      console.log('🔍 ABSENT DETECTION:', {
+                        date: new Date(detail.date).toLocaleDateString(),
+                        status: detail.status,
+                        isFutureDate,
+                        hasTimeIn: !!detail.timeIn,
+                        hasTimeOut: !!detail.timeOut,
+                        isAbsent,
+                        cardColorWillBe: isAbsent ? 'RED' : isLate ? 'ORANGE' : 'GREEN'
+                      })
+
+                      // Calculate total deduction based on late and early deductions
+                      let displayDeduction = detail.deduction
+                      if (isAbsent && storedBasicSalary > 0) {
+                        // Always use the database deduction if available, otherwise calculate
+                        if (detail.deduction > 0) {
+                          displayDeduction = detail.deduction
+                        } else {
+                          // Calculate daily rate: Monthly Salary / Working Days
+                          // Estimate working days as ~22 for monthly period
+                          const workingDays = 22
+                          displayDeduction = storedBasicSalary / workingDays
+                          console.log(`📊 Calculated absence deduction for ${new Date(detail.date).toLocaleDateString()}: ₱${displayDeduction.toFixed(2)}`)
+                        }
+                      } else if (isLate || hasEarlyTimeout) {
+                        // For late/early, use the sum of independently calculated deductions
+                        displayDeduction = lateDeduction + earlyDeduction
+                      }
+
+                      return (
+                        <Card
+                          key={index}
+                          className={`border-l-4 transition-all ${isAbsent ? 'border-l-red-600 bg-red-50 dark:bg-red-950/20' :
+                            (isLate || detail.status === 'LATE') ? 'border-l-orange-500 bg-orange-50 dark:bg-orange-950/20' :
+                              hasEarlyTimeout ? 'border-l-yellow-500 bg-yellow-50 dark:bg-yellow-950/20' :
+                                isPartial ? 'border-l-purple-500 bg-purple-50 dark:bg-purple-950/20' :
+                                  'border-l-green-500 bg-green-50 dark:bg-green-950/20'
+                            }`}
+                        >
+                          <CardContent className="p-4">
+                            <div className="flex items-start justify-between gap-4">
+                              {/* Left: Date and Status */}
+                              <div className="flex items-start gap-3 flex-1">
+                                <div className="flex flex-col items-center min-w-[80px] pt-1">
+                                  <div className="text-2xl font-bold">
+                                    {new Date(detail.date).toLocaleDateString('en-US', { day: '2-digit' })}
+                                  </div>
+                                  <div className="text-xs text-muted-foreground uppercase">
+                                    {new Date(detail.date).toLocaleDateString('en-US', { month: 'short', year: 'numeric' })}
                                   </div>
                                 </div>
-                              ) : (isAbsent || (detail.workHours === 0 && !hasTimeIn)) ? (
-                                <div className="flex-1 flex items-center justify-center">
-                                  <div className="text-center py-2">
-                                    <AlertCircle className="w-8 h-8 mx-auto mb-2 text-red-500" />
-                                    <Badge variant="destructive" className="text-sm px-3 py-1 font-bold">
-                                      ABSENT
-                                    </Badge>
-                                    <div className="text-xs text-red-600 dark:text-red-400 font-medium mt-1">
-                                      No attendance recorded
-                                    </div>
-                                  </div>
-                                </div>
-                              ) : (
-                                <div className="flex-1 grid grid-cols-3 gap-4">
-                                  {/* Time In */}
-                                  <div>
-                                    <div className="text-xs text-muted-foreground mb-1 flex items-center gap-1">
-                                      <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 16l-4-4m0 0l4-4m-4 4h14m-5 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h7a3 3 0 013 3v1" />
-                                      </svg>
-                                      Time In
-                                    </div>
-                                    <div className="text-base font-semibold flex items-center gap-2">
-                                      {timeInDate ? (
-                                        <>
-                                          {new Date(detail.timeIn).toLocaleTimeString('en-US', { 
-                                            timeZone: 'Asia/Manila',
-                                            hour: '2-digit',
-                                            minute: '2-digit'
-                                          })}
-                                          {isLate && (
-                                            <Badge variant="secondary" className="text-[10px] px-1.5 py-0.5 bg-orange-50 text-orange-700 border-orange-300">
-                                              +{Math.floor(lateMinutes / 60) > 0 ? `${Math.floor(lateMinutes / 60)}h ` : ''}{lateMinutes % 60}m
-                                            </Badge>
-                                          )}
-                                        </>
-                                      ) : <span className="text-muted-foreground">—</span>}
-                                    </div>
-                                  </div>
-                                  
-                                  {/* Time Out */}
-                                  <div>
-                                    <div className="text-xs text-muted-foreground mb-1 flex items-center gap-1">
-                                      <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
-                                      </svg>
-                                      Time Out
-                                    </div>
-                                    <div className="text-base font-semibold flex items-center gap-2">
-                                      {timeOutDate ? (
-                                        <>
-                                          {new Date(detail.timeOut).toLocaleTimeString('en-US', { 
-                                            timeZone: 'Asia/Manila',
-                                            hour: '2-digit',
-                                            minute: '2-digit'
-                                          })}
-                                          {hasEarlyTimeout && (
-                                            <Badge variant="outline" className="text-[10px] px-1.5 py-0.5 bg-yellow-50 text-yellow-700 border-yellow-300">
-                                              -{Math.floor(earlyMinutes / 60) > 0 ? `${Math.floor(earlyMinutes / 60)}h ` : ''}{earlyMinutes % 60}m
-                                            </Badge>
-                                          )}
-                                        </>
-                                      ) : <span className="text-muted-foreground">—</span>}
-                                    </div>
-                                  </div>
-                                  
-                                  {/* Attendance Details */}
-                                  <div>
-                                    <div className="text-xs text-muted-foreground mb-1">Details</div>
-                                    <div className="flex flex-wrap items-center gap-1">
-                                      {isPartial && (
-                                        <Badge variant="secondary" className="text-xs bg-purple-50 text-purple-700 border-purple-300">
-                                          Partial
-                                        </Badge>
-                                      )}
-                                      {!isPartial && (
-                                        <>
-                                          {isLate && (
-                                            <Badge variant="secondary" className="text-xs bg-orange-50 text-orange-700 border-orange-300">
-                                              Late Arrival
-                                            </Badge>
-                                          )}
-                                          {hasEarlyTimeout && (
-                                            <Badge variant="outline" className="text-xs bg-yellow-50 text-yellow-700 border-yellow-300">
-                                              Early Departure
-                                            </Badge>
-                                          )}
-                                          {!isLate && !hasEarlyTimeout && detail.status === 'PRESENT' && (
-                                            <Badge variant="default" className="text-xs bg-green-50 text-green-700 border-green-300">
-                                              On Time
-                                            </Badge>
-                                          )}
-                                        </>
-                                      )}
-                                    </div>
-                                  </div>
-                                </div>
-                              )}
-                            </div>
-                            
-                            {/* Right: Work Hours and Deduction */}
-                            <div className="text-right space-y-2 min-w-[180px]">
-                              {!(isAbsent || detail.workHours === 0) && (
-                                <div>
-                                  <div className="text-xs text-muted-foreground mb-1">Work Hours</div>
-                                  <div className="text-lg font-bold flex items-center justify-end gap-1">
-                                    <Clock className="w-4 h-4" />
-                                    {formatWorkHours(detail.workHours)}
-                                  </div>
-                                </div>
-                              )}
-                              
-                              {(displayDeduction > 0 || isLate || hasEarlyTimeout || isAbsent || isPartial) && (
-                                <div className={`pt-2 ${!(isAbsent || detail.workHours === 0) ? 'border-t' : ''}`}>
-                                  {(isAbsent || detail.workHours === 0) ? (
-                                    // Special display for absent
-                                    <div className="space-y-1">
-                                      <div className="text-[10px] font-semibold text-red-700 dark:text-red-300 uppercase tracking-wide">Absence Penalty</div>
-                                      <div className="text-xl font-bold text-red-600 dark:text-red-400">
-                                        -{formatCurrency(displayDeduction)}
-                                      </div>
-                                      <div className="text-[10px] text-red-600 dark:text-red-400 bg-red-100 dark:bg-red-950/50 p-1.5 rounded">
-                                        <div className="font-semibold">Full Day Salary Loss</div>
+
+                                {/* Time In/Out Details - Show special layout for absent or late waiting */}
+                                {isLateWaiting ? (
+                                  <div className="flex-1 flex items-center justify-center">
+                                    <div className="text-center py-2">
+                                      <Clock className="w-8 h-8 mx-auto mb-2 text-orange-500" />
+                                      <Badge variant="outline" className="text-sm px-3 py-1 font-bold bg-orange-50 text-orange-700 border-orange-200">
+                                        LATE
+                                      </Badge>
+                                      <div className="text-xs text-orange-600 dark:text-orange-400 font-medium mt-1">
+                                        Waiting for time in
                                       </div>
                                     </div>
-                                  ) : (
-                                    // Normal display for late/early/partial
-                                    <>
-                                      <div 
-                                        className="flex items-center justify-between cursor-pointer hover:bg-muted/50 -mx-2 px-2 py-1 rounded transition-colors"
-                                        onClick={() => toggleExpanded(index)}
-                                      >
-                                        <div className="text-xs text-red-600 dark:text-red-400">Deduction Info</div>
-                                        {(isLate || hasEarlyTimeout) && (
-                                          <button className="text-muted-foreground hover:text-foreground transition-colors">
-                                            {isExpanded ? <ChevronUp className="w-3 h-3" /> : <ChevronDown className="w-3 h-3" />}
-                                          </button>
+                                  </div>
+                                ) : (isAbsent || (detail.workHours === 0 && !hasTimeIn)) ? (
+                                  <div className="flex-1 flex items-center justify-center">
+                                    <div className="text-center py-2">
+                                      <AlertCircle className="w-8 h-8 mx-auto mb-2 text-red-500" />
+                                      <Badge variant="destructive" className="text-sm px-3 py-1 font-bold">
+                                        ABSENT
+                                      </Badge>
+                                      <div className="text-xs text-red-600 dark:text-red-400 font-medium mt-1">
+                                        No attendance recorded
+                                      </div>
+                                    </div>
+                                  </div>
+                                ) : (
+                                  <div className="flex-1 grid grid-cols-3 gap-4">
+                                    {/* Time In */}
+                                    <div>
+                                      <div className="text-xs text-muted-foreground mb-1 flex items-center gap-1">
+                                        <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 16l-4-4m0 0l4-4m-4 4h14m-5 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h7a3 3 0 013 3v1" />
+                                        </svg>
+                                        Time In
+                                      </div>
+                                      <div className="text-base font-semibold flex items-center gap-2">
+                                        {timeInDate ? (
+                                          <>
+                                            {new Date(detail.timeIn).toLocaleTimeString('en-US', {
+                                              timeZone: 'Asia/Manila',
+                                              hour: '2-digit',
+                                              minute: '2-digit'
+                                            })}
+                                            {isLate && (
+                                              <Badge variant="secondary" className="text-[10px] px-1.5 py-0.5 bg-orange-50 text-orange-700 border-orange-300">
+                                                +{Math.floor(lateMinutes / 60) > 0 ? `${Math.floor(lateMinutes / 60)}h ` : ''}{lateMinutes % 60}m
+                                              </Badge>
+                                            )}
+                                          </>
+                                        ) : <span className="text-muted-foreground">—</span>}
+                                      </div>
+                                    </div>
+
+                                    {/* Time Out */}
+                                    <div>
+                                      <div className="text-xs text-muted-foreground mb-1 flex items-center gap-1">
+                                        <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
+                                        </svg>
+                                        Time Out
+                                      </div>
+                                      <div className="text-base font-semibold flex items-center gap-2">
+                                        {timeOutDate ? (
+                                          <>
+                                            {new Date(detail.timeOut).toLocaleTimeString('en-US', {
+                                              timeZone: 'Asia/Manila',
+                                              hour: '2-digit',
+                                              minute: '2-digit'
+                                            })}
+                                            {hasEarlyTimeout && (
+                                              <Badge variant="outline" className="text-[10px] px-1.5 py-0.5 bg-yellow-50 text-yellow-700 border-yellow-300">
+                                                -{Math.floor(earlyMinutes / 60) > 0 ? `${Math.floor(earlyMinutes / 60)}h ` : ''}{earlyMinutes % 60}m
+                                              </Badge>
+                                            )}
+                                          </>
+                                        ) : <span className="text-muted-foreground">—</span>}
+                                      </div>
+                                    </div>
+
+                                    {/* Attendance Details */}
+                                    <div>
+                                      <div className="text-xs text-muted-foreground mb-1">Details</div>
+                                      <div className="flex flex-wrap items-center gap-1">
+                                        {isPartial && (
+                                          <Badge variant="secondary" className="text-xs bg-purple-50 text-purple-700 border-purple-300">
+                                            Partial
+                                          </Badge>
+                                        )}
+                                        {!isPartial && (
+                                          <>
+                                            {isLate && (
+                                              <Badge variant="secondary" className="text-xs bg-orange-50 text-orange-700 border-orange-300">
+                                                Late Arrival
+                                              </Badge>
+                                            )}
+                                            {hasEarlyTimeout && (
+                                              <Badge variant="outline" className="text-xs bg-yellow-50 text-yellow-700 border-yellow-300">
+                                                Early Departure
+                                              </Badge>
+                                            )}
+                                            {!isLate && !hasEarlyTimeout && detail.status === 'PRESENT' && (
+                                              <Badge variant="default" className="text-xs bg-green-50 text-green-700 border-green-300">
+                                                On Time
+                                              </Badge>
+                                            )}
+                                          </>
                                         )}
                                       </div>
-                                      {displayDeduction > 0 ? (
-                                        <div className="text-lg font-bold text-red-600 dark:text-red-400 whitespace-nowrap">
+                                    </div>
+                                  </div>
+                                )}
+                              </div>
+
+                              {/* Right: Work Hours and Deduction */}
+                              <div className="text-right space-y-2 min-w-[180px]">
+                                {!(isAbsent || detail.workHours === 0) && (
+                                  <div>
+                                    <div className="text-xs text-muted-foreground mb-1">Work Hours</div>
+                                    <div className="text-lg font-bold flex items-center justify-end gap-1">
+                                      <Clock className="w-4 h-4" />
+                                      {formatWorkHours(detail.workHours)}
+                                    </div>
+                                  </div>
+                                )}
+
+                                {(displayDeduction > 0 || isLate || hasEarlyTimeout || isAbsent || isPartial) && (
+                                  <div className={`pt-2 ${!(isAbsent || detail.workHours === 0) ? 'border-t' : ''}`}>
+                                    {(isAbsent || detail.workHours === 0) ? (
+                                      // Special display for absent
+                                      <div className="space-y-1">
+                                        <div className="text-[10px] font-semibold text-red-700 dark:text-red-300 uppercase tracking-wide">Absence Penalty</div>
+                                        <div className="text-xl font-bold text-red-600 dark:text-red-400">
                                           -{formatCurrency(displayDeduction)}
                                         </div>
-                                      ) : (
-                                        <div className="text-sm text-muted-foreground">No deduction</div>
-                                      )}
-                                    </>
-                                  )}
-                                  
-                                  {/* Collapsible breakdown */}
-                                  {!isAbsent && isExpanded && (isLate || hasEarlyTimeout) && (
-                                    <div className="text-[11px] text-muted-foreground mt-2 space-y-1 animate-in slide-in-from-top-2 duration-200">
-                                      {isLate && lateMinutes > 0 && (
-                                        <div className="text-orange-600 dark:text-orange-400 font-medium bg-orange-50 dark:bg-orange-950/30 p-2 rounded">
-                                          <div className="whitespace-nowrap">Late: +{Math.floor(lateMinutes / 60) > 0 ? `${Math.floor(lateMinutes / 60)}h ` : ''}{lateMinutes % 60}m</div>
-                                          {lateDeduction > 0 && (
-                                            <div className="text-red-600 dark:text-red-400 whitespace-nowrap font-bold">-{formatCurrency(lateDeduction)}</div>
+                                        <div className="text-[10px] text-red-600 dark:text-red-400 bg-red-100 dark:bg-red-950/50 p-1.5 rounded">
+                                          <div className="font-semibold">Full Day Salary Loss</div>
+                                        </div>
+                                      </div>
+                                    ) : (
+                                      // Normal display for late/early/partial
+                                      <>
+                                        <div
+                                          className="flex items-center justify-between cursor-pointer hover:bg-muted/50 -mx-2 px-2 py-1 rounded transition-colors"
+                                          onClick={() => toggleExpanded(index)}
+                                        >
+                                          <div className="text-xs text-red-600 dark:text-red-400">Deduction Info</div>
+                                          {(isLate || hasEarlyTimeout) && (
+                                            <button className="text-muted-foreground hover:text-foreground transition-colors">
+                                              {isExpanded ? <ChevronUp className="w-3 h-3" /> : <ChevronDown className="w-3 h-3" />}
+                                            </button>
                                           )}
                                         </div>
-                                      )}
-                                      {hasEarlyTimeout && earlyMinutes > 0 && (
-                                        <div className="text-yellow-600 dark:text-yellow-400 font-medium bg-yellow-50 dark:bg-yellow-950/30 p-2 rounded">
-                                          <div className="whitespace-nowrap">Early: -{Math.floor(earlyMinutes / 60) > 0 ? `${Math.floor(earlyMinutes / 60)}h ` : ''}{earlyMinutes % 60}m</div>
-                                          {earlyDeduction > 0 && (
-                                            <div className="text-red-600 dark:text-red-400 whitespace-nowrap font-bold">-{formatCurrency(earlyDeduction)}</div>
-                                          )}
-                                        </div>
-                                      )}
-                                    </div>
-                                  )}
-                                  
-                                  {/* Show inline for partial only (absent has its own display above) */}
-                                  {!isExpanded && !isAbsent && isPartial && (
-                                    <div className="text-[11px] text-muted-foreground mt-1">
-                                      <div className="font-medium">Incomplete day</div>
-                                    </div>
-                                  )}
-                                </div>
-                              )}
-                              
-                              {detail.deduction === 0 && detail.status === 'PRESENT' && (
-                                <div className="pt-2 border-t">
-                                  <div className="text-xs text-green-600 dark:text-green-400 mb-1">Perfect!</div>
-                                  <div className="text-sm font-medium text-green-600 dark:text-green-400">
-                                    No Deductions
+                                        {displayDeduction > 0 ? (
+                                          <div className="text-lg font-bold text-red-600 dark:text-red-400 whitespace-nowrap">
+                                            -{formatCurrency(displayDeduction)}
+                                          </div>
+                                        ) : (
+                                          <div className="text-sm text-muted-foreground">No deduction</div>
+                                        )}
+                                      </>
+                                    )}
+
+                                    {/* Collapsible breakdown */}
+                                    {!isAbsent && isExpanded && (isLate || hasEarlyTimeout) && (
+                                      <div className="text-[11px] text-muted-foreground mt-2 space-y-1 animate-in slide-in-from-top-2 duration-200">
+                                        {isLate && lateMinutes > 0 && (
+                                          <div className="text-orange-600 dark:text-orange-400 font-medium bg-orange-50 dark:bg-orange-950/30 p-2 rounded">
+                                            <div className="whitespace-nowrap">Late: +{Math.floor(lateMinutes / 60) > 0 ? `${Math.floor(lateMinutes / 60)}h ` : ''}{lateMinutes % 60}m</div>
+                                            {lateDeduction > 0 && (
+                                              <div className="text-red-600 dark:text-red-400 whitespace-nowrap font-bold">-{formatCurrency(lateDeduction)}</div>
+                                            )}
+                                          </div>
+                                        )}
+                                        {hasEarlyTimeout && earlyMinutes > 0 && (
+                                          <div className="text-yellow-600 dark:text-yellow-400 font-medium bg-yellow-50 dark:bg-yellow-950/30 p-2 rounded">
+                                            <div className="whitespace-nowrap">Early: -{Math.floor(earlyMinutes / 60) > 0 ? `${Math.floor(earlyMinutes / 60)}h ` : ''}{earlyMinutes % 60}m</div>
+                                            {earlyDeduction > 0 && (
+                                              <div className="text-red-600 dark:text-red-400 whitespace-nowrap font-bold">-{formatCurrency(earlyDeduction)}</div>
+                                            )}
+                                          </div>
+                                        )}
+                                      </div>
+                                    )}
+
+                                    {/* Show inline for partial only (absent has its own display above) */}
+                                    {!isExpanded && !isAbsent && isPartial && (
+                                      <div className="text-[11px] text-muted-foreground mt-1">
+                                        <div className="font-medium">Incomplete day</div>
+                                      </div>
+                                    )}
                                   </div>
-                                </div>
-                              )}
+                                )}
+
+                                {detail.deduction === 0 && detail.status === 'PRESENT' && (
+                                  <div className="pt-2 border-t">
+                                    <div className="text-xs text-green-600 dark:text-green-400 mb-1">Perfect!</div>
+                                    <div className="text-sm font-medium text-green-600 dark:text-green-400">
+                                      No Deductions
+                                    </div>
+                                  </div>
+                                )}
+                              </div>
                             </div>
-                          </div>
-                        </CardContent>
-                      </Card>
-                    )
-                  })}
-                </div>
-              </CardContent>
-            </Card>
+                          </CardContent>
+                        </Card>
+                      )
+                    })}
+                  </div>
+                </CardContent>
+              </Card>
             )
           })()}
 
@@ -1299,7 +1506,7 @@ export default function PayrollBreakdownDialog({
           {mergedLoans.length > 0 && (() => {
             const loans = mergedLoans.filter((item: any) => !item.type?.startsWith('[DEDUCTION]'))
             const deductions = mergedLoans.filter((item: any) => item.type?.startsWith('[DEDUCTION]'))
-            
+
             return (
               <>
                 {/* Loans Section */}

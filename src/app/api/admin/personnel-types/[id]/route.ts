@@ -25,7 +25,7 @@ export async function GET(
     }
 
     const resolvedParams = await params
-    const personnelType = await prisma.personnelType.findUnique({
+    const personnelType = await prisma.personnel_types.findUnique({
       where: { personnel_types_id: resolvedParams.id }
     })
 
@@ -57,7 +57,7 @@ export async function PUT(
     const validatedData = updateSchema.parse(body)
 
     // Check if personnel type exists
-    const existingPersonnelType = await prisma.personnelType.findUnique({
+    const existingPersonnelType = await prisma.personnel_types.findUnique({
       where: { personnel_types_id: resolvedParams.id }
     })
 
@@ -67,7 +67,7 @@ export async function PUT(
 
     // Check if name is already taken (if name is being updated)
     if (validatedData.name && validatedData.name !== existingPersonnelType.name) {
-      const nameExists = await prisma.personnelType.findFirst({
+      const nameExists = await prisma.personnel_types.findFirst({
         where: { 
           name: validatedData.name,
           personnel_types_id: { not: resolvedParams.id }
@@ -83,7 +83,7 @@ export async function PUT(
     }
 
     // Update personnel type
-    const updatedPersonnelType = await prisma.personnelType.update({
+    const updatedPersonnelType = await prisma.personnel_types.update({
       where: { personnel_types_id: resolvedParams.id },
       data: validatedData
     })
@@ -117,7 +117,7 @@ export async function DELETE(
     const resolvedParams = await params
 
     // Check if personnel type exists
-    const existingPersonnelType = await prisma.personnelType.findUnique({
+    const existingPersonnelType = await prisma.personnel_types.findUnique({
       where: { personnel_types_id: resolvedParams.id }
     })
 
@@ -126,7 +126,7 @@ export async function DELETE(
     }
 
     // Check if any users are assigned to this personnel type
-    const usersWithThisType = await prisma.user.count({
+    const usersWithThisType = await prisma.users.count({
       where: { personnel_types_id: resolvedParams.id }
     })
 
@@ -138,7 +138,7 @@ export async function DELETE(
     }
 
     // Delete personnel type
-    await prisma.personnelType.delete({
+    await prisma.personnel_types.delete({
       where: { personnel_types_id: resolvedParams.id }
     })
 

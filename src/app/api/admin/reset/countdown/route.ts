@@ -12,7 +12,7 @@ export async function DELETE() {
     }
 
     // Check if user is admin
-    const user = await prisma.user.findUnique({
+    const user = await prisma.users.findUnique({
       where: { users_id: session.user.id },
       select: { role: true },
     })
@@ -22,10 +22,10 @@ export async function DELETE() {
     }
 
     // Reset the payroll release countdown by clearing period dates
-    const settings = await prisma.attendanceSettings.findFirst()
+    const settings = await prisma.attendance_settings.findFirst()
     
     if (settings) {
-      await prisma.attendanceSettings.update({
+      await prisma.attendance_settings.update({
         where: { attendance_settings_id: settings.attendance_settings_id },
         data: {
           periodStart: null,

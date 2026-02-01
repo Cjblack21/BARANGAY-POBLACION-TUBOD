@@ -29,11 +29,8 @@ function parseSalary(input: string): number {
 }
 
 export async function GET() {
-  const session = await getServerSession(authOptions)
-  if (!session || session.user.role !== "ADMIN") {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
-  }
-  const types = await prisma.personnelType.findMany({ 
+  // Allow public access for registration page
+  const types = await prisma.personnel_types.findMany({ 
     where: { isActive: true },
     orderBy: { createdAt: 'desc' } 
   })
@@ -50,7 +47,7 @@ export async function POST(req: NextRequest) {
     const data = createSchema.parse(body)
     
     // Check if personnel type with same name already exists
-    const existing = await prisma.personnelType.findFirst({
+    const existing = await prisma.personnel_types.findFirst({
       where: { name: data.name }
     })
     
@@ -58,7 +55,7 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Personnel type with this name already exists' }, { status: 400 })
     }
     
-    const created = await prisma.personnelType.create({ 
+    const created = await prisma.personnel_types.create({ 
       data: { 
         name: data.name,
         type: data.type,

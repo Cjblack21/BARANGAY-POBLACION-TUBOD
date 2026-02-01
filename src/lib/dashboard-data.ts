@@ -1,5 +1,4 @@
 import { prisma } from "@/lib/prisma"
-import { Role } from '@prisma/client'
 import { startOfMonth, endOfMonth, startOfDay, endOfDay, format } from "date-fns"
 
 export async function getDashboardStats() {
@@ -11,12 +10,12 @@ export async function getDashboardStats() {
 
   try {
     // Get total personnel count (users)
-    const totalPersonnel = await prisma.user.count({
-      where: { isActive: true, role: Role.PERSONNEL }
+    const totalPersonnel = await prisma.users.count({
+      where: { isActive: true, role: 'PERSONNEL' }
     })
 
     // Get monthly payroll (current month)
-    const monthlyPayroll = await prisma.payrollEntry.aggregate({
+    const monthlyPayroll = await prisma.payroll_entries.aggregate({
       where: {
         processedAt: {
           gte: startOfCurrentMonth,
@@ -28,39 +27,50 @@ export async function getDashboardStats() {
       }
     })
 
-    // Get attendance data from the same source as the attendance page
-    const { getCurrentDayAttendance } = await import('./actions/attendance')
-    const attendanceResult = await getCurrentDayAttendance()
-
-    let attendanceToday = 0
-    let absentToday = 0
-
-    if (attendanceResult.success && attendanceResult.attendance) {
-      attendanceResult.attendance.forEach(record => {
-        // Count PRESENT, LATE, and PARTIAL as present (people who showed up)
-        if (record.status === 'PRESENT' || record.status === 'LATE' || record.status === 'PARTIAL') {
-          attendanceToday++
+    // Get archived attendance deductions count (from attendance-deduction page)
+    const archivedAttendanceDeductions = await prisma.deductions.count({
+      where: {
+        archivedAt: { not: null }, // Only archived deductions
+        deduction_types: {
+          OR: [
+            { name: { contains: 'Attendance' } },
+            { name: { contains: 'Late' } },
+            { name: { contains: 'Absent' } },
+            { name: { contains: 'Tardiness' } },
+            { name: { contains: 'Early' } }
+          ]
         }
-        // Count ABSENT as absent
-        else if (record.status === 'ABSENT') {
-          absentToday++
+      }
+    })
+
+    // Get current (non-archived) attendance deductions count
+    const currentAttendanceDeductions = await prisma.deductions.count({
+      where: {
+        archivedAt: null, // Only current deductions
+        deduction_types: {
+          OR: [
+            { name: { contains: 'Attendance' } },
+            { name: { contains: 'Late' } },
+            { name: { contains: 'Absent' } },
+            { name: { contains: 'Tardiness' } },
+            { name: { contains: 'Early' } }
+          ]
         }
-        // PENDING means we're waiting for them to time in (not counted as either)
-      })
-    }
+      }
+    })
 
     // Get active loans
-    const activeLoans = await prisma.loan.count({
+    const activeLoans = await prisma.loans.count({
       where: { status: "ACTIVE" }
     })
 
-    const totalLoanAmount = await prisma.loan.aggregate({
+    const totalLoanAmount = await prisma.loans.aggregate({
       where: { status: "ACTIVE" },
       _sum: { balance: true }
     })
 
     // Get holidays this month
-    const holidaysThisMonth = await prisma.holiday.count({
+    const holidaysThisMonth = await prisma.holidays.count({
       where: {
         date: {
           gte: startOfCurrentMonth,
@@ -70,7 +80,7 @@ export async function getDashboardStats() {
     })
 
     // Get total deductions this month
-    const totalDeductions = await prisma.deduction.aggregate({
+    const totalDeductions = await prisma.deductions.aggregate({
       where: {
         appliedAt: {
           gte: startOfCurrentMonth,
@@ -85,8 +95,8 @@ export async function getDashboardStats() {
     return {
       totalPersonnel,
       monthlyPayroll: monthlyPayroll._sum.netPay || 0,
-      attendanceToday,
-      absentToday,
+      attendanceToday: currentAttendanceDeductions, // Current attendance deductions
+      absentToday: archivedAttendanceDeductions, // Archived attendance deductions
       activeLoans,
       totalLoanAmount: totalLoanAmount._sum.balance || 0,
       holidaysThisMonth,
@@ -163,7 +173,7 @@ export async function getPayrollTrends() {
 
 export async function getDepartmentDistribution() {
   try {
-    const departmentData = await prisma.department.findMany()
+    const departmentData = await prisma.departments.findMany()
 
     const colors = ["#0088FE", "#00C49F", "#FFBB28", "#FF8042", "#8884D8", "#82CA9D"]
 
@@ -212,7 +222,7 @@ export async function getCalendarEvents() {
     const endOfCurrentMonth = endOfMonth(currentMonth)
 
     const [holidays, events] = await Promise.all([
-      prisma.holiday.findMany({
+      prisma.holidays.findMany({
         where: {
           date: {
             gte: startOfCurrentMonth,
@@ -220,7 +230,7 @@ export async function getCalendarEvents() {
           }
         }
       }),
-      prisma.event.findMany({
+      prisma.events.findMany({
         where: {
           date: {
             gte: startOfCurrentMonth,

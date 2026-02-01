@@ -30,9 +30,11 @@ type Personnel = {
   name: string
   email: string
   role: string
-  personnelType?: {
+  dateHired?: Date | null
+  personnel_types?: {
     name?: string | null
     department?: string | null
+    basicSalary?: number
   } | null
 }
 
@@ -40,12 +42,12 @@ type Deduction = {
   deductions_id: string
   amount: number
   notes?: string | null
-  deductionType: DeductionType
-  user: {
+  deduction_types: DeductionType
+  users: {
     users_id: string
     name: string | null
     email: string
-    personnelType?: {
+    personnel_types?: {
       department?: string | null
       basicSalary?: number
     } | null
@@ -53,28 +55,10 @@ type Deduction = {
   createdAt: string
 }
 
-type OverloadPay = {
-  overload_pays_id: string
-  amount: number
-  notes?: string | null
-  type?: string | null
-  user: {
-    users_id: string
-    name: string | null
-    email: string
-    personnelType?: {
-      department?: string | null
-    } | null
-  }
-  appliedAt: string
-  createdAt: string
-}
-
 export default function DeductionsPage() {
   const [types, setTypes] = useState<DeductionType[]>([])
   const [personnel, setPersonnel] = useState<Personnel[]>([])
   const [deductions, setDeductions] = useState<Deduction[]>([])
-  const [overloadPays, setOverloadPays] = useState<OverloadPay[]>([])
   const [loading, setLoading] = useState(true)
 
   // Create Type dialog
@@ -123,17 +107,6 @@ export default function DeductionsPage() {
   const [selectedEmployeeIds, setSelectedEmployeeIds] = useState<string[]>([])
   const [notes, setNotes] = useState<string>("")
   const [employeeSearch, setEmployeeSearch] = useState("")
-
-  // Additional Pay dialog (formerly Overload Pay)
-  const [overloadPayOpen, setOverloadPayOpen] = useState(false)
-  const [overloadAmount, setOverloadAmount] = useState("")
-  const [overloadNotes, setOverloadNotes] = useState("")
-  const [overloadPayType, setOverloadPayType] = useState("OVERTIME")
-  const [overloadSelectAll, setOverloadSelectAll] = useState(false)
-  const [overloadSelectedEmployees, setOverloadSelectedEmployees] = useState<string[]>([])
-  const [overloadEmployeeSearch, setOverloadEmployeeSearch] = useState("")
-  const [showOverloadConfirmModal, setShowOverloadConfirmModal] = useState(false)
-  const [duplicatePersonnel, setDuplicatePersonnel] = useState<string[]>([])
   const [showDuplicateErrorModal, setShowDuplicateErrorModal] = useState(false)
   const [duplicateErrorMessage, setDuplicateErrorMessage] = useState("")
 
@@ -164,22 +137,10 @@ export default function DeductionsPage() {
   const [showDeleteDeductionsModal, setShowDeleteDeductionsModal] = useState(false)
   const [archivedDeductions, setArchivedDeductions] = useState<any[]>([])
   const [showArchivedDeductions, setShowArchivedDeductions] = useState(false)
-  const [showButtons, setShowButtons] = useState(true)
   const [showDeleteTypeModal, setShowDeleteTypeModal] = useState(false)
   const [typeToDelete, setTypeToDelete] = useState<string>('')
   const [showDeleteDeductionModal, setShowDeleteDeductionModal] = useState(false)
   const [deductionToDelete, setDeductionToDelete] = useState<string>('')
-
-  // Overload Pay bulk delete and edit
-  const [selectedOverloadPays, setSelectedOverloadPays] = useState<string[]>([])
-  const [isSelectAllOverloadPays, setIsSelectAllOverloadPays] = useState(false)
-  const [showDeleteOverloadPaysModal, setShowDeleteOverloadPaysModal] = useState(false)
-  const [showDeleteOverloadPayModal, setShowDeleteOverloadPayModal] = useState(false)
-  const [overloadPayToDelete, setOverloadPayToDelete] = useState<string>('')
-  const [editOverloadPayOpen, setEditOverloadPayOpen] = useState(false)
-  const [editOverloadPayId, setEditOverloadPayId] = useState<string>("")
-  const [editOverloadPayAmount, setEditOverloadPayAmount] = useState("")
-  const [editOverloadPayNotes, setEditOverloadPayNotes] = useState("")
 
   const filteredEmployees = useMemo(() => {
     if (!employeeSearch) return personnel
@@ -193,24 +154,15 @@ export default function DeductionsPage() {
     return personnel.filter(p => p.name?.toLowerCase().includes(q) || p.email.toLowerCase().includes(q))
   }, [personnel, applyPersonnelSearch])
 
-  const filteredOverloadPersonnel = useMemo(() => {
-    if (!overloadEmployeeSearch) return personnel
-    const q = overloadEmployeeSearch.toLowerCase()
-    return personnel.filter(p => p.name?.toLowerCase().includes(q) || p.email.toLowerCase().includes(q))
-  }, [personnel, overloadEmployeeSearch])
-
-
   async function loadAll() {
     try {
       setLoading(true)
-      const [t, d, o] = await Promise.all([
+      const [t, d] = await Promise.all([
         fetch("/api/admin/deduction-types").then(r => r.json()),
         fetch("/api/admin/deductions").then(r => r.json()),
-        fetch("/api/admin/overload-pay").then(r => r.json()),
       ])
       setTypes(t)
       setDeductions(d)
-      setOverloadPays(o)
     } catch (e) {
       toast.error("Failed to load data")
     } finally {
@@ -250,9 +202,9 @@ export default function DeductionsPage() {
         const deductionTypeName = types.find(t => t.deduction_types_id === typeId)?.name || 'Unknown Deduction'
         for (const userId of targetPersonnelIds) {
           const alreadyHasDeduction = deductions.some(d =>
-            d.user.users_id === userId &&
-            d.deductionType.deduction_types_id === typeId &&
-            d.deductionType.isMandatory
+            d.users.users_id === userId &&
+            d.deduction_types.deduction_types_id === typeId &&
+            d.deduction_types.isMandatory
           )
 
           if (alreadyHasDeduction) {
@@ -339,10 +291,10 @@ export default function DeductionsPage() {
         setPersonnel(personnelOnly)
       } catch { }
     }
-    if (deductionOpen || overloadPayOpen || typeOpen || syncMandatoryOpen) {
+    if (deductionOpen || typeOpen || syncMandatoryOpen) {
       loadPersonnel()
     }
-  }, [deductionOpen, overloadPayOpen, typeOpen, syncMandatoryOpen])
+  }, [deductionOpen, typeOpen, syncMandatoryOpen])
 
   function toggleApplyPersonnel(id: string) {
     setApplySelectedPersonnel(prev => prev.includes(id) ? prev.filter(x => x !== id) : [...prev, id])
@@ -694,204 +646,8 @@ export default function DeductionsPage() {
     }
   }
 
-  // Toggle select all overload pays
-  function handleSelectAllOverloadPays() {
-    if (isSelectAllOverloadPays) {
-      setSelectedOverloadPays([])
-      setIsSelectAllOverloadPays(false)
-    } else {
-      setSelectedOverloadPays(overloadPays.map(o => o.overload_pays_id))
-      setIsSelectAllOverloadPays(true)
-    }
-  }
-
-  // Toggle individual overload pay
-  function toggleOverloadPay(id: string) {
-    setSelectedOverloadPays(prev => {
-      if (prev.includes(id)) {
-        const newSelection = prev.filter(overloadPayId => overloadPayId !== id)
-        setIsSelectAllOverloadPays(newSelection.length === overloadPays.length)
-        return newSelection
-      } else {
-        const newSelection = [...prev, id]
-        setIsSelectAllOverloadPays(newSelection.length === overloadPays.length)
-        return newSelection
-      }
-    })
-  }
-
-  // Prompt bulk delete overload pays
-  function promptDeleteOverloadPays() {
-    if (selectedOverloadPays.length === 0) {
-      toast.error('Please select at least one overload pay to delete')
-      return
-    }
-    setShowDeleteOverloadPaysModal(true)
-  }
-
-  // Bulk delete overload pays
-  async function bulkDeleteOverloadPays() {
-    setShowDeleteOverloadPaysModal(false)
-    try {
-      toast.loading('Deleting overload pays...', { id: 'bulk-delete-overload' })
-      const deletePromises = selectedOverloadPays.map(id =>
-        fetch(`/api/admin/overload-pay/${id}`, { method: "DELETE" })
-      )
-      const results = await Promise.all(deletePromises)
-      const failed = results.filter(r => !r.ok)
-      if (failed.length > 0) throw new Error(`Failed to delete ${failed.length} overload pay(s)`)
-
-      toast.success(`Deleted ${selectedOverloadPays.length} overload pay(s)`, { id: 'bulk-delete-overload' })
-      setSelectedOverloadPays([])
-      setIsSelectAllOverloadPays(false)
-      loadAll()
-    } catch (error) {
-      toast.error(`Failed to delete: ${error instanceof Error ? error.message : 'Unknown error'}`, { id: 'bulk-delete-overload' })
-    }
-  }
-
-  // Prompt single delete overload pay
-  function promptDeleteOverloadPay(id: string) {
-    setOverloadPayToDelete(id)
-    setShowDeleteOverloadPayModal(true)
-  }
-
-  // Delete single overload pay
-  async function deleteOverloadPay() {
-    setShowDeleteOverloadPayModal(false)
-    const id = overloadPayToDelete
-    try {
-      const res = await fetch(`/api/admin/overload-pay/${id}`, { method: "DELETE" })
-      if (!res.ok) throw new Error()
-      toast.success("Overload pay removed")
-      setOverloadPayToDelete('')
-      loadAll()
-    } catch {
-      toast.error("Failed to remove overload pay")
-    }
-  }
-
-  // Open edit overload pay dialog
-  function openEditOverloadPay(o: OverloadPay) {
-    setEditOverloadPayId(o.overload_pays_id)
-    setEditOverloadPayAmount(o.amount.toString())
-    setEditOverloadPayNotes(o.notes || "")
-    setEditOverloadPayOpen(true)
-  }
-
-  // Update overload pay
-  async function updateOverloadPay() {
-    try {
-      const res = await fetch(`/api/admin/overload-pay/${editOverloadPayId}`, {
-        method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          amount: Number(editOverloadPayAmount),
-          notes: editOverloadPayNotes
-        })
-      })
-      if (!res.ok) throw new Error()
-      toast.success("Overload pay updated")
-      setEditOverloadPayOpen(false)
-      loadAll()
-    } catch {
-      toast.error("Failed to update overload pay")
-    }
-  }
-
   function toggleEmployee(id: string) {
     setSelectedEmployeeIds(prev => prev.includes(id) ? prev.filter(x => x !== id) : [...prev, id])
-  }
-
-  function toggleOverloadEmployee(id: string) {
-    setOverloadSelectedEmployees(prev => prev.includes(id) ? prev.filter(x => x !== id) : [...prev, id])
-  }
-
-  async function checkAndSaveOverloadPay() {
-    try {
-      if (!overloadAmount || Number(overloadAmount) <= 0) {
-        toast.error("Please enter a valid amount")
-        return
-      }
-
-      if (!overloadSelectAll && overloadSelectedEmployees.length === 0) {
-        toast.error("Please select at least one personnel or enable 'Select All'")
-        return
-      }
-
-      // Check for duplicates of the same type
-      let targetEmployees: string[] = []
-      if (overloadSelectAll) {
-        targetEmployees = personnel.map(p => p.users_id)
-      } else {
-        targetEmployees = overloadSelectedEmployees
-      }
-
-      // Find personnel who already have additional pay of the same type
-      const existingIdsWithSameType = overloadPays
-        .filter(op => op.type === overloadPayType)
-        .map(op => op.user.users_id)
-      const duplicates = targetEmployees.filter(id => existingIdsWithSameType.includes(id))
-
-      if (duplicates.length > 0) {
-        // Get names of duplicate personnel
-        const duplicateNames = duplicates
-          .map(id => {
-            const person = personnel.find(p => p.users_id === id)
-            return person?.name || person?.email || 'Unknown'
-          })
-        setDuplicatePersonnel(duplicateNames)
-        setShowOverloadConfirmModal(true)
-        return
-      }
-
-      // No duplicates, proceed
-      await saveOverloadPay()
-    } catch (error) {
-      console.error('Error checking overload pay:', error)
-      toast.error(error instanceof Error ? error.message : "Failed to check overload pay")
-    }
-  }
-
-  async function saveOverloadPay() {
-    try {
-      const payload = {
-        amount: Number(overloadAmount),
-        notes: overloadNotes,
-        type: overloadPayType,
-        selectAll: overloadSelectAll,
-        employees: overloadSelectedEmployees
-      }
-
-      const res = await fetch("/api/admin/overload-pay", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(payload)
-      })
-
-      if (!res.ok) {
-        const errorData = await res.json()
-        console.error('API Error Response:', errorData)
-        toast.error(errorData.error || 'Failed to add additional pay')
-        throw new Error(errorData.error || 'Failed to add additional pay')
-      }
-
-      const data = await res.json()
-      toast.success(data.message || "Additional pay added successfully")
-      setOverloadPayOpen(false)
-      setShowOverloadConfirmModal(false)
-      setOverloadAmount("")
-      setOverloadNotes("")
-      setOverloadPayType("OVERTIME")
-      setOverloadSelectAll(false)
-      setOverloadSelectedEmployees([])
-      setOverloadEmployeeSearch("")
-      setDuplicatePersonnel([])
-      loadAll()
-    } catch (error) {
-      console.error('Error adding additional pay:', error)
-      toast.error(error instanceof Error ? error.message : "Failed to add additional pay")
-    }
   }
 
   async function saveMandatoryDeductions() {
@@ -1029,9 +785,9 @@ export default function DeductionsPage() {
 
           for (const userId of targetIds) {
             const alreadyHasDeduction = deductions.some(d =>
-              d.user.users_id === userId &&
-              d.deductionType.deduction_types_id === entry.deduction_types_id &&
-              d.deductionType.isMandatory
+              d.users.users_id === userId &&
+              d.deduction_types.deduction_types_id === entry.deduction_types_id &&
+              d.deduction_types.isMandatory
             )
 
             if (alreadyHasDeduction) {
@@ -1078,205 +834,88 @@ export default function DeductionsPage() {
   return (
     <div className="flex-1 space-y-6 p-4 pt-6">
       <div className="flex items-center justify-between rounded-md px-4 py-3 bg-transparent dark:bg-sidebar text-foreground dark:text-sidebar-foreground">
-        <div>
-          <h2 className="text-3xl font-bold tracking-tight flex items-center gap-2">
+        <div className="space-y-1">
+          <h2 className="text-2xl sm:text-3xl font-bold tracking-tight flex items-center gap-2">
             <BadgeMinus className="h-6 w-6 sm:h-8 sm:w-8 text-blue-600" />
-            Mandatory & Overtime
+            Mandatory Deductions
           </h2>
-          <p className="text-muted-foreground text-sm">Manage mandatory deduction & overtime pay for personnel</p>
+          <p className="text-muted-foreground">Manage mandatory deductions for staff</p>
         </div>
         <div className="flex gap-2">
-          <div className="flex items-center gap-2">
+          <>
             <Button
-              variant="outline"
-              onClick={() => setShowButtons(!showButtons)}
-              className="flex items-center gap-2"
+              onClick={() => setSyncMandatoryOpen(true)}
+              className="bg-gradient-to-r from-orange-500 to-red-500 hover:from-orange-600 hover:to-red-600 text-white shadow-md hover:shadow-lg transition-all duration-300"
             >
-              {showButtons ? <ChevronRight className="h-4 w-4" /> : <ChevronLeft className="h-4 w-4" />}
-              <span className="text-sm">{showButtons ? 'Hide' : 'Show'}</span>
+              <CheckCheck className="h-4 w-4 mr-2" />
+              Apply Mandatory Deductions
             </Button>
-          </div>
-
-          <div className={`flex gap-2 overflow-hidden transition-all duration-300 ease-in-out ${showButtons ? 'max-w-[800px] opacity-100' : 'max-w-0 opacity-0'
-            }`}>
-            <>
-              <Button
-                onClick={() => setSyncMandatoryOpen(true)}
-                className="bg-gradient-to-r from-orange-500 to-red-500 hover:from-orange-600 hover:to-red-600 text-white shadow-md hover:shadow-lg transition-all duration-300"
-              >
-                <CheckCheck className="h-4 w-4 mr-2" />
-                Apply Mandatory Deductions
-              </Button>
-              <Dialog open={typeOpen} onOpenChange={setTypeOpen}>
-                <DialogTrigger asChild>
-                  <Button className="bg-orange-500 hover:bg-orange-600 text-white"><Plus className="h-4 w-4 mr-2" />Add Mandatory Deduction</Button>
-                </DialogTrigger>
-                <DialogContent className="max-h-[85vh] overflow-y-auto max-w-2xl">
-                  <DialogHeader>
-                    <DialogTitle>Add Mandatory Deduction</DialogTitle>
-                    <DialogDescription>
-                      Create a new mandatory deduction type
-                    </DialogDescription>
-                  </DialogHeader>
-                  <div className="grid gap-4 py-2">
-                    <div className="grid gap-2">
-                      <Label>Name</Label>
-                      <Input value={newTypeName} onChange={e => setNewTypeName(e.target.value)} placeholder="e.g. Late Penalty or PhilHealth" />
-                    </div>
-                    <div className="grid gap-2">
-                      <Label>Description</Label>
-                      <Input value={newTypeDesc} onChange={e => setNewTypeDesc(e.target.value)} placeholder="Optional description" />
-                    </div>
-                    <div className="grid gap-2">
-                      <Label>Calculation Type</Label>
-                      <Select value={newTypeCalculationType} onValueChange={(val: 'FIXED' | 'PERCENTAGE') => setNewTypeCalculationType(val)}>
-                        <SelectTrigger>
-                          <SelectValue placeholder="Select type" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="FIXED">Fixed Amount</SelectItem>
-                          <SelectItem value="PERCENTAGE">Percentage of Salary</SelectItem>
-                        </SelectContent>
-                      </Select>
-                    </div>
-                    {newTypeCalculationType === 'FIXED' ? (
-                      <div className="grid gap-2">
-                        <Label>Amount (₱)</Label>
-                        <Input type="number" value={newTypeAmount} onChange={e => setNewTypeAmount(e.target.value)} placeholder="0.00" />
-                      </div>
-                    ) : (
-                      <div className="grid gap-2">
-                        <Label>Percentage (%)</Label>
-                        <Input
-                          type="number"
-                          value={newTypePercentageValue}
-                          onChange={e => setNewTypePercentageValue(e.target.value)}
-                          placeholder="e.g., 20 for 20%"
-                          min="0"
-                          max="100"
-                          step="0.1"
-                        />
-                        <p className="text-xs text-muted-foreground">
-                          Will be calculated as {newTypePercentageValue || '0'}% of each employee's basic salary
-                        </p>
-                      </div>
-                    )}
+            <Dialog open={typeOpen} onOpenChange={setTypeOpen}>
+              <DialogTrigger asChild>
+                <Button className="bg-orange-500 hover:bg-orange-600 text-white"><Plus className="h-4 w-4 mr-2" />Add Mandatory Deduction</Button>
+              </DialogTrigger>
+              <DialogContent className="max-h-[85vh] overflow-y-auto max-w-2xl">
+                <DialogHeader>
+                  <DialogTitle>Add Mandatory Deduction</DialogTitle>
+                  <DialogDescription>
+                    Create a new mandatory deduction type
+                  </DialogDescription>
+                </DialogHeader>
+                <div className="grid gap-4 py-2">
+                  <div className="grid gap-2">
+                    <Label>Name</Label>
+                    <Input value={newTypeName} onChange={e => setNewTypeName(e.target.value)} placeholder="e.g. Late Penalty or PhilHealth" />
                   </div>
-                  <DialogFooter>
-                    <Button variant="outline" onClick={() => {
-                      setTypeOpen(false)
-                    }}>Cancel</Button>
-                    <Button onClick={createType}>
-                      Save
-                    </Button>
-                  </DialogFooter>
-                </DialogContent>
-              </Dialog>
-
-              <Dialog open={overloadPayOpen} onOpenChange={setOverloadPayOpen}>
-                <DialogTrigger asChild>
-                  <Button className="bg-green-500 hover:bg-green-600 text-white">
-                    <Plus className="h-4 w-4 mr-2" />Add Additional Pay
-                  </Button>
-                </DialogTrigger>
-                <DialogContent className="max-h-[85vh] overflow-y-auto max-w-2xl">
-                  <DialogHeader>
-                    <DialogTitle>Add Additional Pay</DialogTitle>
-                    <DialogDescription>Add additional compensation to selected employees.</DialogDescription>
-                  </DialogHeader>
-                  <div className="grid gap-4 py-4">
+                  <div className="grid gap-2">
+                    <Label>Description</Label>
+                    <Input value={newTypeDesc} onChange={e => setNewTypeDesc(e.target.value)} placeholder="Optional description" />
+                  </div>
+                  <div className="grid gap-2">
+                    <Label>Calculation Type</Label>
+                    <Select value={newTypeCalculationType} onValueChange={(val: 'FIXED' | 'PERCENTAGE') => setNewTypeCalculationType(val)}>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select type" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="FIXED">Fixed Amount</SelectItem>
+                        <SelectItem value="PERCENTAGE">Percentage of Salary</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  {newTypeCalculationType === 'FIXED' ? (
                     <div className="grid gap-2">
-                      <Label htmlFor="overload-pay-type">Type</Label>
-                      <Select value={overloadPayType} onValueChange={setOverloadPayType}>
-                        <SelectTrigger className="w-full">
-                          <SelectValue placeholder="Select type" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="POSITION_PAY">Position Pay</SelectItem>
-                          <SelectItem value="BONUS">Bonus</SelectItem>
-                          <SelectItem value="13TH_MONTH">13th Month Pay</SelectItem>
-                          <SelectItem value="OVERTIME">Overtime</SelectItem>
-                          <SelectItem value="OVERLOAD">Overload</SelectItem>
-                        </SelectContent>
-                      </Select>
+                      <Label>Amount (₱)</Label>
+                      <Input type="number" value={newTypeAmount} onChange={e => setNewTypeAmount(e.target.value)} placeholder="0.00" />
                     </div>
+                  ) : (
                     <div className="grid gap-2">
-                      <Label htmlFor="overload-amount">Amount (₱)</Label>
+                      <Label>Percentage (%)</Label>
                       <Input
-                        id="overload-amount"
                         type="number"
-                        placeholder="0.00"
-                        value={overloadAmount}
-                        onChange={(e) => setOverloadAmount(e.target.value)}
+                        value={newTypePercentageValue}
+                        onChange={e => setNewTypePercentageValue(e.target.value)}
+                        placeholder="e.g., 20 for 20%"
+                        min="0"
+                        max="100"
+                        step="0.1"
                       />
+                      <p className="text-xs text-muted-foreground">
+                        Will be calculated as {newTypePercentageValue || '0'}% of each employee's basic salary
+                      </p>
                     </div>
-                    <div className="grid gap-2">
-                      <Label htmlFor="overload-notes">Notes (Optional)</Label>
-                      <Input
-                        id="overload-notes"
-                        placeholder="e.g., Extra hours compensation"
-                        value={overloadNotes}
-                        onChange={(e) => setOverloadNotes(e.target.value)}
-                      />
-                    </div>
-                    <div className="flex items-center gap-2 pt-2">
-                      <Switch
-                        id="overload-select-all"
-                        checked={overloadSelectAll}
-                        onCheckedChange={setOverloadSelectAll}
-                      />
-                      <Label htmlFor="overload-select-all" className="cursor-pointer">
-                        Apply to all active personnel
-                      </Label>
-                    </div>
-                    {!overloadSelectAll && (
-                      <div className="grid gap-2">
-                        <Label>Select Personnel</Label>
-                        <Command className="border rounded-md">
-                          <CommandInput
-                            placeholder="Search personnel..."
-                            value={overloadEmployeeSearch}
-                            onValueChange={setOverloadEmployeeSearch}
-                          />
-                          <CommandList className="max-h-[300px]">
-                            <CommandEmpty>No personnel found.</CommandEmpty>
-                            <CommandGroup>
-                              {filteredOverloadPersonnel.map((person) => (
-                                <CommandItem
-                                  key={person.users_id}
-                                  onSelect={() => toggleOverloadEmployee(person.users_id)}
-                                  className="flex items-center gap-2 cursor-pointer"
-                                >
-                                  {overloadSelectedEmployees.includes(person.users_id) ? (
-                                    <CheckSquare className="h-4 w-4 text-primary" />
-                                  ) : (
-                                    <Square className="h-4 w-4" />
-                                  )}
-                                  <div className="flex-1">
-                                    <div className="font-medium">{person.name}</div>
-                                    <div className="text-sm text-muted-foreground">{person.email}</div>
-                                  </div>
-                                </CommandItem>
-                              ))}
-                            </CommandGroup>
-                          </CommandList>
-                        </Command>
-                        {overloadSelectedEmployees.length > 0 && (
-                          <p className="text-sm text-muted-foreground">
-                            {overloadSelectedEmployees.length} personnel selected
-                          </p>
-                        )}
-                      </div>
-                    )}
-                  </div>
-                  <DialogFooter>
-                    <Button variant="outline" onClick={() => setOverloadPayOpen(false)}>Cancel</Button>
-                    <Button onClick={checkAndSaveOverloadPay} className="bg-green-500 hover:bg-green-600">Save Additional Pay</Button>
-                  </DialogFooter>
-                </DialogContent>
-              </Dialog>
-            </>
-          </div>
+                  )}
+                </div>
+                <DialogFooter>
+                  <Button variant="outline" onClick={() => {
+                    setTypeOpen(false)
+                  }}>Cancel</Button>
+                  <Button onClick={createType}>
+                    Save
+                  </Button>
+                </DialogFooter>
+              </DialogContent>
+            </Dialog>
+          </>
         </div>
       </div>
 
@@ -1352,8 +991,8 @@ export default function DeductionsPage() {
                     <TableCell>{t.description || '-'}</TableCell>
                     <TableCell>
                       <span className={`inline-flex items-center px-2 py-1 rounded-md text-xs font-medium ${t.calculationType === 'PERCENTAGE'
-                          ? 'bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-400'
-                          : 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400'
+                        ? 'bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-400'
+                        : 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400'
                         }`}>
                         {t.calculationType === 'PERCENTAGE' ? 'Percentage' : 'Fixed'}
                       </span>
@@ -1389,7 +1028,6 @@ export default function DeductionsPage() {
           )}
         </CardContent>
       </Card>
-
 
       <Card>
         <CardHeader>
@@ -1432,8 +1070,9 @@ export default function DeductionsPage() {
                       <span className="text-sm font-medium">Select All</span>
                     </div>
                   </TableHead>
-                  <TableHead>Employee</TableHead>
-                  <TableHead>Department</TableHead>
+                  <TableHead>Staff</TableHead>
+                  <TableHead>BLGU</TableHead>
+                  <TableHead>Position</TableHead>
                   <TableHead>Deduction Name</TableHead>
                   <TableHead>Type</TableHead>
                   <TableHead>Salary</TableHead>
@@ -1460,34 +1099,39 @@ export default function DeductionsPage() {
                         )}
                       </Button>
                     </TableCell>
-                    <TableCell>{d.user.name || d.user.email}</TableCell>
+                    <TableCell>{d.users.name || d.users.email}</TableCell>
                     <TableCell>
-                      <div className="max-w-[220px] truncate text-muted-foreground text-xs">
-                        {d.user.personnelType?.department || '-'}
+                      <div className="max-w-[150px] truncate text-muted-foreground text-xs">
+                        {d.users.personnel_types?.department || '-'}
                       </div>
                     </TableCell>
-                    <TableCell>{d.deductionType.name}</TableCell>
                     <TableCell>
-                      <span className={`inline-flex items-center px-2 py-1 rounded-md text-xs font-medium ${d.deductionType.calculationType === 'PERCENTAGE'
-                          ? 'bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-400'
-                          : 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400'
+                      <div className="max-w-[150px] truncate text-muted-foreground text-xs">
+                        {d.users.personnel_types?.name || '-'}
+                      </div>
+                    </TableCell>
+                    <TableCell>{d.deduction_types.name}</TableCell>
+                    <TableCell>
+                      <span className={`inline-flex items-center px-2 py-1 rounded-md text-xs font-medium ${d.deduction_types.calculationType === 'PERCENTAGE'
+                        ? 'bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-400'
+                        : 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400'
                         }`}>
-                        {d.deductionType.calculationType === 'PERCENTAGE' ? 'Percentage' : 'Fixed'}
+                        {d.deduction_types.calculationType === 'PERCENTAGE' ? 'Percentage' : 'Fixed'}
                       </span>
                     </TableCell>
                     <TableCell>
                       <div className="text-sm">
-                        {d.user.personnelType?.basicSalary
-                          ? `₱${d.user.personnelType.basicSalary.toLocaleString()}`
+                        {d.users.personnel_types?.basicSalary
+                          ? `₱${d.users.personnel_types.basicSalary.toLocaleString()}`
                           : <span className="text-muted-foreground">No salary</span>
                         }
                       </div>
                     </TableCell>
                     <TableCell>
                       <div className="font-semibold">₱{d.amount.toLocaleString()}</div>
-                      {d.deductionType.calculationType === 'PERCENTAGE' && d.deductionType.percentageValue && d.user.personnelType?.basicSalary ? (
+                      {d.deduction_types.calculationType === 'PERCENTAGE' && d.deduction_types.percentageValue && d.users.personnel_types?.basicSalary ? (
                         <div className="text-xs text-muted-foreground">
-                          {d.deductionType.percentageValue}% of ₱{d.user.personnelType.basicSalary.toLocaleString()}
+                          {d.deduction_types.percentageValue}% of ₱{d.users.personnel_types.basicSalary.toLocaleString()}
                         </div>
                       ) : null}
                     </TableCell>
@@ -1508,117 +1152,6 @@ export default function DeductionsPage() {
                 {deductions.length === 0 && (
                   <TableRow>
                     <TableCell colSpan={10} className="text-center py-8 text-muted-foreground">No deductions found.</TableCell>
-                  </TableRow>
-                )}
-              </TableBody>
-            </Table>
-          )}
-        </CardContent>
-      </Card>
-
-      {/* Additional Pay Card */}
-      <Card>
-        <CardHeader>
-          <div className="flex items-center justify-between">
-            <CardTitle>Additional Pay</CardTitle>
-            {selectedOverloadPays.length > 0 && (
-              <Button
-                variant="destructive"
-                size="sm"
-                onClick={promptDeleteOverloadPays}
-                disabled={loading}
-              >
-                <Trash2 className="h-4 w-4 mr-2" />
-                Delete Selected ({selectedOverloadPays.length})
-              </Button>
-            )}
-          </div>
-        </CardHeader>
-        <CardContent>
-          {loading ? (
-            <div className="py-6">Loading...</div>
-          ) : (
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead className="w-32">
-                    <div className="flex items-center gap-2">
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={handleSelectAllOverloadPays}
-                        className="h-8 w-8 p-0"
-                      >
-                        {isSelectAllOverloadPays ? (
-                          <CheckSquare className="h-4 w-4" />
-                        ) : (
-                          <Square className="h-4 w-4" />
-                        )}
-                      </Button>
-                      <span className="text-sm font-medium">Select All</span>
-                    </div>
-                  </TableHead>
-                  <TableHead>Personnel</TableHead>
-                  <TableHead>Department</TableHead>
-                  <TableHead>Type</TableHead>
-                  <TableHead>Amount</TableHead>
-                  <TableHead>Notes</TableHead>
-                  <TableHead>Applied Date</TableHead>
-                  <TableHead className="text-right">Actions</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {overloadPays.map(o => (
-                  <TableRow key={o.overload_pays_id}>
-                    <TableCell>
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => toggleOverloadPay(o.overload_pays_id)}
-                        className="h-8 w-8 p-0"
-                      >
-                        {selectedOverloadPays.includes(o.overload_pays_id) ? (
-                          <CheckSquare className="h-4 w-4 text-primary" />
-                        ) : (
-                          <Square className="h-4 w-4" />
-                        )}
-                      </Button>
-                    </TableCell>
-                    <TableCell>{o.user.name || o.user.email}</TableCell>
-                    <TableCell>
-                      <div className="max-w-[220px] truncate text-muted-foreground text-xs">
-                        {o.user.personnelType?.department || '-'}
-                      </div>
-                    </TableCell>
-                    <TableCell>
-                      <span className="inline-flex items-center px-2 py-1 rounded-md text-xs font-medium bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200">
-                        {o.type === 'POSITION_PAY' ? 'Position Pay' :
-                          o.type === 'BONUS' ? 'Bonus' :
-                            o.type === '13TH_MONTH' ? '13th Month Pay' :
-                              o.type === 'OVERTIME' ? 'Overtime' :
-                                o.type === 'OVERLOAD' ? 'Overload' :
-                                  o.type || 'Overtime'}
-                      </span>
-                    </TableCell>
-                    <TableCell className="font-semibold text-green-600">₱{o.amount.toLocaleString()}</TableCell>
-                    <TableCell>{o.notes || '-'}</TableCell>
-                    <TableCell>{new Date(o.appliedAt).toLocaleDateString()}</TableCell>
-                    <TableCell className="text-right">
-                      <DropdownMenu>
-                        <DropdownMenuTrigger asChild>
-                          <Button variant="ghost" className="h-8 w-8 p-0">⋮</Button>
-                        </DropdownMenuTrigger>
-                        <DropdownMenuContent align="end">
-                          <DropdownMenuItem onClick={() => openEditOverloadPay(o)}>Edit</DropdownMenuItem>
-                          <DropdownMenuItem className="text-destructive" onClick={() => promptDeleteOverloadPay(o.overload_pays_id)}>Remove</DropdownMenuItem>
-                        </DropdownMenuContent>
-                      </DropdownMenu>
-                    </TableCell>
-                  </TableRow>
-                ))}
-                {overloadPays.length === 0 && (
-                  <TableRow>
-                    <TableCell colSpan={8} className="text-center py-8 text-muted-foreground">No additional pay records found.</TableCell>
                   </TableRow>
                 )}
               </TableBody>
@@ -1790,113 +1323,6 @@ export default function DeductionsPage() {
         </DialogContent>
       </Dialog>
 
-      {/* Additional Pay Duplicate Confirmation Modal */}
-      <Dialog open={showOverloadConfirmModal} onOpenChange={setShowOverloadConfirmModal}>
-        <DialogContent className="sm:max-w-md">
-          <DialogHeader>
-            <DialogTitle>Duplicate Additional Pay Detected</DialogTitle>
-            <DialogDescription>
-              The following personnel already have additional pay:
-            </DialogDescription>
-          </DialogHeader>
-          <div className="mt-2 p-3 bg-muted rounded-md">
-            <ul className="list-disc list-inside text-sm space-y-1">
-              {duplicatePersonnel.map((name, idx) => (
-                <li key={idx}>{name}</li>
-              ))}
-            </ul>
-          </div>
-          <p className="text-sm text-muted-foreground mt-4">
-            Do you want to add additional pay to them?
-          </p>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setShowOverloadConfirmModal(false)}>
-              Cancel
-            </Button>
-            <Button onClick={saveOverloadPay} className="bg-green-500 hover:bg-green-600">
-              Yes, Add Anyway
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-
-      {/* Edit Additional Pay Dialog */}
-      <Dialog open={editOverloadPayOpen} onOpenChange={setEditOverloadPayOpen}>
-        <DialogContent className="max-h-[85vh] overflow-y-auto">
-          <DialogHeader>
-            <DialogTitle>Edit Additional Pay</DialogTitle>
-            <DialogDescription>Update the amount and notes for this additional pay.</DialogDescription>
-          </DialogHeader>
-          <div className="grid gap-4 py-4">
-            <div className="grid gap-2">
-              <Label htmlFor="edit-overload-amount">Amount (₱)</Label>
-              <Input
-                id="edit-overload-amount"
-                type="number"
-                placeholder="0.00"
-                value={editOverloadPayAmount}
-                onChange={(e) => setEditOverloadPayAmount(e.target.value)}
-              />
-            </div>
-            <div className="grid gap-2">
-              <Label htmlFor="edit-overload-notes">Notes (Optional)</Label>
-              <Input
-                id="edit-overload-notes"
-                placeholder="e.g., Extra hours compensation"
-                value={editOverloadPayNotes}
-                onChange={(e) => setEditOverloadPayNotes(e.target.value)}
-              />
-            </div>
-          </div>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setEditOverloadPayOpen(false)}>Cancel</Button>
-            <Button onClick={updateOverloadPay}>Save Changes</Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-
-      {/* Delete Additional Pay Confirmation Modal (Single) */}
-      <Dialog open={showDeleteOverloadPayModal} onOpenChange={setShowDeleteOverloadPayModal}>
-        <DialogContent className="sm:max-w-md">
-          <DialogHeader>
-            <DialogTitle>Remove Additional Pay?</DialogTitle>
-            <DialogDescription>
-              Are you sure you want to remove this additional pay? This action cannot be undone.
-            </DialogDescription>
-          </DialogHeader>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setShowDeleteOverloadPayModal(false)}>
-              Cancel
-            </Button>
-            <Button variant="destructive" onClick={deleteOverloadPay}>
-              <Trash2 className="h-4 w-4 mr-2" />
-              Remove
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-
-      {/* Delete Additional Pays Confirmation Modal (Bulk) */}
-      <Dialog open={showDeleteOverloadPaysModal} onOpenChange={setShowDeleteOverloadPaysModal}>
-        <DialogContent className="sm:max-w-md">
-          <DialogHeader>
-            <DialogTitle>Delete Additional Pays?</DialogTitle>
-            <DialogDescription>
-              Are you sure you want to delete {selectedOverloadPays.length} additional pay(s)? This action cannot be undone.
-            </DialogDescription>
-          </DialogHeader>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setShowDeleteOverloadPaysModal(false)}>
-              Cancel
-            </Button>
-            <Button variant="destructive" onClick={bulkDeleteOverloadPays}>
-              <Trash2 className="h-4 w-4 mr-2" />
-              Delete All
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-
       {/* Apply Mandatory Deductions Modal */}
       <Dialog open={syncMandatoryOpen} onOpenChange={setSyncMandatoryOpen}>
         <DialogContent className="max-w-3xl max-h-[85vh] overflow-y-auto">
@@ -1986,10 +1412,15 @@ export default function DeductionsPage() {
               {!syncSelectAllPersonnel && (
                 <>
                   <Input
-                    placeholder="Search personnel..."
-                    value={syncPersonnelSearch}
-                    onChange={(e) => setSyncPersonnelSearch(e.target.value)}
+                    placeholder="Search staff..."
+                    value={employeeSearch}
+                    onChange={(e) => setEmployeeSearch(e.target.value)}
+                    className="w-[200px]"
                   />
+                  <Button onClick={() => setDeductionOpen(true)}>
+                    <Plus className="h-4 w-4 mr-2" />
+                    Add Staff Deduction
+                  </Button>
                   <div className="border rounded-md p-4 max-h-[280px] overflow-y-auto">
                     <Command className="border-0">
                       <CommandList>
@@ -2024,8 +1455,8 @@ export default function DeductionsPage() {
                                 <div className="flex-1">
                                   <p className="font-medium">{person.name}</p>
                                   <p className="text-sm text-muted-foreground">{person.email}</p>
-                                  {person.personnelType?.department && (
-                                    <p className="text-xs text-muted-foreground">{person.personnelType.department}</p>
+                                  {person.personnel_types?.department && (
+                                    <p className="text-xs text-muted-foreground">{person.personnel_types.department}</p>
                                   )}
                                 </div>
                               </CommandItem>

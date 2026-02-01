@@ -22,7 +22,7 @@ export async function PUT(
     }
 
     // Check if holiday exists
-    const existingHoliday = await prisma.holiday.findUnique({
+    const existingHoliday = await prisma.holidays.findUnique({
       where: { holidays_id: id }
     })
 
@@ -31,7 +31,7 @@ export async function PUT(
     }
 
     // Check if another holiday already exists on this date (excluding current one)
-    const duplicateHoliday = await prisma.holiday.findFirst({
+    const duplicateHoliday = await prisma.holidays.findFirst({
       where: { 
         date: new Date(date),
         holidays_id: { not: id }
@@ -42,7 +42,7 @@ export async function PUT(
       return NextResponse.json({ error: 'Another holiday already exists on this date' }, { status: 400 })
     }
 
-    const holiday = await prisma.holiday.update({
+    const holiday = await prisma.holidays.update({
       where: { holidays_id: id },
       data: {
         name,
@@ -73,7 +73,7 @@ export async function DELETE(
     const { id } = await params
 
     // Check if holiday exists
-    const existingHoliday = await prisma.holiday.findUnique({
+    const existingHoliday = await prisma.holidays.findUnique({
       where: { holidays_id: id }
     })
 
@@ -81,7 +81,7 @@ export async function DELETE(
       return NextResponse.json({ error: 'Holiday not found' }, { status: 404 })
     }
 
-    await prisma.holiday.delete({
+    await prisma.holidays.delete({
       where: { holidays_id: id }
     })
 

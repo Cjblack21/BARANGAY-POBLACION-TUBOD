@@ -2,7 +2,7 @@ import { NextAuthOptions } from "next-auth"
 import CredentialsProvider from "next-auth/providers/credentials"
 import GoogleProvider from "next-auth/providers/google"
 import bcrypt from "bcryptjs"
-import { Role } from "@prisma/client"
+import { users_role } from "@prisma/client"
 import { prisma } from "@/lib/prisma"
 
 export const authOptions: NextAuthOptions = {
@@ -41,28 +41,38 @@ export const authOptions: NextAuthOptions = {
         }
 
         try {
-          const inputEmail = credentials.email.trim().toLowerCase()
+          const inputEmailOrId = credentials.email.trim().toLowerCase()
           const inputPassword = credentials.password.trim()
-          console.log("Attempting to authenticate user:", inputEmail)
+          console.log("Attempting to authenticate user:", inputEmailOrId)
 
-          const user = await prisma.user.findUnique({
+          // Try to find user by email first
+          let user = await prisma.users.findUnique({
             where: {
-              email: inputEmail
+              email: inputEmailOrId
             }
           })
 
+          // If not found and input looks like an ID, try to find by users_id
+          if (!user && !inputEmailOrId.includes('@')) {
+            user = await prisma.users.findUnique({
+              where: {
+                users_id: inputEmailOrId
+              }
+            })
+          }
+
           if (!user) {
-            console.log("User not found:", inputEmail)
+            console.log("User not found:", inputEmailOrId)
             return null
           }
 
           if (!user.isActive) {
-            console.log("User account is inactive:", inputEmail)
+            console.log("User account is inactive:", inputEmailOrId)
             return null
           }
 
           if (!user.password) {
-            console.log("No password set for user (OAuth-only account):", inputEmail)
+            console.log("No password set for user (OAuth-only account):", inputEmailOrId)
             return null
           }
 
@@ -72,11 +82,11 @@ export const authOptions: NextAuthOptions = {
           )
 
           if (!isPasswordValid) {
-            console.log("Invalid password for user:", inputEmail)
+            console.log("Invalid password for user:", inputEmailOrId)
             return null
           }
 
-          console.log("Authentication successful for user:", inputEmail)
+          console.log("Authentication successful for user:", inputEmailOrId)
           return {
             id: user.users_id,
             email: user.email,
@@ -119,7 +129,7 @@ export const authOptions: NextAuthOptions = {
       // Always refresh avatar from database on every request
       if (token.userId) {
         try {
-          const freshUser = await prisma.user.findUnique({
+          const freshUser = await prisma.users.findUnique({
             where: { users_id: token.userId as string },
             select: { avatar: true }
           })
@@ -140,7 +150,7 @@ export const authOptions: NextAuthOptions = {
         // Check if user exists in database with timeout
         try {
           const existingUser = await Promise.race([
-            prisma.user.findUnique({
+            prisma.users.findUnique({
               where: { email: googleProfile.email as string }
             }),
             new Promise((_, reject) =>
@@ -198,7 +208,7 @@ export const authOptions: NextAuthOptions = {
         // Ensure userId is set - critical for API routes
         const userId = (token.userId as string) || (token.sub as string) || ''
         session.user.id = userId
-        session.user.role = token.role as Role || 'SETUP_REQUIRED'
+        session.user.role = token.role as users_role || 'SETUP_REQUIRED'
         session.user.avatar = token.avatar as string || null
 
         if (token.role === "SETUP_REQUIRED") {
@@ -252,7 +262,7 @@ export const authOptions: NextAuthOptions = {
 // Types for NextAuth
 declare module "next-auth" {
   interface User {
-    role: Role | "SETUP_REQUIRED"
+    role: users_role | "SETUP_REQUIRED"
     avatar?: string | null
   }
 
@@ -263,14 +273,14 @@ declare module "next-auth" {
       name?: string | null
       image?: string | null
       avatar?: string | null
-      role: Role | "SETUP_REQUIRED"
+      role: users_role | "SETUP_REQUIRED"
     }
   }
 }
 
 declare module "next-auth/jwt" {
   interface JWT {
-    role: Role | "SETUP_REQUIRED"
+    role: users_role | "SETUP_REQUIRED"
     userId?: string
     email?: string
     name?: string

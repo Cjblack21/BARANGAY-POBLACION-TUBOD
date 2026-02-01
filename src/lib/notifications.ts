@@ -47,62 +47,25 @@ export async function getNotifications(userId?: string): Promise<Notification[]>
     // Guard
     if (!userId) return notifications
 
-    // Today attendance status
-    const todayStart = new Date(); todayStart.setHours(0,0,0,0)
-    const todayEnd = new Date(); todayEnd.setHours(23,59,59,999)
-    const todayAttendance = await prisma.attendance.findFirst({
-      where: { users_id: userId, date: { gte: todayStart, lte: todayEnd } }
-    })
-    if (todayAttendance) {
-      const status = todayAttendance.status
-      if (status === 'LATE') {
-        notifications.push({
-          id: `att-${todayAttendance.attendances_id}`,
-          title: 'Late Arrival Recorded',
-          message: 'You were marked late today. Please review your time-in.',
-          type: 'warning',
-          isRead: false,
-          createdAt: new Date()
-        })
-      } else if (status === 'ABSENT') {
-        notifications.push({
-          id: `att-${todayAttendance.attendances_id}`,
-          title: 'Absence Recorded',
-          message: 'You are marked absent today.',
-          type: 'error',
-          isRead: false,
-          createdAt: new Date()
-        })
-      } else if (status === 'PRESENT') {
-        notifications.push({
-          id: `att-${todayAttendance.attendances_id}`,
-          title: 'Attendance Recorded',
-          message: 'Your attendance for today has been recorded.',
-          type: 'success',
-          isRead: false,
-          createdAt: new Date()
-        })
-      }
-    }
+    // Attendance notifications removed - attendance system no longer in use
 
-    // Current period (align with attendance settings and cap to today)
-    const settings = await prisma.attendanceSettings.findFirst()
+    // Current period (use current semi-monthly period)
+    const now = new Date()
     let periodStart: Date
     let periodEnd: Date
-    const now = new Date()
-    if (settings?.periodStart && settings?.periodEnd) {
-      periodStart = new Date(settings.periodStart)
-      periodEnd = new Date(settings.periodEnd)
-    } else {
+    
+    // Determine semi-monthly period
+    if (now.getDate() <= 15) {
       periodStart = new Date(now.getFullYear(), now.getMonth(), 1)
+      periodEnd = new Date(now.getFullYear(), now.getMonth(), 15)
+    } else {
+      periodStart = new Date(now.getFullYear(), now.getMonth(), 16)
       periodEnd = new Date(now.getFullYear(), now.getMonth() + 1, 0)
     }
     periodEnd.setHours(23,59,59,999)
-    const todayEOD = new Date(); todayEOD.setHours(23,59,59,999)
-    if (periodEnd > todayEOD) periodEnd = todayEOD
 
     // Payroll entry for this period
-    const payroll = await prisma.payrollEntry.findFirst({
+    const payroll = await prisma.payroll_entries.findFirst({
       where: {
         users_id: userId,
         periodStart: { gte: periodStart },
@@ -134,7 +97,7 @@ export async function getNotifications(userId?: string): Promise<Notification[]>
 
 
     // Active loans reminder
-    const loans = await prisma.loan.findMany({ where: { users_id: userId, status: 'ACTIVE' } })
+    const loans = await prisma.loans.findMany({ where: { users_id: userId, status: 'ACTIVE' } })
     if (loans.length > 0) {
       notifications.push({
         id: `loan-${userId}`,
@@ -147,20 +110,17 @@ export async function getNotifications(userId?: string): Promise<Notification[]>
     }
 
     // Payroll period ending notification
-    if (settings?.periodEnd) {
-      const periodEndDate = new Date(settings.periodEnd)
-      const daysUntilEnd = Math.ceil((periodEndDate.getTime() - now.getTime()) / (1000 * 60 * 60 * 24))
-      
-      if (daysUntilEnd >= 0 && daysUntilEnd <= 3) {
-        notifications.push({
-          id: `period-end-${periodEndDate.getTime()}`,
-          title: 'Payroll Period Ending Soon',
-          message: `The current payroll period will end ${daysUntilEnd === 0 ? 'today' : `in ${daysUntilEnd} day${daysUntilEnd > 1 ? 's' : ''}`}. Make sure your attendance is up to date.`,
-          type: 'warning',
-          isRead: false,
-          createdAt: new Date()
-        })
-      }
+    const daysUntilEnd = Math.ceil((periodEnd.getTime() - now.getTime()) / (1000 * 60 * 60 * 24))
+    
+    if (daysUntilEnd >= 0 && daysUntilEnd <= 3) {
+      notifications.push({
+        id: `period-end-${periodEnd.getTime()}`,
+        title: 'Payroll Period Ending Soon',
+        message: `The current payroll period will end ${daysUntilEnd === 0 ? 'today' : `in ${daysUntilEnd} day${daysUntilEnd > 1 ? 's' : ''}`}.`,
+        type: 'warning',
+        isRead: false,
+        createdAt: new Date()
+      })
     }
 
     // Payroll reschedule notifications from global store

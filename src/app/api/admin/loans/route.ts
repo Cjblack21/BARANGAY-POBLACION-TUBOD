@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server"
 import { getServerSession } from "next-auth"
 import { authOptions } from "@/lib/auth"
 import { prisma } from "@/lib/prisma"
+import { randomUUID } from "crypto"
 
 export async function GET(request: NextRequest) {
   try {
@@ -14,35 +15,35 @@ export async function GET(request: NextRequest) {
     const q = (searchParams.get('q') || '').toLowerCase()
     const archived = searchParams.get('archived') === 'true'
 
-    const loans = await prisma.loan.findMany({
+    const loans = await prisma.loans.findMany({
       where: archived ? { archivedAt: { not: null } } : { archivedAt: null },
       include: {
-        user: { 
-          select: { 
-            users_id: true, 
-            name: true, 
+        users: {
+          select: {
+            users_id: true,
+            name: true,
             email: true,
-            personnelType: {
+            personnel_types: {
               select: {
                 department: true
               }
             }
-          } 
+          }
         }
       },
       orderBy: { createdAt: 'desc' }
     })
 
     const items = loans.filter(l => {
-      const name = (l.user?.name || '').toLowerCase()
-      const email = (l.user?.email || '').toLowerCase()
+      const name = (l.users?.name || '').toLowerCase()
+      const email = (l.users?.email || '').toLowerCase()
       return !q || name.includes(q) || email.includes(q)
     }).map(l => ({
       loans_id: l.loans_id,
       users_id: l.users_id,
-      userName: l.user?.name ?? null,
-      userEmail: l.user?.email || '',
-      department: l.user?.personnelType?.department ?? null,
+      userName: l.users?.name ?? null,
+      userEmail: l.users?.email || '',
+      department: l.users?.personnel_types?.department ?? null,
       amount: Number(l.amount),
       balance: Number(l.balance),
       monthlyPaymentPercent: Number(l.monthlyPaymentPercent),
@@ -56,7 +57,7 @@ export async function GET(request: NextRequest) {
   } catch (error) {
     console.error('Error fetching loans:', error)
     console.error('Error stack:', error instanceof Error ? error.stack : 'No stack trace')
-    return NextResponse.json({ 
+    return NextResponse.json({
       error: 'Failed to fetch loans',
       details: error instanceof Error ? error.message : String(error)
     }, { status: 500 })
@@ -90,8 +91,9 @@ export async function POST(request: NextRequest) {
     endDate.setMonth(endDate.getMonth() + term)
 
     // initial balance is the amount
-    const created = await prisma.loan.create({
+    const created = await prisma.loans.create({
       data: {
+        loans_id: randomUUID(),
         users_id,
         amount: amt,
         balance: amt,
@@ -101,6 +103,7 @@ export async function POST(request: NextRequest) {
         startDate,
         endDate,
         purpose: purpose || null,
+        updatedAt: new Date(),
       }
     })
 

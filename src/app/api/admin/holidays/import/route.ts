@@ -46,7 +46,7 @@ export async function POST(request: NextRequest) {
     let holidaysToImport = type === 'international' ? internationalHolidays2025 : philippineHolidays2025
 
     // Check for existing holidays to avoid duplicates
-    const existingHolidays = await prisma.holiday.findMany({
+    const existingHolidays = await prisma.holidays.findMany({
       where: {
         date: {
           in: holidaysToImport.map(h => new Date(h.date))
@@ -72,7 +72,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Bulk create new holidays
-    const created = await prisma.holiday.createMany({
+    const created = await prisma.holidays.createMany({
       data: newHolidays.map(h => ({
         name: h.name,
         date: new Date(h.date),

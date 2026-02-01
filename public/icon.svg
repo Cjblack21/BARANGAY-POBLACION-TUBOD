@@ -1,0 +1,13 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">
+  <!-- Gold background circle -->
+  <circle cx="32" cy="32" r="31" fill="#f59e0b" stroke="#78350f" stroke-width="1"/>
+  <!-- White inner circle -->
+  <circle cx="32" cy="32" r="26" fill="#ffffff"/>
+  <!-- Blue shield -->
+  <path d="M 32 14 L 44 19 L 44 34 Q 44 39 32 45 Q 20 39 20 34 L 20 19 Z" fill="#3b82f6" stroke="#1e40af" stroke-width="1"/>
+  <!-- Building -->
+  <rect x="29" y="21" width="6" height="8" fill="#1e3a8a"/>
+  <!-- Palm tree -->
+  <rect x="30" y="32" width="4" height="8" fill="#15803d"/>
+  <path d="M 32 32 L 26 28 L 32 30 L 38 28 Z" fill="#22c55e"/>
+</svg>

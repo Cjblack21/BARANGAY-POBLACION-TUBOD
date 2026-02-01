@@ -10,14 +10,14 @@ export async function GET() {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
-    const users = await prisma.user.findMany({
+    const users = await prisma.users.findMany({
       where: { isActive: true, role: 'PERSONNEL' },
       select: {
         users_id: true,
         name: true,
         email: true,
         personnel_types_id: true,
-        personnelType: {
+        personnel_types: {
           select: {
             personnel_types_id: true,
             name: true,

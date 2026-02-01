@@ -16,7 +16,7 @@ async function getPeriodFromRequest(request: NextRequest) {
         periodEnd = new Date(body.periodEnd)
       }
     }
-  } catch {}
+  } catch { }
   if (!periodStart || !periodEnd) {
     const { searchParams } = new URL(request.url)
     const ps = searchParams.get('periodStart')
@@ -38,9 +38,9 @@ async function getPeriodFromRequest(request: NextRequest) {
 export async function POST(request: NextRequest) {
   try {
     console.log('Manual payroll release request received')
-    
+
     const session = await getServerSession(authOptions)
-    
+
     if (!session || session.user.role !== 'ADMIN') {
       console.log('Unauthorized access attempt')
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
@@ -54,7 +54,7 @@ export async function POST(request: NextRequest) {
     const { nextPayrollDate, nextPayrollNotes } = body
     const { periodStart, periodEnd } = await getPeriodFromRequest(request)
     console.log('Requested payroll period:', { periodStart: periodStart.toISOString(), periodEnd: periodEnd.toISOString() })
-    
+
     // Refuse if any released payroll overlaps the selected period
     const existingReleased = await prisma.payrollEntry.count({
       where: {
@@ -94,7 +94,7 @@ export async function POST(request: NextRequest) {
 
     if (pendingPayrolls.length === 0) {
       console.log('No pending payroll entries found for current period')
-      return NextResponse.json({ 
+      return NextResponse.json({
         error: 'No pending payroll entries found to release for current period',
         releasedCount: 0
       }, { status: 400 })
@@ -114,8 +114,8 @@ export async function POST(request: NextRequest) {
 
     // Get current attendance data for real-time calculation
     const attendance = await prisma.attendance.findMany({
-      where: { 
-        users_id: { in: userIds }, 
+      where: {
+        users_id: { in: userIds },
         date: { gte: periodStart, lte: periodEnd }
       },
       select: {
@@ -130,8 +130,8 @@ export async function POST(request: NextRequest) {
     // Get non-attendance related deductions only
     const attendanceRelatedTypes = ['Late Arrival', 'Absence Deduction', 'Partial Attendance']
     const deductions = await prisma.deduction.findMany({
-      where: { 
-        users_id: { in: userIds }, 
+      where: {
+        users_id: { in: userIds },
         appliedAt: { gte: periodStart, lte: periodEnd },
         deductionType: {
           name: {
@@ -152,8 +152,8 @@ export async function POST(request: NextRequest) {
 
     // Get active loans for current period
     const loans = await prisma.loan.findMany({
-      where: { 
-        users_id: { in: userIds }, 
+      where: {
+        users_id: { in: userIds },
         status: 'ACTIVE',
         startDate: { lte: periodEnd },
         endDate: { gte: periodStart }
@@ -176,17 +176,17 @@ export async function POST(request: NextRequest) {
     const earningsMap = new Map()
     const attendanceDeductionsMap = new Map()
     const workHoursMap = new Map()
-    
+
     for (const record of attendance) {
       const userId = record.users_id
       const user = pendingPayrolls.find(p => p.users_id === userId)?.user
       if (!user || !user.personnelType) return
-      
+
       const basicSalary = Number(user.personnelType.basicSalary)
       let dayEarnings = 0
       let dayDeductions = 0
       let dayWorkHours = 0
-      
+
       if (record.status === 'PRESENT') {
         if (record.timeIn) {
           const timeIn = new Date(record.timeIn)
@@ -228,7 +228,7 @@ export async function POST(request: NextRequest) {
           dayWorkHours = workHours
         }
       }
-      
+
       const currentEarnings = earningsMap.get(userId) || 0
       const currentDeductions = attendanceDeductionsMap.get(userId) || 0
       const currentWorkHours = workHoursMap.get(userId) || 0
@@ -236,7 +236,7 @@ export async function POST(request: NextRequest) {
       attendanceDeductionsMap.set(userId, currentDeductions + dayDeductions)
       workHoursMap.set(userId, currentWorkHours + dayWorkHours)
     }
-    
+
     // Set 0 for users with no attendance records
     userIds.forEach(userId => {
       if (!earningsMap.has(userId)) {
@@ -249,7 +249,7 @@ export async function POST(request: NextRequest) {
         workHoursMap.set(userId, 0)
       }
     })
-    
+
     // Group non-attendance deductions by user
     const deductionsByUser = new Map()
     deductions.forEach(deduction => {
@@ -266,7 +266,7 @@ export async function POST(request: NextRequest) {
         notes: deduction.notes
       })
     })
-    
+
     const deductionsMap = new Map()
     deductionsByUser.forEach((userDeductions, userId) => {
       const totalAmount = userDeductions.reduce((sum: number, d: any) => sum + d.amount, 0)
@@ -284,11 +284,11 @@ export async function POST(request: NextRequest) {
 
     // Recalculate payroll with current data and update to released
     const updatedPayrolls = []
-    
+
     for (const payroll of pendingPayrolls) {
       const user = payroll.user
       if (!user || !user.personnelType) continue
-      
+
       const monthlyBasic = Number(user.personnelType.basicSalary)
       const daysInMonth = new Date(periodStart.getFullYear(), periodStart.getMonth() + 1, 0).getDate()
       const periodDays = Math.max(1, Math.ceil((periodEnd.getTime() - periodStart.getTime()) / (1000 * 60 * 60 * 24)) + 1)
@@ -299,10 +299,10 @@ export async function POST(request: NextRequest) {
       const realTimeEarnings = earningsMap.get(user.users_id) || 0 // informational only
       const realWorkHours = workHoursMap.get(user.users_id) || 0 // informational only
       const loanPayments = loanPaymentsMap.get(user.users_id) || 0
-      
+
       // Calculate total deductions (attendance + non-attendance + loans)
       const totalDeductions = attendanceDeductions + nonAttendanceDeductions + loanPayments
-      
+
       // Calculate net pay (pro-rated base pay - total deductions). No overtime.
       const grossPay = periodBasePay
       const netPay = Math.max(0, grossPay - totalDeductions)
@@ -343,24 +343,53 @@ export async function POST(request: NextRequest) {
       })
       console.log(`📦 Archived non-mandatory deductions for ${user.name} on release`)
 
+      // Archive ALL attendance-related deductions on release (regardless of mandatory status)
+      // This prevents attendance deductions from stacking up across multiple payroll periods
+      const attendanceArchiveResult = await prisma.deduction.updateMany({
+        where: {
+          users_id: user.users_id,
+          deductionType: {
+            OR: [
+              { name: { contains: 'Attendance' } },
+              { name: { contains: 'Late' } },
+              { name: { contains: 'Absent' } },
+              { name: { contains: 'Tardiness' } },
+              { name: { contains: 'Early' } }
+            ]
+          },
+          appliedAt: {
+            gte: payroll.periodStart,
+            lte: payroll.periodEnd
+          },
+          archivedAt: null // Only archive if not already archived
+        },
+        data: {
+          archivedAt: now
+        }
+      })
+      if (attendanceArchiveResult.count > 0) {
+        console.log(`📦 Archived ${attendanceArchiveResult.count} attendance deduction(s) for ${user.name} on release`)
+      }
+
+
       // Update loan balances for this user if they have loan payments
       if (loanPayments > 0) {
         const userLoans = loans.filter(loan => loan.users_id === user.users_id)
-        
+
         for (const loan of userLoans) {
           const loanAmount = Number(loan.amount)
           const monthlyPaymentPercent = Number(loan.monthlyPaymentPercent)
           const monthlyPayment = (loanAmount * monthlyPaymentPercent) / 100
           const biweeklyPayment = monthlyPayment / 2
-          
+
           // Calculate new balance (current balance - biweekly payment)
           const currentBalance = Number(loan.balance)
           const newBalance = Math.max(0, currentBalance - biweeklyPayment)
-          
+
           // Update loan balance
           await prisma.loan.update({
             where: { loans_id: loan.loans_id },
-            data: { 
+            data: {
               balance: newBalance,
               // Mark loan as completed if balance reaches 0
               status: newBalance <= 0 ? 'COMPLETED' : 'ACTIVE',
@@ -368,7 +397,7 @@ export async function POST(request: NextRequest) {
               archivedAt: newBalance <= 0 ? now : null
             }
           })
-          
+
           if (newBalance <= 0) {
             console.log(`✅ Loan ${loan.loans_id} for ${user.name} is now COMPLETED and ARCHIVED (balance: ₱0)`)
           } else {
@@ -429,7 +458,7 @@ export async function POST(request: NextRequest) {
       const fs = require('fs')
       const path = require('path')
       const scheduleFile = path.join(process.cwd(), 'payroll-schedule.json')
-      
+
       if (fs.existsSync(scheduleFile)) {
         fs.unlinkSync(scheduleFile)
         console.log('Cleared existing schedule file')
@@ -437,6 +466,38 @@ export async function POST(request: NextRequest) {
     } catch (error) {
       console.error('Error clearing schedule file:', error)
       // Don't fail the request if we can't clear the schedule file
+    }
+
+    // 📦 Archive ALL attendance-related deductions after payroll is released
+    // This prevents attendance deductions from stacking up across multiple payroll periods
+    console.log('📦 Archiving attendance-related deductions from released payroll...')
+
+    for (const entry of updatedPayrolls) {
+      // Archive ALL attendance deductions for this user (regardless of date)
+      const attendanceArchiveResult = await prisma.deductions.updateMany({
+        where: {
+          users_id: entry.users_id,
+          archivedAt: null,
+          deduction_types: {
+            OR: [
+              { name: { contains: 'Attendance' } },
+              { name: { contains: 'Late' } },
+              { name: { contains: 'Absent' } },
+              { name: { contains: 'Tardiness' } },
+              { name: { contains: 'Early' } }
+            ]
+          }
+        },
+        data: {
+          archivedAt: new Date()
+        }
+      })
+
+      if (attendanceArchiveResult.count > 0) {
+        console.log(`📦 ✅ Archived ${attendanceArchiveResult.count} attendance deduction(s) for user ${entry.users_id}`)
+      } else {
+        console.log(`📦 ℹ️ No attendance deductions to archive for user ${entry.users_id}`)
+      }
     }
 
     return NextResponse.json({
@@ -459,9 +520,9 @@ export async function POST(request: NextRequest) {
       name: error instanceof Error ? error.name : 'Unknown',
       cause: error instanceof Error ? error.cause : undefined
     })
-    
+
     return NextResponse.json(
-      { 
+      {
         error: 'Failed to manually release payroll',
         details: error instanceof Error ? error.message : 'Unknown error occurred',
         timestamp: new Date().toISOString()

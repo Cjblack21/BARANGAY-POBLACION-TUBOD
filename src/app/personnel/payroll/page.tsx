@@ -5,7 +5,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog'
-import { Calendar, FileText, Clock, ChevronDown, ChevronUp } from 'lucide-react'
+import { Calendar, FileText, Clock, ChevronDown, ChevronUp, Trash2 } from 'lucide-react'
 import { format } from 'date-fns'
 import PayrollBreakdownDialog from '@/components/payroll/PayrollBreakdownDialog'
 
@@ -34,6 +34,7 @@ interface PayrollData {
 export default function PersonnelPayrollPage() {
   const [data, setData] = useState<PayrollData | null>(null)
   const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
   const [detailsOpen, setDetailsOpen] = useState(false)
   const [archiveOpen, setArchiveOpen] = useState(false)
   const [selectedPayroll, setSelectedPayroll] = useState<any>(null)
@@ -46,8 +47,14 @@ export default function PersonnelPayrollPage() {
   const [selectAll, setSelectAll] = useState(false)
 
   useEffect(() => {
-    loadPayrollData()
-    fetchPayrollDetails()
+    try {
+      loadPayrollData()
+      fetchPayrollDetails()
+    } catch (err) {
+      console.error('Error in useEffect:', err)
+      setError(err instanceof Error ? err.message : 'Unknown error')
+      setLoading(false)
+    }
   }, [])
 
   const fetchPayrollDetails = async () => {
@@ -274,64 +281,6 @@ export default function PersonnelPayrollPage() {
     return format(new Date(dateString), 'MMM dd, yyyy')
   }
 
-  // Timer to update countdown every second
-  useEffect(() => {
-    if (!data?.periodInfo?.current?.end) {
-      setTimeUntilRelease('')
-      setCanRelease(false)
-      return
-    }
-
-    const updateCountdown = () => {
-      // Get current time in Philippines (UTC+8)
-      const now = new Date()
-      const philippinesTime = new Date(now.toLocaleString('en-US', { timeZone: 'Asia/Manila' }))
-
-      // Use scheduledRelease if available, otherwise calculate from period end + release time
-      let releaseDateTime: Date
-      if (data.periodInfo?.current?.scheduledRelease) {
-        releaseDateTime = new Date(data.periodInfo.current.scheduledRelease)
-        console.log('Using scheduledRelease:', releaseDateTime.toISOString())
-      } else {
-        const releaseTime = data.periodInfo?.current?.releaseTime || '17:00'
-        const [hours, minutes] = releaseTime.split(':').map(Number)
-        releaseDateTime = new Date(data.periodInfo.current.end)
-        releaseDateTime.setHours(hours, minutes, 0, 0)
-        console.log('Using period end + releaseTime:', releaseDateTime.toISOString())
-      }
-
-      const diff = releaseDateTime.getTime() - philippinesTime.getTime()
-
-      if (diff <= 0) {
-        setTimeUntilRelease('Release available now!')
-        if (!canRelease) {
-          setCanRelease(true)
-        }
-        return
-      }
-
-      // If counting down, ensure canRelease is false
-      if (canRelease) {
-        setCanRelease(false)
-      }
-
-      const days = Math.floor(diff / (1000 * 60 * 60 * 24))
-      const hrs = Math.floor((diff % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60))
-      const mins = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60))
-      const secs = Math.floor((diff % (1000 * 60)) / 1000)
-
-      let countdown = ''
-      if (days > 0) countdown += `${days}d `
-      countdown += `${hrs.toString().padStart(2, '0')}:${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`
-
-      setTimeUntilRelease(countdown)
-    }
-
-    updateCountdown()
-    const interval = setInterval(updateCountdown, 1000)
-
-    return () => clearInterval(interval)
-  }, [data?.periodInfo?.current?.end, data?.periodInfo?.current?.releaseTime, canRelease])
 
   if (loading) {
     return (
@@ -339,6 +288,26 @@ export default function PersonnelPayrollPage() {
         <div className="text-center">
           <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-gray-900 mx-auto"></div>
           <p className="mt-2 text-gray-600">Loading payroll data...</p>
+        </div>
+      </div>
+    )
+  }
+
+  if (error) {
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <div className="text-center max-w-md">
+          <div className="bg-red-50 border border-red-200 rounded-lg p-6">
+            <h2 className="text-xl font-bold text-red-800 mb-2">Error Loading Payroll</h2>
+            <p className="text-red-600 mb-4">{error}</p>
+            <Button onClick={() => {
+              setError(null)
+              setLoading(true)
+              loadPayrollData()
+            }}>
+              Try Again
+            </Button>
+          </div>
         </div>
       </div>
     )
@@ -379,6 +348,7 @@ export default function PersonnelPayrollPage() {
         </div>
       </div>
 
+
       {/* Summary Cards - Current Payroll Only */}
       {currentPayroll && (() => {
         const latestPayroll = currentPayroll
@@ -391,51 +361,41 @@ export default function PersonnelPayrollPage() {
           }
         }
 
-        const monthlyBasic = Number(latestPayroll.user?.personnelType?.basicSalary || 20000)
-        const periodSalary = monthlyBasic / 2
+        // Use snapshot data directly when available
+        const monthlyBasic = snapshot?.monthlyBasicSalary
+          ? Number(snapshot.monthlyBasicSalary)
+          : Number(latestPayroll.user?.personnelType?.basicSalary || 20000)
+
+        const periodSalary = snapshot?.monthlyBasicSalary
+          ? Number(snapshot.monthlyBasicSalary)
+          : monthlyBasic / 2
+
         const dbNetPay = Number(latestPayroll.netPay || 0)
         const deductions = Number(latestPayroll.deductions || 0)
 
-        // Calculate additional pay from snapshot or derive from net pay
-        // Always calculate from net pay formula for accuracy
-        // Formula: netPay = periodSalary + overloadPay - deductions
-        // Therefore: overloadPay = netPay - periodSalary + deductions
-        const calculatedOverload = dbNetPay - periodSalary + deductions
-        let overloadPay = calculatedOverload > 0 ? calculatedOverload : 0
+        // Use snapshot data directly for additional pay
+        const overloadPay = snapshot?.totalAdditions
+          ? Number(snapshot.totalAdditions)
+          : Math.max(0, dbNetPay - periodSalary + deductions)
 
-        // Use snapshot value if it exists and is greater than calculated
-        if (snapshot?.totalAdditions && Number(snapshot.totalAdditions) > overloadPay) {
-          overloadPay = Number(snapshot.totalAdditions)
-        }
-
-        console.log('💰 Additional Pay Calculation:', {
-          snapshot: snapshot?.totalAdditions,
-          calculated: dbNetPay - periodSalary + deductions,
-          final: overloadPay,
-          netPay: dbNetPay,
+        console.log('💰 Payroll Data (from snapshot):', {
+          monthlyBasic,
           periodSalary,
-          deductions
+          overloadPay,
+          deductions,
+          netPay: dbNetPay,
+          hasSnapshot: !!snapshot
         })
 
         return (
-          <div className="grid grid-cols-1 md:grid-cols-5 gap-4 mb-6">
-            <Card className="border-l-4 border-l-purple-500">
-              <CardContent className="p-4">
-                <p className="text-xs text-muted-foreground mb-1">Monthly Basic Salary</p>
-                <p className="text-2xl font-bold text-purple-600">
-                  {formatCurrency(monthlyBasic)}
-                </p>
-                <p className="text-xs text-muted-foreground mt-0.5">Reference</p>
-              </CardContent>
-            </Card>
-
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
             <Card className="border-l-4 border-l-blue-500">
               <CardContent className="p-4">
-                <p className="text-xs text-muted-foreground mb-1">Period Salary</p>
+                <p className="text-xs text-muted-foreground mb-1">Monthly Basic Salary</p>
                 <p className="text-2xl font-bold text-blue-600">
                   {formatCurrency(periodSalary)}
                 </p>
-                <p className="text-xs text-muted-foreground mt-0.5">Semi-monthly</p>
+                <p className="text-xs text-muted-foreground mt-0.5">Base pay</p>
               </CardContent>
             </Card>
 
@@ -510,127 +470,146 @@ export default function PersonnelPayrollPage() {
           {!archiveOpen ? (
             // Current Payroll Tab - Show only the latest released
             currentPayroll ? (
-              <div className="overflow-x-auto">
-                <table className="w-full">
-                  <thead>
-                    <tr className="border-b">
-                      <th className="text-left p-3 font-semibold">Period</th>
-                      <th className="text-left p-3 font-semibold">Net Pay</th>
-                      <th className="text-left p-3 font-semibold">Status</th>
-                      <th className="text-center p-3 font-semibold">Actions</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    <tr className="border-b hover:bg-muted/50">
-                      <td className="p-3">
-                        {formatDate(currentPayroll.periodStart)} - {formatDate(currentPayroll.periodEnd)}
-                      </td>
-                      <td className="p-3 font-semibold text-green-600">
-                        {formatCurrency(Number(currentPayroll.netPay))}
-                      </td>
-                      <td className="p-3">
-                        <Badge variant="default" className="bg-green-600">
-                          {currentPayroll.status}
-                        </Badge>
-                      </td>
-                      <td className="p-3 text-center">
+              <div className="space-y-4">
+                <div className="relative overflow-hidden border-2 border-green-200 dark:border-green-800 rounded-xl bg-gradient-to-br from-green-50 to-emerald-50 dark:from-green-950/20 dark:to-emerald-950/20 p-5 shadow-sm hover:shadow-md transition-all">
+                  <div className="absolute top-0 right-0 w-32 h-32 bg-green-500/10 rounded-full -mr-16 -mt-16"></div>
+                  <div className="relative">
+                    <div className="flex items-center justify-between mb-4">
+                      <div className="flex items-center gap-2">
+                        <div className="p-2 bg-green-600 rounded-lg">
+                          <FileText className="h-5 w-5 text-white" />
+                        </div>
+                        <div>
+                          <p className="text-xs font-medium text-green-700 dark:text-green-400">Current Period</p>
+                          <p className="text-sm font-semibold text-gray-900 dark:text-gray-100">
+                            {formatDate(currentPayroll.periodStart)} - {formatDate(currentPayroll.periodEnd)}
+                          </p>
+                        </div>
+                      </div>
+                      <Badge variant="default" className="bg-green-600 shadow-sm">
+                        {currentPayroll.status}
+                      </Badge>
+                    </div>
+                    <div className="bg-white/50 dark:bg-gray-900/50 rounded-lg p-4 backdrop-blur-sm">
+                      <div className="flex items-end justify-between">
+                        <div>
+                          <p className="text-xs font-medium text-muted-foreground mb-1">Net Pay</p>
+                          <p className="text-2xl sm:text-3xl font-bold text-green-600 dark:text-green-500">
+                            {formatCurrency(Number(currentPayroll.netPay))}
+                          </p>
+                          <p className="text-xs text-muted-foreground mt-1">Take home amount</p>
+                        </div>
                         <Button
-                          variant="ghost"
+                          className="bg-green-600 hover:bg-green-700 shadow-md"
                           size="sm"
                           onClick={() => viewDetails(currentPayroll)}
                         >
                           <FileText className="h-4 w-4 mr-2" />
-                          Payroll Details
+                          <span className="hidden sm:inline">View Details</span>
+                          <span className="sm:hidden">View</span>
                         </Button>
-                      </td>
-                    </tr>
-                  </tbody>
-                </table>
+                      </div>
+                    </div>
+                  </div>
+                </div>
               </div>
             ) : (
-              <p className="text-center text-muted-foreground py-8">
-                Waiting for new payroll release...
-              </p>
+              <div className="text-center py-12">
+                <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-muted mb-4">
+                  <Clock className="h-8 w-8 text-muted-foreground" />
+                </div>
+                <p className="text-muted-foreground font-medium">Waiting for new payroll release...</p>
+                <p className="text-sm text-muted-foreground mt-1">Your next payroll will appear here</p>
+              </div>
             )
           ) : (
             // Archived Tab - Show all older released payrolls
             archivedPayrolls && archivedPayrolls.length > 0 ? (
               <>
-                <div className="mb-4 flex gap-2">
+                <div className="mb-6 flex flex-col sm:flex-row gap-3 items-start sm:items-center bg-muted/50 p-4 rounded-lg border">
+                  <div className="flex items-center gap-3">
+                    <input
+                      type="checkbox"
+                      checked={selectAll}
+                      onChange={handleSelectAll}
+                      className="cursor-pointer h-5 w-5 rounded border-gray-300"
+                    />
+                    <span className="text-sm font-medium">Select All ({archivedPayrolls.length})</span>
+                  </div>
                   <Button
                     variant="destructive"
                     size="sm"
                     onClick={deleteSelectedPayrolls}
                     disabled={selectedPayrolls.length === 0}
+                    className="w-full sm:w-auto shadow-sm"
                   >
+                    <Trash2 className="h-4 w-4 mr-2" />
                     Delete Selected ({selectedPayrolls.length})
                   </Button>
                 </div>
-                <div className="overflow-x-auto">
-                  <table className="w-full">
-                    <thead>
-                      <tr className="border-b">
-                        <th className="text-left p-3 font-semibold w-12">
+                <div className="space-y-3">
+                  {archivedPayrolls.map((payroll: any) => (
+                    <div key={payroll.payroll_entries_id} className="group relative overflow-hidden border rounded-xl bg-card hover:shadow-lg transition-all duration-200 hover:border-primary/50">
+                      <div className="absolute inset-0 bg-gradient-to-r from-blue-500/5 to-purple-500/5 opacity-0 group-hover:opacity-100 transition-opacity"></div>
+                      <div className="relative p-4">
+                        <div className="flex items-start gap-3 mb-3">
                           <input
                             type="checkbox"
-                            checked={selectAll}
-                            onChange={handleSelectAll}
-                            className="cursor-pointer"
+                            checked={selectedPayrolls.includes(payroll.payroll_entries_id)}
+                            onChange={() => handleSelectPayroll(payroll.payroll_entries_id)}
+                            className="cursor-pointer mt-1 h-5 w-5 rounded border-gray-300"
                           />
-                        </th>
-                        <th className="text-left p-3 font-semibold">Period</th>
-                        <th className="text-left p-3 font-semibold">Net Pay</th>
-                        <th className="text-left p-3 font-semibold">Status</th>
-                        <th className="text-center p-3 font-semibold">Actions</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {archivedPayrolls.map((payroll: any) => (
-                        <tr key={payroll.payroll_entries_id} className="border-b hover:bg-muted/50">
-                          <td className="p-3">
-                            <input
-                              type="checkbox"
-                              checked={selectedPayrolls.includes(payroll.payroll_entries_id)}
-                              onChange={() => handleSelectPayroll(payroll.payroll_entries_id)}
-                              className="cursor-pointer"
-                            />
-                          </td>
-                          <td className="p-3">
-                            {formatDate(payroll.periodStart)} - {formatDate(payroll.periodEnd)}
-                          </td>
-                          <td className="p-3 font-semibold text-green-600">
-                            {formatCurrency(Number(payroll.netPay))}
-                          </td>
-                          <td className="p-3">
-                            <Badge variant={payroll.status === 'RELEASED' ? 'default' : 'secondary'}
-                              className={payroll.status === 'RELEASED' ? 'bg-green-600' : ''}>
-                              {payroll.status}
-                            </Badge>
-                          </td>
-                          <td className="p-3 text-center">
-                            <div className="flex gap-2 justify-center">
-                              <Button
-                                variant="ghost"
-                                size="sm"
-                                onClick={() => viewDetails(payroll)}
-                              >
-                                <FileText className="h-4 w-4 mr-2" />
-                                View
-                              </Button>
-                              <Button
-                                variant="ghost"
-                                size="sm"
-                                onClick={() => deletePayroll(payroll.payroll_entries_id)}
-                                className="text-red-600 hover:text-red-700"
-                              >
-                                Delete
-                              </Button>
+                          <div className="flex-1">
+                            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 mb-3">
+                              <div className="flex items-center gap-2">
+                                <div className="p-1.5 bg-blue-100 dark:bg-blue-900/30 rounded-lg">
+                                  <Calendar className="h-4 w-4 text-blue-600 dark:text-blue-400" />
+                                </div>
+                                <div>
+                                  <p className="text-xs text-muted-foreground">Period</p>
+                                  <p className="font-semibold text-sm">
+                                    {formatDate(payroll.periodStart)} - {formatDate(payroll.periodEnd)}
+                                  </p>
+                                </div>
+                              </div>
+                              <Badge variant={payroll.status === 'RELEASED' ? 'default' : 'secondary'}
+                                className={payroll.status === 'RELEASED' ? 'bg-green-600 shadow-sm' : ''}>
+                                {payroll.status}
+                              </Badge>
                             </div>
-                          </td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
+                            <div className="bg-muted/50 rounded-lg p-3 flex items-center justify-between">
+                              <div>
+                                <p className="text-xs text-muted-foreground mb-0.5">Net Pay</p>
+                                <p className="text-xl sm:text-2xl font-bold text-green-600 dark:text-green-500">
+                                  {formatCurrency(Number(payroll.netPay))}
+                                </p>
+                              </div>
+                              <div className="flex gap-2">
+                                <Button
+                                  variant="outline"
+                                  size="sm"
+                                  onClick={() => viewDetails(payroll)}
+                                  className="shadow-sm"
+                                >
+                                  <FileText className="h-4 w-4 sm:mr-2" />
+                                  <span className="hidden sm:inline">View</span>
+                                </Button>
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  onClick={() => deletePayroll(payroll.payroll_entries_id)}
+                                  className="text-red-600 hover:text-red-700 hover:bg-red-50 dark:hover:bg-red-950/20"
+                                >
+                                  <Trash2 className="h-4 w-4 sm:mr-2" />
+                                  <span className="hidden sm:inline">Delete</span>
+                                </Button>
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
                 </div>
               </>
             ) : (
@@ -667,8 +646,15 @@ export default function PersonnelPayrollPage() {
               }
             }
 
-            const monthlyBasic = Number(selectedPayroll.user?.personnelType?.basicSalary || 20000)
-            const periodSalary = monthlyBasic / 2 // Semi-monthly = monthly / 2
+            // Use snapshot data directly when available
+            const monthlyBasic = snapshot?.monthlyBasicSalary
+              ? Number(snapshot.monthlyBasicSalary)
+              : Number(selectedPayroll.user?.personnelType?.basicSalary || 20000)
+
+            const periodSalary = snapshot?.monthlyBasicSalary
+              ? Number(snapshot.monthlyBasicSalary)
+              : monthlyBasic / 2
+
             const dbNetPay = Number(selectedPayroll.netPay || 0)
             const deductions = Number(selectedPayroll.deductions || 0)
 
@@ -782,11 +768,7 @@ export default function PersonnelPayrollPage() {
                 <div className="space-y-2">
                   <div className="flex justify-between py-2 border-b">
                     <span className="font-semibold">Monthly Basic Salary</span>
-                    <span>{formatCurrency(monthlyBasic)}</span>
-                  </div>
-                  <div className="flex justify-between py-2 border-b bg-green-50 dark:bg-green-950/20 px-2">
-                    <span className="font-semibold">Period Salary (Semi-Monthly)</span>
-                    <span className="text-green-600 font-bold">{formatCurrency(periodSalary)}</span>
+                    <span>{formatCurrency(periodSalary)}</span>
                   </div>
 
                   {/* Additional Pay Section */}
@@ -930,6 +912,12 @@ export default function PersonnelPayrollPage() {
                       <span className="text-red-600 font-bold">-{formatCurrency(deductions)}</span>
                     </div>
                   )}
+
+                  {/* GROSS PAY */}
+                  <div className="flex justify-between py-2 border-b font-semibold">
+                    <span>GROSS PAY</span>
+                    <span>{formatCurrency(periodSalary + overloadPay)}</span>
+                  </div>
 
                   {/* NET PAY */}
                   <div className="flex justify-between py-3 bg-primary/10 px-2 rounded">

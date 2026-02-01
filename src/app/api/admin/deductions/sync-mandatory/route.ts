@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server"
 import { getServerSession } from "next-auth"
 import { authOptions } from "@/lib/auth"
 import { prisma } from "@/lib/prisma"
+import { randomUUID } from "crypto"
 
 // Sync all active mandatory deductions to all active personnel
 export async function POST(req: NextRequest) {
@@ -12,7 +13,7 @@ export async function POST(req: NextRequest) {
 
   try {
     // Get all active mandatory deduction types
-    const mandatoryTypes = await prisma.deductionType.findMany({
+    const mandatoryTypes = await prisma.deduction_types.findMany({
       where: {
         isMandatory: true,
         isActive: true
@@ -26,27 +27,27 @@ export async function POST(req: NextRequest) {
     })
 
     if (mandatoryTypes.length === 0) {
-      return NextResponse.json({ 
+      return NextResponse.json({
         message: "No active mandatory deductions found",
-        synced: 0 
+        synced: 0
       })
     }
 
     // Get all active personnel with their salaries
-    const activePersonnel = await prisma.user.findMany({
+    const activePersonnel = await prisma.users.findMany({
       where: { isActive: true, role: 'PERSONNEL' },
-      select: { 
+      select: {
         users_id: true,
-        personnelType: {
+        personnel_types: {
           select: { basicSalary: true }
         }
       }
     })
 
     if (activePersonnel.length === 0) {
-      return NextResponse.json({ 
+      return NextResponse.json({
         message: "No active personnel found",
-        synced: 0 
+        synced: 0
       })
     }
 
@@ -55,7 +56,7 @@ export async function POST(req: NextRequest) {
     // For each mandatory deduction type
     for (const deductionType of mandatoryTypes) {
       // Get existing deductions for this type
-      const existingDeductions = await prisma.deduction.findMany({
+      const existingDeductions = await prisma.deductions.findMany({
         where: { deduction_types_id: deductionType.deduction_types_id },
         select: { users_id: true }
       })
@@ -66,21 +67,23 @@ export async function POST(req: NextRequest) {
 
       // Create deductions for missing personnel
       if (missingPersonnel.length > 0) {
-        await prisma.deduction.createMany({
+        await prisma.deductions.createMany({
           data: missingPersonnel.map(user => {
             let deductionAmount = deductionType.amount
-            
+
             // Calculate percentage if needed
-            if (deductionType.calculationType === 'PERCENTAGE' && deductionType.percentageValue && user.personnelType) {
-              const salary = user.personnelType.basicSalary
+            if (deductionType.calculationType === 'PERCENTAGE' && deductionType.percentageValue && user.personnel_types) {
+              const salary = user.personnel_types.basicSalary
               deductionAmount = salary.mul(deductionType.percentageValue).div(100)
             }
-            
+
             return {
+              deductions_id: randomUUID(),
               users_id: user.users_id,
               deduction_types_id: deductionType.deduction_types_id,
               amount: deductionAmount,
-              notes: 'Mandatory payroll deduction (auto-synced)'
+              notes: 'Mandatory payroll deduction (auto-synced)',
+              updatedAt: new Date()
             }
           }),
           skipDuplicates: true
@@ -89,7 +92,7 @@ export async function POST(req: NextRequest) {
       }
     }
 
-    return NextResponse.json({ 
+    return NextResponse.json({
       message: `Successfully synced ${totalSynced} mandatory deductions`,
       synced: totalSynced,
       deductionTypes: mandatoryTypes.length,
@@ -98,7 +101,7 @@ export async function POST(req: NextRequest) {
 
   } catch (error) {
     console.error('Error syncing mandatory deductions:', error)
-    return NextResponse.json({ 
+    return NextResponse.json({
       error: 'Failed to sync mandatory deductions',
       details: error instanceof Error ? error.message : 'Unknown error'
     }, { status: 500 })

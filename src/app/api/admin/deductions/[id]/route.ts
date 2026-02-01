@@ -19,7 +19,7 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
   try {
     const body = await req.json()
     const data = updateSchema.parse(body)
-    const updated = await prisma.deduction.update({ where: { deductions_id: id }, data })
+    const updated = await prisma.deductions.update({ where: { deductions_id: id }, data })
     return NextResponse.json(updated)
   } catch (error) {
     if (error instanceof z.ZodError) {
@@ -35,7 +35,12 @@ export async function DELETE(_req: NextRequest, { params }: { params: Promise<{ 
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
   }
   const { id } = await params
-  await prisma.deduction.delete({ where: { deductions_id: id } })
-  return NextResponse.json({ success: true })
+  try {
+    await prisma.deductions.delete({ where: { deductions_id: id } })
+    return NextResponse.json({ success: true })
+  } catch (error) {
+    console.error('Error deleting deduction:', error)
+    return NextResponse.json({ error: "Failed to delete deduction" }, { status: 500 })
+  }
 }
 

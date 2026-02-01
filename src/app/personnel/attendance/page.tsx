@@ -4,6 +4,7 @@ import { useEffect, useState } from "react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
+import { Input } from "@/components/ui/input"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { 
@@ -14,7 +15,9 @@ import {
   XCircle,
   AlertCircle,
   ChevronLeft,
-  ChevronRight
+  ChevronRight,
+  Search,
+  Eye
 } from "lucide-react"
 
 type AttendanceRecord = {
@@ -25,6 +28,14 @@ type AttendanceRecord = {
   timeOut: string | null
   hours: string
   dayOfWeek: string
+}
+
+type AttendanceDeduction = {
+  deductions_id: string
+  deductionType: string
+  amount: number
+  notes: string
+  appliedAt: string
 }
 
 type AttendanceData = {
@@ -41,6 +52,7 @@ type AttendanceData = {
     startDate: string
     endDate: string
   }
+  deductions?: AttendanceDeduction[]
 }
 
 export default function PersonnelAttendance() {
@@ -48,6 +60,9 @@ export default function PersonnelAttendance() {
   const [loading, setLoading] = useState(true)
   const [currentMonth, setCurrentMonth] = useState(new Date().getMonth() + 1)
   const [currentYear, setCurrentYear] = useState(new Date().getFullYear())
+  const [searchTerm, setSearchTerm] = useState('')
+  const [selectedDeduction, setSelectedDeduction] = useState<AttendanceDeduction | null>(null)
+  const [showDetailsModal, setShowDetailsModal] = useState(false)
 
   const loadAttendanceData = async (month?: number, year?: number) => {
     try {
@@ -166,6 +181,16 @@ export default function PersonnelAttendance() {
     return months[month - 1]
   }
 
+  const getMonthFromDate = (dateString: string) => {
+    const date = new Date(dateString)
+    return getMonthName(date.getMonth() + 1)
+  }
+
+  const handleViewDetails = (deduction: AttendanceDeduction) => {
+    setSelectedDeduction(deduction)
+    setShowDetailsModal(true)
+  }
+
   if (loading) {
     return (
       <div className="flex-1 space-y-6 p-4 pt-6">
@@ -195,11 +220,11 @@ export default function PersonnelAttendance() {
     <div className="flex-1 space-y-6 p-4 pt-6">
       <div className="flex items-center justify-between">
         <div>
-          <h2 className="text-3xl font-bold tracking-tight flex items-center gap-3">
-            <Calendar className="h-8 w-8 text-blue-600" />
+          <h2 className="text-2xl sm:text-3xl font-bold tracking-tight flex items-center gap-2 sm:gap-3">
+            <Calendar className="h-6 w-6 sm:h-8 sm:w-8 text-blue-600" />
             Attendance Logs
           </h2>
-          <p className="text-muted-foreground">Your attendance history and statistics</p>
+          <p className="text-sm sm:text-base text-muted-foreground mt-1">Your attendance history and statistics</p>
         </div>
       </div>
 
@@ -231,109 +256,188 @@ export default function PersonnelAttendance() {
         </CardHeader>
       </Card>
 
-      {/* Statistics Cards */}
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Attendance Rate</CardTitle>
-            <TrendingUp className="h-4 w-4 text-muted-foreground" />
+      {/* Attendance Deductions */}
+      {data.deductions && data.deductions.length > 0 && (
+        <Card className="border-red-200 bg-red-50/50 dark:bg-red-950/20">
+          <CardHeader>
+            <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+              <CardTitle className="flex items-center gap-2 text-red-700 dark:text-red-400">
+                <AlertCircle className="h-5 w-5" />
+                Attendance Deductions
+              </CardTitle>
+              <div className="relative w-full sm:w-80">
+                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                <Input
+                  placeholder="Search by notes, type, or month..."
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                  className="pl-9 bg-white dark:bg-slate-900"
+                />
+              </div>
+            </div>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{data.statistics.attendanceRate}%</div>
-            <div className="text-xs text-muted-foreground">
-              {data.statistics.presentDays} of {data.statistics.totalDays} days
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Total Hours</CardTitle>
-            <Clock className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{data.statistics.totalHours}h</div>
-            <div className="text-xs text-muted-foreground">
-              This month
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Present Days</CardTitle>
-            <CheckCircle className="h-4 w-4 text-green-600" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold text-green-600">{data.statistics.presentDays}</div>
-            <div className="text-xs text-muted-foreground">
-              Days worked
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Absent Days</CardTitle>
-            <XCircle className="h-4 w-4 text-red-600" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold text-red-600">{data.statistics.absentDays}</div>
-            <div className="text-xs text-muted-foreground">
-              Days missed
-            </div>
-          </CardContent>
-        </Card>
-      </div>
-
-      {/* Attendance Records */}
-      <Card>
-        <CardHeader>
-          <CardTitle>Attendance Records</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="w-full overflow-x-auto">
-            <Table className="w-full text-sm">
-              <TableHeader>
-                <TableRow>
-                  <TableHead className="w-[120px]">Date</TableHead>
-                  <TableHead className="w-[100px]">Day</TableHead>
-                  <TableHead className="w-[100px]">Time In</TableHead>
-                  <TableHead className="w-[100px]">Time Out</TableHead>
-                  <TableHead className="w-[110px]">Status</TableHead>
-                  <TableHead className="w-[100px]">Work Hrs</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {data.records.length > 0 ? (
-                  data.records.map((record) => (
-                    <TableRow key={record.id}>
-                      <TableCell className="font-medium">{formatDate(record.date)}</TableCell>
-                      <TableCell className="text-muted-foreground">{record.dayOfWeek}</TableCell>
-                      <TableCell>{formatTime(record.timeIn)}</TableCell>
-                      <TableCell>{formatTime(record.timeOut)}</TableCell>
-                      <TableCell>{getStatusBadge(record.status)}</TableCell>
-                      <TableCell>{formatWorkHours(record.hours)}</TableCell>
-                    </TableRow>
-                  ))
-                ) : (
-                  <TableRow>
-                    <TableCell colSpan={6} className="text-center py-8 text-muted-foreground">
-                      <div className="flex flex-col items-center gap-2">
-                        <Calendar className="h-12 w-12 text-muted-foreground" />
-                        <h3 className="text-lg font-medium">No attendance records</h3>
-                        <p className="text-muted-foreground">
-                          No attendance records found for {getMonthName(currentMonth)} {currentYear}
-                        </p>
+            <div className="space-y-3">
+              {data.deductions
+                .filter(deduction => {
+                  const searchLower = searchTerm.toLowerCase()
+                  const monthName = getMonthFromDate(deduction.appliedAt).toLowerCase()
+                  return (
+                    deduction.notes.toLowerCase().includes(searchLower) ||
+                    deduction.deductionType.toLowerCase().includes(searchLower) ||
+                    monthName.includes(searchLower)
+                  )
+                })
+                .map((deduction) => (
+                <div 
+                  key={deduction.deductions_id}
+                  className="bg-white dark:bg-slate-900 rounded-lg p-4 border border-red-200 dark:border-red-800"
+                >
+                  <div className="flex flex-col gap-3 sm:flex-row sm:justify-between sm:items-start">
+                    <div className="flex-1">
+                      <div className="flex flex-col sm:flex-row sm:items-center gap-2 mb-2">
+                        <Badge variant="destructive" className="w-fit">{deduction.deductionType}</Badge>
+                        <span className="text-xs sm:text-sm text-muted-foreground">
+                          {new Date(deduction.appliedAt).toLocaleDateString('en-US', {
+                            month: 'long',
+                            day: 'numeric',
+                            year: 'numeric'
+                          })}
+                        </span>
                       </div>
-                    </TableCell>
-                  </TableRow>
-                )}
-              </TableBody>
-            </Table>
+                      <p className="text-sm text-muted-foreground mt-1">{deduction.notes}</p>
+                    </div>
+                    <div className="flex items-center justify-between sm:flex-col sm:items-end gap-2 sm:ml-4">
+                      <p className="text-xl sm:text-2xl font-bold text-red-600">
+                        -{formatCurrency(deduction.amount)}
+                      </p>
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={() => handleViewDetails(deduction)}
+                      >
+                        <Eye className="h-4 w-4 sm:mr-1" />
+                        <span className="hidden sm:inline">View Details</span>
+                      </Button>
+                    </div>
+                  </div>
+                </div>
+              ))}
+              
+              {/* No Results Message */}
+              {data.deductions.filter(deduction => {
+                const searchLower = searchTerm.toLowerCase()
+                const monthName = getMonthFromDate(deduction.appliedAt).toLowerCase()
+                return (
+                  deduction.notes.toLowerCase().includes(searchLower) ||
+                  deduction.deductionType.toLowerCase().includes(searchLower) ||
+                  monthName.includes(searchLower)
+                )
+              }).length === 0 && searchTerm && (
+                <div className="text-center py-8 text-muted-foreground">
+                  <Search className="h-12 w-12 mx-auto mb-2 opacity-50" />
+                  <p>No deductions found matching "{searchTerm}"</p>
+                </div>
+              )}
+              
+              {/* Total Deductions */}
+              <div className="border-t border-red-200 dark:border-red-800 pt-3 mt-3">
+                <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-2 bg-red-100 dark:bg-red-900/30 rounded-lg p-3 sm:p-4">
+                  <span className="font-semibold text-sm sm:text-base text-red-900 dark:text-red-100">
+                    Total Attendance Deductions:
+                  </span>
+                  <span className="text-xl sm:text-2xl font-bold text-red-600">
+                    -{formatCurrency(
+                      data.deductions
+                        .filter(deduction => {
+                          const searchLower = searchTerm.toLowerCase()
+                          const monthName = getMonthFromDate(deduction.appliedAt).toLowerCase()
+                          return (
+                            deduction.notes.toLowerCase().includes(searchLower) ||
+                            deduction.deductionType.toLowerCase().includes(searchLower) ||
+                            monthName.includes(searchLower)
+                          )
+                        })
+                        .reduce((sum, d) => sum + d.amount, 0)
+                    )}
+                  </span>
+                </div>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* View Details Modal */}
+      {showDetailsModal && selectedDeduction && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4" onClick={() => setShowDetailsModal(false)}>
+          <div className="bg-white dark:bg-slate-900 rounded-lg max-w-2xl w-full shadow-xl" onClick={(e) => e.stopPropagation()}>
+            <div className="border-b p-6">
+              <div className="flex items-center justify-between">
+                <h2 className="text-2xl font-bold flex items-center gap-2">
+                  <AlertCircle className="h-6 w-6 text-red-600" />
+                  Deduction Details
+                </h2>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => setShowDetailsModal(false)}
+                  className="text-muted-foreground hover:text-foreground"
+                >
+                  ✕
+                </Button>
+              </div>
+            </div>
+            
+            <div className="p-6 space-y-6">
+              {/* Deduction Type */}
+              <div>
+                <label className="text-sm font-medium text-muted-foreground">Deduction Type</label>
+                <div className="mt-2">
+                  <Badge variant="destructive" className="text-base px-3 py-1">
+                    {selectedDeduction.deductionType}
+                  </Badge>
+                </div>
+              </div>
+
+              {/* Date Applied */}
+              <div>
+                <label className="text-sm font-medium text-muted-foreground">Date Applied</label>
+                <div className="mt-2 text-lg font-semibold">
+                  {new Date(selectedDeduction.appliedAt).toLocaleDateString('en-US', {
+                    weekday: 'long',
+                    year: 'numeric',
+                    month: 'long',
+                    day: 'numeric'
+                  })}
+                </div>
+              </div>
+
+              {/* Amount */}
+              <div>
+                <label className="text-sm font-medium text-muted-foreground">Deduction Amount</label>
+                <div className="mt-2 text-3xl font-bold text-red-600">
+                  -{formatCurrency(selectedDeduction.amount)}
+                </div>
+              </div>
+
+              {/* Notes/Reason */}
+              <div>
+                <label className="text-sm font-medium text-muted-foreground">Reason</label>
+                <div className="mt-2 p-4 bg-muted/30 rounded-lg border">
+                  <p className="text-base">{selectedDeduction.notes}</p>
+                </div>
+              </div>
+            </div>
+
+            <div className="border-t p-6 flex justify-end">
+              <Button onClick={() => setShowDetailsModal(false)}>
+                Close
+              </Button>
+            </div>
           </div>
-        </CardContent>
-      </Card>
+        </div>
+      )}
     </div>
   )
 }

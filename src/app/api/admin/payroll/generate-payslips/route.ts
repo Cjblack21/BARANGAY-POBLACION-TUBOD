@@ -41,18 +41,29 @@ async function handlePayslipGeneration(periodStart: string | null, periodEnd: st
       }
     }
 
-    // Get released payroll entries with all necessary data
-    const payrollEntries = await prisma.payrollEntry.findMany({
+    // Get released or archived payroll entries with all necessary data
+    // Use date range to handle timezone differences
+    const startOfDay = new Date(startDate)
+    startOfDay.setHours(0, 0, 0, 0)
+    const endOfDay = new Date(startDate)
+    endOfDay.setHours(23, 59, 59, 999)
+    
+    const endStartOfDay = new Date(endDate)
+    endStartOfDay.setHours(0, 0, 0, 0)
+    const endEndOfDay = new Date(endDate)
+    endEndOfDay.setHours(23, 59, 59, 999)
+    
+    const payrollEntries = await prisma.payroll_entries.findMany({
       where: {
-        periodStart: startDate,
-        periodEnd: endDate,
-        status: 'RELEASED',
+        periodStart: { gte: startOfDay, lte: endOfDay },
+        periodEnd: { gte: endStartOfDay, lte: endEndOfDay },
+        status: { in: ['RELEASED', 'ARCHIVED'] },
         ...(userId ? { users_id: userId } : {})
       },
       include: {
-        user: {
+        users: {
           include: {
-            personnelType: true
+            personnel_types: true
           }
         }
       }
@@ -64,34 +75,25 @@ async function handlePayslipGeneration(periodStart: string | null, periodEnd: st
 
     // Fetch detailed breakdown data for each employee
     const payslipData = await Promise.all(payrollEntries.map(async (entry) => {
-      // Get attendance records for the period
-      const attendanceRecords = await prisma.attendance.findMany({
-        where: {
-          users_id: entry.users_id,
-          date: {
-            gte: startDate,
-            lte: endDate
-          }
-        },
-        orderBy: { date: 'asc' }
-      })
+      // Attendance system removed - no attendance records
+      const attendanceRecords: any[] = []
 
       // Get deductions for this user
       // For mandatory deductions (PhilHealth, SSS, Pag-IBIG), don't filter by date - they apply to every period
       // For other deductions, only include those within the current period
-      const deductionRecords = await prisma.deduction.findMany({
+      const deductionRecords = await prisma.deductions.findMany({
         where: {
           users_id: entry.users_id,
           OR: [
             // Mandatory deductions - always include
             {
-              deductionType: {
+              deduction_types: {
                 isMandatory: true
               }
             },
             // Other deductions - only within period
             {
-              deductionType: {
+              deduction_types: {
                 isMandatory: false
               },
               appliedAt: {
@@ -102,12 +104,12 @@ async function handlePayslipGeneration(periodStart: string | null, periodEnd: st
           ]
         },
         include: {
-          deductionType: true
+          deduction_types: true
         }
       })
 
       // Get active loans
-      const loanRecords = await prisma.loan.findMany({
+      const loanRecords = await prisma.loans.findMany({
         where: {
           users_id: entry.users_id,
           status: 'ACTIVE'
@@ -132,20 +134,20 @@ async function handlePayslipGeneration(periodStart: string | null, periodEnd: st
 
       // Build deduction details (excluding attendance-related deductions)
       const otherDeductionDetails = deductionRecords
-        .filter(d => 
-          !d.deductionType.name.includes('Late') &&
-          !d.deductionType.name.includes('Absent') &&
-          !d.deductionType.name.includes('Early') &&
-          !d.deductionType.name.includes('Partial') &&
-          !d.deductionType.name.includes('Tardiness')
+        .filter((d: any) => 
+          !d.deduction_types.name.includes('Late') &&
+          !d.deduction_types.name.includes('Absent') &&
+          !d.deduction_types.name.includes('Early') &&
+          !d.deduction_types.name.includes('Partial') &&
+          !d.deduction_types.name.includes('Tardiness')
         )
-        .map(deduction => ({
-          type: deduction.deductionType.name,
+        .map((deduction: any) => ({
+          type: deduction.deduction_types.name,
           amount: Number(deduction.amount),
-          description: deduction.deductionType.description || deduction.notes || '',
-          calculationType: deduction.deductionType.calculationType,
-          percentageValue: deduction.deductionType.percentageValue ? Number(deduction.deductionType.percentageValue) : undefined,
-          isMandatory: deduction.deductionType.isMandatory
+          description: deduction.deduction_types.description || deduction.notes || '',
+          calculationType: deduction.deduction_types.calculationType,
+          percentageValue: deduction.deduction_types.percentageValue ? Number(deduction.deduction_types.percentageValue) : undefined,
+          isMandatory: deduction.deduction_types.isMandatory
         }))
 
       // USE BREAKDOWN DATA ONLY - NO RECALCULATION
@@ -169,8 +171,8 @@ async function handlePayslipGeneration(periodStart: string | null, periodEnd: st
 
       return {
         users_id: entry.users_id,
-        name: entry.user.name,
-        email: entry.user.email,
+        name: entry.users.name,
+        email: entry.users.email,
         totalHours: totalWorkHours,
         totalSalary: Number(entry.netPay),
         released: entry.status === 'RELEASED',

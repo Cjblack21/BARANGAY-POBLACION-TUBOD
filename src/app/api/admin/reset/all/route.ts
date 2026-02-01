@@ -12,7 +12,7 @@ export async function DELETE() {
     }
 
     // Check if user is admin
-    const user = await prisma.user.findUnique({
+    const user = await prisma.users.findUnique({
       where: { users_id: session.user.id },
       select: { role: true },
     })
@@ -24,30 +24,30 @@ export async function DELETE() {
     // Reset EVERYTHING to zero - Delete all system data
     const results = await prisma.$transaction(async (tx) => {
       // 1. Delete all deductions
-      const deductions = await tx.deduction.deleteMany({})
+      const deductions = await tx.deductions.deleteMany({})
       
       // 2. Delete all payroll entries
-      const payrollEntries = await tx.payrollEntry.deleteMany({})
+      const payrollEntries = await tx.payroll_entries.deleteMany({})
       
-      // 3. Delete all attendance records
-      const attendance = await tx.attendance.deleteMany({})
+      // 3. Delete all overload pays
+      const overloadPays = await tx.overload_pays.deleteMany({})
       
       // 4. Delete all loans
-      const loans = await tx.loan.deleteMany({})
+      const loans = await tx.loans.deleteMany({})
       
       // 5. Set all users' personnel_types_id to null
-      await tx.user.updateMany({
+      await tx.users.updateMany({
         where: { personnel_types_id: { not: null } },
         data: { personnel_types_id: null },
       })
       
       // 6. Delete all personnel types
-      const personnelTypes = await tx.personnelType.deleteMany({})
+      const personnelTypes = await tx.personnel_types.deleteMany({})
       
-      // 7. Reset payroll release countdown (period dates)
-      const settings = await tx.attendanceSettings.findFirst()
+      // 7. Reset payroll release countdown (period dates) in attendance_settings
+      const settings = await tx.attendance_settings.findFirst()
       if (settings) {
-        await tx.attendanceSettings.update({
+        await tx.attendance_settings.update({
           where: { attendance_settings_id: settings.attendance_settings_id },
           data: {
             periodStart: null,
@@ -59,7 +59,7 @@ export async function DELETE() {
       return {
         deductions: deductions.count,
         payrollEntries: payrollEntries.count,
-        attendance: attendance.count,
+        overloadPays: overloadPays.count,
         loans: loans.count,
         personnelTypes: personnelTypes.count,
       }
@@ -71,8 +71,9 @@ export async function DELETE() {
     })
   } catch (error) {
     console.error("Error resetting all data:", error)
+    const errorMessage = error instanceof Error ? error.message : "Failed to reset all data"
     return NextResponse.json(
-      { error: "Failed to reset all data" },
+      { error: `Failed to reset all data: ${errorMessage}` },
       { status: 500 }
     )
   }

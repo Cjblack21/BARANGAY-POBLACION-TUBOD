@@ -11,33 +11,52 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
-    // Get archived payroll entries
-    const archivedPayrolls = await prisma.payrollEntry.findMany({
+    console.log('📦 API: Fetching archived (released) payrolls...')
+
+    // Get all RELEASED and ARCHIVED payroll entries
+    const releasedPayrolls = await prisma.payroll_entries.findMany({
       where: {
-        status: 'ARCHIVED'
+        status: { in: ['RELEASED', 'ARCHIVED'] },
+        releasedAt: { not: null }
       },
       include: {
-        user: {
+        users: {
           select: {
             users_id: true,
             name: true,
             email: true,
-            personnelType: {
+            personnel_types: {
               select: {
                 name: true,
-                basicSalary: true
+                basicSalary: true,
+                department: true,
+                type: true
               }
             }
           }
         }
       },
-      orderBy: {
-        archivedAt: 'desc'
-      }
+      orderBy: [
+        { releasedAt: 'desc' },
+        { periodEnd: 'desc' }
+      ]
     })
 
+    console.log(`📦 Found ${releasedPayrolls.length} released payroll entries`)
+    
+    if (releasedPayrolls.length > 0) {
+      console.log('📦 Sample entry:', {
+        status: releasedPayrolls[0].status,
+        periodStart: releasedPayrolls[0].periodStart,
+        periodEnd: releasedPayrolls[0].periodEnd,
+        releasedAt: releasedPayrolls[0].releasedAt,
+        netPay: releasedPayrolls[0].netPay,
+        hasBreakdown: !!releasedPayrolls[0].breakdownSnapshot
+      })
+    }
+
     // Group by period for better organization and calculate breakdown
-    const payrollsByPeriod = archivedPayrolls.reduce((acc, payroll) => {
+    const payrollsByPeriod = releasedPayrolls.reduce((acc, payroll) => {
       const periodKey = `${payroll.periodStart.toISOString().split('T')[0]}_${payroll.periodEnd.toISOString().split('T')[0]}`
       
       if (!acc[periodKey]) {
@@ -51,9 +70,6 @@ export async function GET(request: NextRequest) {
           totalEmployees: 0,
           totalGrossSalary: 0,
           totalDeductions: 0,
-          totalAttendanceDeductions: 0,
-          totalDatabaseDeductions: 0,
-          totalLoanPayments: 0,
           totalNetPay: 0,
           totalExpenses: 0,
           payrolls: []
@@ -63,28 +79,49 @@ export async function GET(request: NextRequest) {
       // Calculate breakdown
       const grossSalary = Number(payroll.basicSalary) || 0
       const deductions = Number(payroll.deductions) || 0
-      const attendanceDeductions = Number((payroll as any).attendanceDeductions) || 0
-      const databaseDeductions = Number((payroll as any).databaseDeductions) || 0
-      const loanPayments = Number((payroll as any).loanPayments) || 0
       const netPay = Number(payroll.netPay) || 0
       
       acc[periodKey].totalEmployees += 1
       acc[periodKey].totalGrossSalary += grossSalary
       acc[periodKey].totalDeductions += deductions
-      acc[periodKey].totalAttendanceDeductions += attendanceDeductions
-      acc[periodKey].totalDatabaseDeductions += databaseDeductions
-      acc[periodKey].totalLoanPayments += loanPayments
       acc[periodKey].totalNetPay += netPay
       acc[periodKey].totalExpenses += grossSalary
       
-      acc[periodKey].payrolls.push(payroll)
+      // Transform the data to match frontend expectations
+      const transformedPayroll = {
+        ...payroll,
+        user: {
+          name: payroll.users?.name || null,
+          email: payroll.users?.email || null,
+          users_id: payroll.users?.users_id || payroll.users_id,
+          personnelType: payroll.users?.personnel_types ? {
+            name: payroll.users.personnel_types.name,
+            basicSalary: payroll.users.personnel_types.basicSalary,
+            department: payroll.users.personnel_types.department,
+            type: payroll.users.personnel_types.type
+          } : null
+        }
+      }
+      
+      acc[periodKey].payrolls.push(transformedPayroll)
       return acc
     }, {} as Record<string, any>)
 
+    const result = Object.values(payrollsByPeriod)
+    console.log(`📦 Grouped into ${result.length} periods`)
+    if (result.length > 0) {
+      console.log('📦 First period:', {
+        periodStart: result[0].periodStart,
+        periodEnd: result[0].periodEnd,
+        totalEmployees: result[0].totalEmployees,
+        payrollsCount: result[0].payrolls.length
+      })
+    }
+
     return NextResponse.json({
       success: true,
-      archivedPayrolls: Object.values(payrollsByPeriod),
-      totalCount: archivedPayrolls.length
+      archivedPayrolls: result,
+      totalCount: releasedPayrolls.length
     })
 
   } catch (error) {

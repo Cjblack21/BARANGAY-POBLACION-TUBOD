@@ -18,6 +18,10 @@ const updateUserSchema = z.object({
   role: z.enum(['ADMIN', 'PERSONNEL']).optional(),
   isActive: z.boolean().optional(),
   personnel_types_id: z.string().optional(),
+  streetAddress: z.string().optional(),
+  barangay: z.string().optional(),
+  purok: z.string().optional(),
+  zipCode: z.string().optional(),
 })
 
 // GET /api/admin/users/[id] - Get single user
@@ -27,13 +31,13 @@ export async function GET(
 ) {
   try {
     const session = await getServerSession(authOptions)
-    
+
     if (!session || session.user.role !== 'ADMIN') {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
     const resolvedParams = await params
-    const user = await prisma.user.findUnique({
+    const user = await prisma.users.findUnique({
       where: { users_id: resolvedParams.id },
       select: {
         users_id: true,
@@ -42,9 +46,13 @@ export async function GET(
         role: true,
         isActive: true,
         personnel_types_id: true,
+        streetAddress: true,
+        barangay: true,
+        purok: true,
+        zipCode: true,
         createdAt: true,
         updatedAt: true,
-        personnelType: {
+        personnel_types: {
           select: {
             name: true,
             basicSalary: true
@@ -74,7 +82,7 @@ export async function PUT(
 ) {
   try {
     const session = await getServerSession(authOptions)
-    
+
     if (!session || session.user.role !== 'ADMIN') {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
@@ -84,7 +92,7 @@ export async function PUT(
     const validatedData = updateUserSchema.parse(body)
 
     // Check if user exists
-    const existingUser = await prisma.user.findUnique({
+    const existingUser = await prisma.users.findUnique({
       where: { users_id: resolvedParams.id }
     })
 
@@ -102,10 +110,10 @@ export async function PUT(
 
     // Check if email is already taken (if email is being updated)
     if (validatedData.email && validatedData.email !== existingUser.email) {
-      const emailExists = await prisma.user.findUnique({
+      const emailExists = await prisma.users.findUnique({
         where: { email: validatedData.email }
       })
-      
+
       if (emailExists) {
         return NextResponse.json(
           { error: 'Email is already taken' },
@@ -130,7 +138,7 @@ export async function PUT(
     }
 
     // Update user
-    const updatedUser = await prisma.user.update({
+    const updatedUser = await prisma.users.update({
       where: { users_id: resolvedParams.id },
       data: updateData,
       select: {
@@ -140,9 +148,13 @@ export async function PUT(
         role: true,
         isActive: true,
         personnel_types_id: true,
+        streetAddress: true,
+        barangay: true,
+        purok: true,
+        zipCode: true,
         createdAt: true,
         updatedAt: true,
-        personnelType: {
+        personnel_types: {
           select: {
             name: true,
             basicSalary: true
@@ -185,7 +197,7 @@ export async function DELETE(
 ) {
   try {
     const session = await getServerSession(authOptions)
-    
+
     if (!session || session.user.role !== 'ADMIN') {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
@@ -203,7 +215,7 @@ export async function DELETE(
     }
 
     // Check if user exists
-    const existingUser = await prisma.user.findUnique({
+    const existingUser = await prisma.users.findUnique({
       where: { users_id: resolvedParams.id }
     })
 
@@ -212,23 +224,21 @@ export async function DELETE(
     }
 
     // Check if user has related records
-    const [attendanceCount, payrollCount, loanCount, deductionCount] = await Promise.all([
-      prisma.attendance.count({ where: { users_id: resolvedParams.id } }),
-      prisma.payrollEntry.count({ where: { users_id: resolvedParams.id } }),
-      prisma.loan.count({ where: { users_id: resolvedParams.id } }),
-      prisma.deduction.count({ where: { users_id: resolvedParams.id } })
+    const [payrollCount, loanCount, deductionCount] = await Promise.all([
+      prisma.payroll_entries.count({ where: { users_id: resolvedParams.id } }),
+      prisma.loans.count({ where: { users_id: resolvedParams.id } }),
+      prisma.deductions.count({ where: { users_id: resolvedParams.id } })
     ])
 
-    const totalRelatedRecords = attendanceCount + payrollCount + loanCount + deductionCount
+    const totalRelatedRecords = payrollCount + loanCount + deductionCount
 
     // If there are related records and force is not set, return info about records
     if (totalRelatedRecords > 0 && !force) {
       return NextResponse.json(
-        { 
+        {
           error: 'Personnel has existing records',
           needsForce: true,
           counts: {
-            attendance: attendanceCount,
             payroll: payrollCount,
             loans: loanCount,
             deductions: deductionCount
@@ -242,24 +252,22 @@ export async function DELETE(
     if (force && totalRelatedRecords > 0) {
       await prisma.$transaction([
         // Delete related records in order
-        prisma.deduction.deleteMany({ where: { users_id: resolvedParams.id } }),
-        prisma.loan.deleteMany({ where: { users_id: resolvedParams.id } }),
-        prisma.payrollEntry.deleteMany({ where: { users_id: resolvedParams.id } }),
-        prisma.attendance.deleteMany({ where: { users_id: resolvedParams.id } }),
+        prisma.deductions.deleteMany({ where: { users_id: resolvedParams.id } }),
+        prisma.loans.deleteMany({ where: { users_id: resolvedParams.id } }),
+        prisma.payroll_entries.deleteMany({ where: { users_id: resolvedParams.id } }),
         // Delete the user (this will cascade delete sessions)
-        prisma.user.delete({ where: { users_id: resolvedParams.id } })
+        prisma.users.delete({ where: { users_id: resolvedParams.id } })
       ])
     } else {
       // No related records, just delete the user
-      await prisma.user.delete({
+      await prisma.users.delete({
         where: { users_id: resolvedParams.id }
       })
     }
 
-    return NextResponse.json({ 
+    return NextResponse.json({
       message: 'Personnel deleted successfully',
       deletedRecords: force ? {
-        attendance: attendanceCount,
         payroll: payrollCount,
         loans: loanCount,
         deductions: deductionCount
@@ -267,18 +275,18 @@ export async function DELETE(
     })
   } catch (error) {
     console.error('Error deleting user:', error)
-    
+
     // Handle Prisma foreign key constraint error
     if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === 'P2003') {
       return NextResponse.json(
-        { 
+        {
           error: 'Cannot delete personnel with existing records',
           details: 'This personnel has related records in the system. Please use force delete or deactivate instead.'
         },
         { status: 400 }
       )
     }
-    
+
     return NextResponse.json(
       { error: 'Failed to delete personnel' },
       { status: 500 }

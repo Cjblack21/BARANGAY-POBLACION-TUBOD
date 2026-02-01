@@ -13,7 +13,7 @@ export async function DELETE() {
     }
 
     // Remove avatar from database
-    await prisma.user.update({
+    await prisma.users.update({
       where: { users_id: session.user.id },
       data: { avatar: null },
     })

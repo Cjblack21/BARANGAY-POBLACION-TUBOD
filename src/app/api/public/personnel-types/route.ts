@@ -5,7 +5,7 @@ export const dynamic = 'force-dynamic'
 
 export async function GET() {
   try {
-    const personnelTypes = await prisma.personnelType.findMany({
+    const personnelTypes = await prisma.personnel_types.findMany({
       where: {
         isActive: true
       },

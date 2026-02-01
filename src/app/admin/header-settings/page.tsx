@@ -215,33 +215,33 @@ export default function HeaderSettingsPage() {
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
                 <Building2 className="h-5 w-5 text-blue-600" />
-                School Information
+                BARANGAY INFORMATION
               </CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
               <div className="space-y-2">
                 <Label htmlFor="schoolName" className="flex items-center gap-2">
                   <Type className="h-4 w-4" />
-                  School Name
+                  Barangay Name
                 </Label>
                 <Input
                   id="schoolName"
                   value={settings.schoolName}
                   onChange={(e) => handleInputChange('schoolName', e.target.value)}
-                  placeholder="Enter school name"
+                  placeholder="Enter barangay name"
                   className="w-full"
                 />
               </div>
               <div className="space-y-2">
                 <Label htmlFor="schoolAddress" className="flex items-center gap-2">
                   <MapPin className="h-4 w-4" />
-                  School Address
+                  Address
                 </Label>
                 <Textarea
                   id="schoolAddress"
                   value={settings.schoolAddress}
                   onChange={(e) => handleInputChange('schoolAddress', e.target.value)}
-                  placeholder="Enter school address"
+                  placeholder="Enter address"
                   className="w-full min-h-[80px]"
                 />
               </div>
@@ -541,7 +541,7 @@ export default function HeaderSettingsPage() {
                         <div className="mb-4">
                           <img
                             src={settings.logoUrl}
-                            alt="School Logo"
+                            alt="Barangay Logo"
                             className="h-16 w-auto mx-auto"
                             onError={(e) => {
                               e.currentTarget.src = '/brgy-logo.png'

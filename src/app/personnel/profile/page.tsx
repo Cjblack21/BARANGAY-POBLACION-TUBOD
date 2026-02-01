@@ -13,12 +13,17 @@ import { toast } from "react-hot-toast"
 
 type ProfileData = {
   user: {
+    users_id: string
     name: string
     email: string
     position: string
     basicSalary: number
     biweeklySalary: number
     avatar?: string
+    streetAddress?: string
+    barangay?: string
+    purok?: string
+    zipCode?: string
   }
 }
 
@@ -118,10 +123,16 @@ export default function PersonnelProfile() {
         }),
       })
 
-      const result = await response.json()
-
       if (!response.ok) {
-        throw new Error(result.error || "Failed to change password")
+        let errorMessage = "Failed to change password"
+        try {
+          const text = await response.text()
+          const result = JSON.parse(text)
+          errorMessage = result.error || errorMessage
+        } catch {
+          // If parsing fails, use default error message
+        }
+        throw new Error(errorMessage)
       }
 
       toast.success("Password changed successfully!")
@@ -262,7 +273,7 @@ export default function PersonnelProfile() {
   }
 
   return (
-    <div className="container mx-auto p-6 space-y-6">
+    <div className="w-full space-y-6">
       <div>
         <h1 className="text-3xl font-bold">Profile Settings</h1>
         <p className="text-gray-600">Manage your profile and account settings</p>
@@ -300,11 +311,11 @@ export default function PersonnelProfile() {
                     {data.user.name.split(' ').map(n => n[0]).join('').toUpperCase()}
                   </AvatarFallback>
                 </Avatar>
-                <div className="space-y-2">
-                  <p className="text-sm text-muted-foreground">
+                <div className="space-y-2 flex-1">
+                  <p className="text-sm text-muted-foreground break-words">
                     Upload a new profile picture. Recommended size: 400x400px (Max: 5MB)
                   </p>
-                  <div className="flex gap-2">
+                  <div className="flex flex-wrap gap-2">
                     <input
                       type="file"
                       accept="image/*"
@@ -355,24 +366,28 @@ export default function PersonnelProfile() {
                 </div>
                 <div>
                   <div className="text-sm font-medium text-muted-foreground">Email Address</div>
-                  <div className="text-lg font-semibold flex items-center gap-2">
-                    <Mail className="h-4 w-4" />
-                    {data.user.email}
+                  <div className="text-lg font-semibold flex items-center gap-2 break-all">
+                    <Mail className="h-4 w-4 flex-shrink-0" />
+                    <span className="break-all">{data.user.email}</span>
                   </div>
                 </div>
               </CardContent>
             </Card>
 
-            {/* Employment Information */}
+            {/* Staff Information */}
             <Card>
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
                   <Building className="h-5 w-5" />
-                  Employment Information
+                  Staff Information
                 </CardTitle>
-                <CardDescription>Your employment details</CardDescription>
+                <CardDescription>Your staff details</CardDescription>
               </CardHeader>
               <CardContent className="space-y-4">
+                <div>
+                  <div className="text-sm font-medium text-muted-foreground">ID Number</div>
+                  <div className="text-lg font-semibold">{data.user.users_id || 'N/A'}</div>
+                </div>
                 <div>
                   <div className="text-sm font-medium text-muted-foreground">Position</div>
                   <div className="text-lg font-semibold">{data.user.position}</div>
@@ -383,17 +398,40 @@ export default function PersonnelProfile() {
                     ₱{data.user.basicSalary?.toLocaleString() || "0"}
                   </div>
                 </div>
-                {data.user.biweeklySalary !== undefined && (
-                  <div>
-                    <div className="text-sm font-medium text-muted-foreground">Biweekly Salary</div>
-                    <div className="text-lg font-semibold">
-                      ₱{data.user.biweeklySalary?.toLocaleString() || "0"}
-                    </div>
-                  </div>
-                )}
               </CardContent>
             </Card>
           </div>
+
+          {/* Address Information */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Building className="h-5 w-5" />
+                Address Information
+              </CardTitle>
+              <CardDescription>Your residential address</CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="grid gap-4 md:grid-cols-2">
+                <div>
+                  <div className="text-sm font-medium text-muted-foreground">Street Address</div>
+                  <div className="text-lg font-semibold">{data.user.streetAddress || 'Not provided'}</div>
+                </div>
+                <div>
+                  <div className="text-sm font-medium text-muted-foreground">Barangay</div>
+                  <div className="text-lg font-semibold">{data.user.barangay || 'Not provided'}</div>
+                </div>
+                <div>
+                  <div className="text-sm font-medium text-muted-foreground">Purok</div>
+                  <div className="text-lg font-semibold">{data.user.purok || 'Not provided'}</div>
+                </div>
+                <div>
+                  <div className="text-sm font-medium text-muted-foreground">Zip Code</div>
+                  <div className="text-lg font-semibold">{data.user.zipCode || 'Not provided'}</div>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
         </TabsContent>
 
         {/* Settings Tab */}

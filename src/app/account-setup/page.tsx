@@ -1,17 +1,15 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { useSession, signOut } from 'next-auth/react'
 import { useRouter } from 'next/navigation'
-import Image from 'next/image'
+import Link from 'next/link'
 import { useTheme } from 'next-themes'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { toast } from 'react-hot-toast'
-import { createUserAccount } from '@/lib/actions/auth'
-import { Sun, Moon, Monitor, User, Mail, Briefcase, Building2, IdCard, Shield } from 'lucide-react'
+import { Sun, Moon, Monitor, Settings, Mail, User, Lock, Briefcase, Eye, EyeOff, Loader2 } from 'lucide-react'
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -29,43 +27,51 @@ interface PersonnelType {
 }
 
 export default function AccountSetupPage() {
-  const { data: session, status } = useSession()
   const router = useRouter()
   const { theme, setTheme } = useTheme()
   const [mounted, setMounted] = useState(false)
   const [personnelTypes, setPersonnelTypes] = useState<PersonnelType[]>([])
   const [loading, setLoading] = useState(false)
-  const [selectedDepartment, setSelectedDepartment] = useState<string>('')
-  const [availablePositions, setAvailablePositions] = useState<PersonnelType[]>([])
-  const [showSuccessModal, setShowSuccessModal] = useState(false)
+  const [showPassword, setShowPassword] = useState(false)
+
+  const [selectedOffice, setSelectedOffice] = useState('')
+
   const [formData, setFormData] = useState({
-    schoolId: '',
+    email: '',
+    name: '',
+    password: '',
+    role: 'PERSONNEL' as 'ADMIN' | 'PERSONNEL',
     personnelTypeId: ''
+  })
+
+  // Derive unique offices from personnel types
+  const uniqueOffices = Array.from(new Set(personnelTypes.map(type => {
+    const nameParts = type.name.split(': ')
+    return nameParts.length === 2 ? nameParts[0] : (type.department || 'N/A')
+  }))).sort()
+
+  // Filter positions based on selected office
+  const filteredPositions = personnelTypes.filter(type => {
+    const nameParts = type.name.split(': ')
+    const office = nameParts.length === 2 ? nameParts[0] : (type.department || 'N/A')
+    return office === selectedOffice
   })
 
   useEffect(() => {
     setMounted(true)
-  }, [])
-
-  useEffect(() => {
-    if (status === 'loading') return
-
-    if (!session || session.user.role !== 'SETUP_REQUIRED') {
-      router.push('/')
-      return
-    }
-
     fetchPersonnelTypes()
-  }, [session, status, router])
+  }, [])
 
   const fetchPersonnelTypes = async () => {
     try {
-      const response = await fetch('/api/personnel-types')
+      const response = await fetch('/api/admin/personnel-types', { cache: 'no-store' })
       if (response.ok) {
         const types = await response.json()
         setPersonnelTypes(types)
+        if (types.length === 0) {
+          toast.error('No personnel types found.')
+        }
       } else {
-        console.error('Failed to fetch personnel types:', response.statusText)
         toast.error('Failed to load personnel types')
       }
     } catch (error) {
@@ -74,67 +80,72 @@ export default function AccountSetupPage() {
     }
   }
 
-  // Get unique departments from personnel types
-  const uniqueDepartments = Array.from(
-    new Set(personnelTypes.map(p => p.department).filter(Boolean))
-  ).sort()
-
-  const handleDepartmentChange = (value: string) => {
-    setSelectedDepartment(value)
-
-    const filtered = personnelTypes.filter(p => p.department === value)
-    setAvailablePositions(filtered)
-
-    // Auto-select if only one position exists for this category (handles the simplified schema)
-    if (filtered.length === 1) {
-      setFormData({ ...formData, personnelTypeId: filtered[0].personnel_types_id })
-    } else {
-      setFormData({ ...formData, personnelTypeId: '' })
-    }
+  // Generate unique 6-digit personnel ID
+  const generatePersonnelId = () => {
+    return Math.floor(100000 + Math.random() * 900000).toString()
   }
-
-  const handlePositionChange = (value: string) => {
-    setFormData({ ...formData, personnelTypeId: value })
-  }
-
-  // ... 
-
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
 
-    if (!formData.schoolId.trim()) {
-      toast.error('Please enter your School ID')
+    if (!formData.email || !formData.email.includes('@')) {
+      toast.error('Please enter a valid email address')
       return
     }
-
+    if (!formData.name || formData.name.trim().length === 0) {
+      toast.error('Please enter your full name')
+      return
+    }
+    if (!formData.password || formData.password.length < 6) {
+      toast.error('Password must be at least 6 characters')
+      return
+    }
     if (!formData.personnelTypeId) {
-      toast.error('Please select your Position')
-      return
-    }
-
-    if (!session?.user) {
-      toast.error('Session not found. Please sign in again.')
+      toast.error('Please select Office & Position')
       return
     }
 
     setLoading(true)
 
     try {
-      const result = await createUserAccount({
-        email: session.user.email,
-        name: session.user.name || '',
-        schoolId: formData.schoolId.trim(),
-        personnelTypeId: formData.personnelTypeId,
-        department: selectedDepartment || undefined,
-        image: session.user.image || ''
+      const personnelId = generatePersonnelId()
+      const response = await fetch('/api/admin/users', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          users_id: personnelId,
+          email: formData.email.toLowerCase(),
+          name: formData.name,
+          password: formData.password,
+          role: 'PERSONNEL',
+          isActive: true,
+          personnel_types_id: formData.personnelTypeId
+        })
       })
 
-      if (result.success) {
-        setShowSuccessModal(true)
-      } else {
-        toast.error(result.error || 'Failed to create account')
+      if (!response.ok) {
+        let message = 'Failed to register account'
+        try {
+          const data = await response.json()
+          console.error('Registration failed:', data)
+          message = data.error || message
+          if (data.details) {
+            console.error('Validation details:', data.details)
+          }
+        } catch (e) {
+          console.error('Registration error response:', await response.text())
+        }
+        toast.error(message)
+        return
       }
+
+      const userData = await response.json()
+      console.log('Registration successful:', userData)
+
+      toast.success('Account created successfully! Redirecting...')
+      setTimeout(() => {
+        router.push('/')
+      }, 1500)
     } catch (error) {
       console.error('Error creating account:', error)
       toast.error('An error occurred. Please try again.')
@@ -143,307 +154,241 @@ export default function AccountSetupPage() {
     }
   }
 
-  const handleCancel = async () => {
-    await signOut({ redirect: false })
-    router.push('/')
-  }
-
-  const handleSuccessClose = async () => {
-    setShowSuccessModal(false)
-    await signOut({ redirect: false })
-    router.push('/')
-  }
-
-  if (status === 'loading') {
-    return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto"></div>
-          <p className="mt-2 text-muted-foreground">Loading...</p>
-        </div>
-      </div>
-    )
-  }
-
-  if (!session || session.user.role !== 'SETUP_REQUIRED') {
-    return null
-  }
-
   return (
-    <>
-      {/* Success Modal */}
-      {showSuccessModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-in fade-in duration-200">
-          <div className="bg-white dark:bg-slate-900 rounded-2xl shadow-2xl border border-slate-200 dark:border-slate-800 p-8 max-w-md w-full animate-in zoom-in duration-300">
-            <div className="text-center space-y-6">
-              {/* Success Icon */}
-              <div className="mx-auto w-20 h-20 rounded-full bg-green-100 dark:bg-green-900/30 flex items-center justify-center">
-                <svg className="w-12 h-12 text-green-600 dark:text-green-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M5 13l4 4L19 7" />
-                </svg>
-              </div>
-
-              {/* Message */}
-              <div className="space-y-3">
-                <h3 className="text-2xl font-bold text-slate-900 dark:text-white">
-                  Account Created!
-                </h3>
-                <div className="space-y-1">
-                  <p className="text-slate-600 dark:text-slate-400">
-                    Welcome to POBLACION - PMS,
-                  </p>
-                  <p className="text-xl font-semibold text-slate-900 dark:text-white">
-                    {session.user.name?.split(' ')[0]}!
-                  </p>
-                </div>
-                <p className="text-sm text-slate-500 dark:text-slate-500">
-                  Your account is ready. You can now sign in.
-                </p>
-              </div>
-
-              {/* Button */}
-              <Button
-                onClick={handleSuccessClose}
-                className="w-full h-12 rounded-xl bg-gradient-to-r from-orange-500 to-red-600 text-white font-semibold shadow-lg hover:shadow-xl transition-all"
-              >
-                Go to Login
-              </Button>
-            </div>
-          </div>
-        </div>
+    <div className="relative min-h-screen overflow-hidden flex">
+      {/* Theme Toggle */}
+      {mounted && (
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <Button
+              variant="ghost"
+              size="icon"
+              className="fixed top-6 right-6 z-50 h-10 w-10 rounded-full bg-slate-800/90 hover:bg-slate-700 transition-all duration-300 border border-slate-700"
+            >
+              <Sun className="h-4 w-4 rotate-0 scale-100 transition-all duration-300 dark:-rotate-90 dark:scale-0 text-amber-500" />
+              <Moon className="absolute h-4 w-4 rotate-90 scale-0 transition-all duration-300 dark:rotate-0 dark:scale-100 text-slate-400" />
+              <span className="sr-only">Toggle theme</span>
+            </Button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="end" className="w-40 bg-slate-800/95 backdrop-blur-md border-slate-700">
+            <DropdownMenuItem onClick={() => setTheme("light")} className="cursor-pointer gap-2 text-slate-300">
+              <Sun className="h-4 w-4 text-amber-500" /> Light
+            </DropdownMenuItem>
+            <DropdownMenuItem onClick={() => setTheme("dark")} className="cursor-pointer gap-2 text-slate-300">
+              <Moon className="h-4 w-4 text-slate-400" /> Dark
+            </DropdownMenuItem>
+            <DropdownMenuItem onClick={() => setTheme("system")} className="cursor-pointer gap-2 text-slate-300">
+              <Monitor className="h-4 w-4 text-slate-500" /> System
+            </DropdownMenuItem>
+          </DropdownMenuContent>
+        </DropdownMenu>
       )}
 
-      <div className="min-h-screen flex bg-gradient-to-br from-slate-50 to-slate-100 dark:from-slate-950 dark:to-slate-900 transition-colors duration-500">
+      {/* Left Side - Register Form */}
+      <div className="flex-1 bg-slate-50 dark:bg-[#0a1628] flex items-center justify-center px-4 py-12 transition-colors duration-500">
+        <div className="w-full max-w-md">
+          <div className="flex flex-col items-center space-y-6">
 
-        {/* Theme Switcher */}
-        {mounted && (
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <Button
-                variant="ghost"
-                size="icon"
-                className="fixed top-6 right-6 z-50 h-11 w-11 rounded-xl bg-slate-900/90 backdrop-blur-sm hover:bg-slate-900 shadow-lg hover:shadow-xl transition-all duration-300 dark:bg-white/90 dark:hover:bg-white border border-slate-800 dark:border-slate-200 group"
-              >
-                <Sun className="h-5 w-5 rotate-0 scale-100 transition-all duration-300 dark:-rotate-90 dark:scale-0 text-orange-400" />
-                <Moon className="absolute h-5 w-5 rotate-90 scale-0 transition-all duration-300 dark:rotate-0 dark:scale-100 text-indigo-600" />
-                <span className="sr-only">Toggle theme</span>
-              </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="end" className="w-36">
-              <DropdownMenuItem onClick={() => setTheme("light")} className="cursor-pointer gap-2">
-                <Sun className="h-4 w-4 text-orange-500" />
-                <span>Light</span>
-                {theme === "light" && <span className="ml-auto">✓</span>}
-              </DropdownMenuItem>
-              <DropdownMenuItem onClick={() => setTheme("dark")} className="cursor-pointer gap-2">
-                <Moon className="h-4 w-4 text-indigo-400" />
-                <span>Dark</span>
-                {theme === "dark" && <span className="ml-auto">✓</span>}
-              </DropdownMenuItem>
-              <DropdownMenuItem onClick={() => setTheme("system")} className="cursor-pointer gap-2">
-                <Monitor className="h-4 w-4 text-slate-500" />
-                <span>System</span>
-                {theme === "system" && <span className="ml-auto">✓</span>}
-              </DropdownMenuItem>
-            </DropdownMenuContent>
-          </DropdownMenu>
-        )}
+            {/* Logo */}
+            <div className="flex justify-center">
+              <img src="/brgy-logo.png" alt="Barangay Logo" className="w-40 h-40 object-contain transform translate-y-12" />
+            </div>
 
-        {/* Left Side - Form */}
-        <div className="flex-1 flex items-center justify-center p-8 lg:p-12">
-          <div className="w-full max-w-md space-y-8 animate-in fade-in slide-in-from-left duration-700">
-            {/* Logo & Brand */}
+            {/* Title */}
             <div className="text-center space-y-2">
-              <div className="inline-flex items-center justify-center mb-4">
-                <img src="/brgy-logo.png" alt="Barangay Logo" className="w-32 h-32 object-contain" />
-              </div>
               <h1 className="text-3xl font-bold text-slate-900 dark:text-white">
-                Complete Setup
+                CREATE ACCOUNT
               </h1>
-              <p className="text-slate-600 dark:text-slate-400">
-                Welcome {session.user.name?.split(' ')[0]}! Finish setting up your account
+              <p className="text-sm text-slate-600 dark:text-slate-400">
+                Setup your staff profile
               </p>
             </div>
 
-            {/* Setup Card */}
-            <div className="bg-white dark:bg-slate-900 rounded-2xl shadow-xl border border-slate-200 dark:border-slate-800 p-8">
+            {/* Form Card */}
+            <div className="w-full bg-white dark:bg-white/10 dark:backdrop-blur-xl rounded-2xl p-8 border border-slate-200 dark:border-white/20 shadow-xl">
               <form onSubmit={handleSubmit} className="space-y-5">
+
+                {/* Name */}
+                <div className="space-y-2">
+                  <Label htmlFor="name" className="text-sm font-medium text-slate-700 dark:text-slate-300">Full Name</Label>
+                  <Input
+                    id="name"
+                    value={formData.name}
+                    onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                    placeholder="John Doe"
+                    className="h-12 bg-slate-100 dark:bg-white/10 border-slate-300 dark:border-white/20 text-slate-900 dark:text-white placeholder:text-slate-500 dark:placeholder:text-white/40 focus-visible:ring-[#00A3B1] focus-visible:border-[#00A3B1]"
+                    disabled={loading}
+                  />
+                </div>
+
                 {/* Email */}
                 <div className="space-y-2">
-                  <Label htmlFor="email" className="text-sm font-medium flex items-center gap-2">
-                    <Mail className="h-4 w-4 text-muted-foreground" />
-                    Email Address
-                  </Label>
+                  <Label htmlFor="email" className="text-sm font-medium text-slate-700 dark:text-slate-300">Email</Label>
                   <Input
                     id="email"
                     type="email"
-                    value={session.user.email}
-                    disabled
-                    className="h-12 rounded-xl bg-slate-50 dark:bg-slate-800/50 border-slate-200 dark:border-slate-700"
+                    value={formData.email}
+                    onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+                    placeholder="user@example.com"
+                    className="h-12 bg-slate-100 dark:bg-white/10 border-slate-300 dark:border-white/20 text-slate-900 dark:text-white placeholder:text-slate-500 dark:placeholder:text-white/40 focus-visible:ring-[#00A3B1] focus-visible:border-[#00A3B1]"
+                    disabled={loading}
                   />
                 </div>
 
-                {/* School ID */}
+                {/* Office */}
                 <div className="space-y-2">
-                  <Label htmlFor="schoolId" className="text-sm font-medium flex items-center gap-2">
-                    <IdCard className="h-4 w-4 text-muted-foreground" />
-                    School ID <span className="text-destructive">*</span>
-                  </Label>
-                  <Input
-                    id="schoolId"
-                    type="text"
-                    placeholder="Enter your School ID"
-                    value={formData.schoolId}
-                    onChange={(e) => setFormData({ ...formData, schoolId: e.target.value })}
-                    required
-                    className="h-12 rounded-xl transition-all focus-visible:ring-2"
-                  />
-                  <p className="text-xs text-slate-500 dark:text-slate-400">
-                    This will serve as your unique identifier in the system
-                  </p>
-                </div>
-
-                {/* Department - Dropdown */}
-                <div className="space-y-2">
-                  <Label htmlFor="department" className="text-sm font-medium flex items-center gap-2">
-                    <Building2 className="h-4 w-4 text-muted-foreground" />
-                    Position Category <span className="text-destructive">*</span>
-                  </Label>
-                  <Select
-                    value={selectedDepartment}
-                    onValueChange={handleDepartmentChange}
-                  >
-                    <SelectTrigger className="h-12 rounded-xl">
-                      <SelectValue placeholder="Select category" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {uniqueDepartments.map((dept) => (
-                        <SelectItem key={dept} value={dept as string}>
-                          {dept}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-
-                {/* Position - Filtered by Department */}
-                {/* Only show if there's more than 1 option, otherwise it's redundant for the user */}
-                {availablePositions.length > 1 && (
-                  <div className="space-y-2 animate-in fade-in slide-in-from-top-2">
-                    <Label htmlFor="position" className="text-sm font-medium flex items-center gap-2">
-                      <Briefcase className="h-4 w-4 text-muted-foreground" />
-                      Specific Position <span className="text-destructive">*</span>
-                    </Label>
+                  <Label htmlFor="office" className="text-sm font-medium text-slate-700 dark:text-slate-300">Office</Label>
+                  <div className="relative">
                     <Select
-                      value={formData.personnelTypeId}
-                      onValueChange={handlePositionChange}
-                      disabled={!selectedDepartment}
+                      value={selectedOffice}
+                      onValueChange={(value) => {
+                        setSelectedOffice(value)
+                        setFormData({ ...formData, personnelTypeId: '' }) // Reset position when office changes
+                      }}
+                      disabled={loading || personnelTypes.length === 0}
                     >
-                      <SelectTrigger className="h-12 rounded-xl">
-                        <SelectValue placeholder="Select specific position" />
+                      <SelectTrigger className="h-12 bg-slate-100 dark:bg-white/10 border-slate-300 dark:border-white/20 text-slate-900 dark:text-white focus:ring-[#00A3B1]">
+                        <SelectValue placeholder="Select office" />
                       </SelectTrigger>
                       <SelectContent>
-                        {availablePositions.map((type) => (
-                          <SelectItem key={type.personnel_types_id} value={type.personnel_types_id}>
-                            {type.name}
+                        {uniqueOffices.map((office) => (
+                          <SelectItem key={office} value={office}>
+                            {office}
                           </SelectItem>
                         ))}
                       </SelectContent>
                     </Select>
                   </div>
-                )}
-
-                {/* Buttons */}
-                <div className="flex gap-3 pt-6">
-                  <Button
-                    type="button"
-                    variant="outline"
-                    onClick={handleCancel}
-                    className="flex-1 h-12 rounded-xl font-medium"
-                    disabled={loading}
-                  >
-                    Cancel
-                  </Button>
-                  <Button
-                    type="submit"
-                    className="flex-1 h-12 rounded-xl bg-gradient-to-r from-blue-600 to-indigo-600 font-semibold shadow-lg shadow-blue-500/30 transition-all hover:shadow-xl hover:shadow-blue-500/40"
-                    disabled={loading}
-                  >
-                    {loading ? 'Setting up...' : 'Complete Setup'}
-                  </Button>
                 </div>
 
-                {/* Security Badge */}
-                <div className="flex items-center justify-center gap-2 text-xs text-slate-500 dark:text-slate-500 pt-4">
-                  <Shield className="h-3 w-3" />
-                  <span>Your information is secured with encryption</span>
+                {/* Position */}
+                <div className="space-y-2">
+                  <Label htmlFor="position" className="text-sm font-medium text-slate-700 dark:text-slate-300">Position</Label>
+                  <div className="relative">
+                    <Select
+                      value={formData.personnelTypeId}
+                      onValueChange={(value) => setFormData({ ...formData, personnelTypeId: value })}
+                      disabled={loading || !selectedOffice}
+                    >
+                      <SelectTrigger className="h-12 bg-slate-100 dark:bg-white/10 border-slate-300 dark:border-white/20 text-slate-900 dark:text-white focus:ring-[#00A3B1]">
+                        <SelectValue placeholder={selectedOffice ? "Select position" : "Select office first"} />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {filteredPositions.map((type) => {
+                          const nameParts = type.name.split(': ')
+                          const position = nameParts.length === 2 ? nameParts[1] : type.name
+                          return (
+                            <SelectItem key={type.personnel_types_id} value={type.personnel_types_id}>
+                              {position}
+                            </SelectItem>
+                          )
+                        })}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </div>
+
+                {/* Password */}
+                <div className="space-y-2">
+                  <Label htmlFor="password" className="text-sm font-medium text-slate-700 dark:text-slate-300">Password</Label>
+                  <div className="relative">
+                    <Input
+                      id="password"
+                      type={showPassword ? 'text' : 'password'}
+                      value={formData.password}
+                      onChange={(e) => setFormData({ ...formData, password: e.target.value })}
+                      placeholder="Min. 6 characters"
+                      className="h-12 bg-slate-100 dark:bg-white/10 border-slate-300 dark:border-white/20 text-slate-900 dark:text-white placeholder:text-slate-500 dark:placeholder:text-white/40 focus-visible:ring-[#00A3B1] focus-visible:border-[#00A3B1] pr-10"
+                      disabled={loading}
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setShowPassword(!showPassword)}
+                      className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-500 dark:text-slate-500 hover:text-slate-700 dark:hover:text-slate-300"
+                    >
+                      {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                    </button>
+                  </div>
+                </div>
+
+                {/* Submit Button */}
+                <Button
+                  type="submit"
+                  className="w-full h-12 bg-gradient-to-r from-[#00A3B1] to-[#00818c] hover:opacity-90 text-white font-semibold transition-all rounded-lg shadow-lg"
+                  disabled={loading}
+                >
+                  {loading ? (
+                    <>
+                      <Loader2 className="mr-2 h-5 w-5 animate-spin" />
+                      Creating Account...
+                    </>
+                  ) : (
+                    "Create Account"
+                  )}
+                </Button>
+
+                {/* Login Link */}
+                <div className="mt-6 text-center text-sm">
+                  <span className="text-slate-600 dark:text-slate-400">
+                    Already have an account?{" "}
+                  </span>
+                  <Link
+                    href="/"
+                    className="font-medium text-[#00A3B1] hover:underline dark:text-[#00A3B1]"
+                  >
+                    Sign in here
+                  </Link>
                 </div>
               </form>
             </div>
 
             {/* Footer */}
-            <p className="text-center text-sm text-slate-500 dark:text-slate-400">
+            <p className="text-center text-xs text-slate-500 dark:text-slate-500">
               © 2026 PMS. All rights reserved.
             </p>
           </div>
         </div>
+      </div>
 
-        {/* Right Side - Branding */}
-        <div className="hidden lg:flex flex-1 bg-gradient-to-br from-orange-500 to-red-600 p-12 items-center justify-center relative overflow-hidden animate-in fade-in slide-in-from-right duration-700">
-          {/* Decorative Elements */}
-          <div className="absolute inset-0 opacity-10">
-            <div className="absolute top-0 right-0 w-96 h-96 bg-white rounded-full blur-3xl"></div>
-            <div className="absolute bottom-0 left-0 w-96 h-96 bg-white rounded-full blur-3xl"></div>
+      {/* Right Side - Illustration */}
+      <div className="hidden lg:flex flex-1 bg-gradient-to-br from-[#00A3B1] via-[#41BD87] to-[#82D65A] items-center justify-center p-12 relative overflow-hidden">
+        {/* Background Pattern */}
+        <div className="absolute inset-0 opacity-10">
+          <svg className="w-full h-full" xmlns="http://www.w3.org/2000/svg">
+            <defs>
+              <pattern id="grid" width="40" height="40" patternUnits="userSpaceOnUse">
+                <circle cx="20" cy="20" r="1.5" fill="white" opacity="0.3" />
+              </pattern>
+            </defs>
+            <rect width="100%" height="100%" fill="url(#grid)" />
+          </svg>
+        </div>
+
+        {/* Content */}
+        <div className="relative z-10 w-full max-w-2xl text-center space-y-12">
+          {/* Animated Gears */}
+          <div className="relative h-64 flex items-center justify-center">
+            {/* Large Gear - Center */}
+            <Settings className="absolute w-48 h-48 text-white animate-spin-slow" style={{ animationDuration: '10s' }} />
+
+            {/* Medium Gear - Top Right */}
+            <Settings className="absolute w-32 h-32 text-white/90 top-4 right-20 animate-spin-slow" style={{ animationDuration: '7s', animationDirection: 'reverse' }} />
+
+            {/* Small Gear - Bottom Left */}
+            <Settings className="absolute w-24 h-24 text-white/85 bottom-8 left-16 animate-spin-slow" style={{ animationDuration: '6s' }} />
           </div>
 
-          {/* Content */}
-          <div className="relative z-10 text-white space-y-8 max-w-lg text-center lg:text-left">
-            <div className="space-y-6">
-              <h2 className="text-5xl font-bold leading-tight">
-                Welcome to
-                <br />
-                POBLACION - PMS
-              </h2>
-              <p className="text-xl text-white/90">
-                Complete your account setup to access our comprehensive Payroll Management System
-              </p>
-            </div>
-
-            {/* Features */}
-            <div className="space-y-4">
-              <div className="flex items-start gap-4 group">
-                <div className="flex-shrink-0 w-12 h-12 rounded-xl bg-white/20 backdrop-blur-sm flex items-center justify-center group-hover:bg-white/30 transition-colors">
-                  <User className="w-6 h-6" />
-                </div>
-                <div>
-                  <h3 className="font-semibold text-lg mb-1">Personalized Dashboard</h3>
-                  <p className="text-white/80">Access your payroll information anytime</p>
-                </div>
-              </div>
-
-              <div className="flex items-start gap-4 group">
-                <div className="flex-shrink-0 w-12 h-12 rounded-xl bg-white/20 backdrop-blur-sm flex items-center justify-center group-hover:bg-white/30 transition-colors">
-                  <Shield className="w-6 h-6" />
-                </div>
-                <div>
-                  <h3 className="font-semibold text-lg mb-1">Secure & Protected</h3>
-                  <p className="text-white/80">Your data is encrypted and safe</p>
-                </div>
-              </div>
-
-              <div className="flex items-start gap-4 group">
-                <div className="flex-shrink-0 w-12 h-12 rounded-xl bg-white/20 backdrop-blur-sm flex items-center justify-center group-hover:bg-white/30 transition-colors">
-                  <Briefcase className="w-6 h-6" />
-                </div>
-                <div>
-                  <h3 className="font-semibold text-lg mb-1">Easy Management</h3>
-                  <p className="text-white/80">Streamlined payroll and attendance</p>
-                </div>
-              </div>
-            </div>
+          {/* Text Content */}
+          <div className="space-y-6">
+            <h2 className="text-5xl font-bold text-white leading-tight">
+              TUBOD BARANGAY POBLACION PMS
+            </h2>
+            <p className="text-xl text-white/90 max-w-lg mx-auto">
+              Streamline your payroll process with our comprehensive management system
+            </p>
           </div>
         </div>
       </div>
-    </>
+    </div>
   )
 }
