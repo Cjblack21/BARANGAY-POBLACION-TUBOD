@@ -89,7 +89,7 @@ export async function punchAttendance(): Promise<{
     console.log('Current time:', getPhilippinesTimeString(now))
 
     // Get attendance settings
-    const settings = await prisma.attendanceSettings.findFirst()
+    const settings = await prisma.attendance_settings.findFirst()
     console.log('Settings:', { 
       timeInStart: settings?.timeInStart, 
       timeInEnd: settings?.timeInEnd, 
@@ -97,7 +97,7 @@ export async function punchAttendance(): Promise<{
     })
 
     // Check if there's an existing attendance record for today
-    let record = await prisma.attendance.findFirst({
+    let record = await prisma.attendances.findFirst({
       where: {
         users_id,
         date: {
@@ -147,9 +147,9 @@ export async function punchAttendance(): Promise<{
         
         if (settings?.timeInEnd) {
           // Get user's basic salary for calculation
-          const userWithSalary = await prisma.user.findUnique({
+          const userWithSalary = await prisma.users.findUnique({
             where: { users_id },
-            include: { personnelType: true }
+            include: { personnel_types: true }
           })
           
           if (userWithSalary?.personnelType?.basicSalary) {
@@ -184,7 +184,7 @@ export async function punchAttendance(): Promise<{
       // Normalize date to start of day to ensure consistency with existing records
       const normalizedDate = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 0, 0, 0, 0)
       
-      record = await prisma.attendance.create({
+      record = await prisma.attendances.create({
         data: {
           users_id,
           date: normalizedDate,
@@ -220,7 +220,7 @@ export async function punchAttendance(): Promise<{
         }
       }
       
-      record = await prisma.attendance.update({
+      record = await prisma.attendances.update({
         where: { attendances_id: record.attendances_id },
         data: { timeOut: now },
       })
@@ -281,10 +281,10 @@ export async function getCurrentDayAttendance(): Promise<{
     console.log(`🔍 Date range: ${today.toISOString()} to ${todayEnd.toISOString()}`)
 
     // Get all personnel users with their types
-    const allPersonnelUsers = await prisma.user.findMany({
+    const allPersonnelUsers = await prisma.users.findMany({
       where: { isActive: true, role: 'PERSONNEL' },
       include: {
-        personnelType: {
+        personnel_types: {
           select: {
             name: true,
             type: true,
@@ -296,10 +296,10 @@ export async function getCurrentDayAttendance(): Promise<{
     })
 
     // Get attendance settings
-    const attendanceSettings = await prisma.attendanceSettings.findFirst()
+    const attendanceSettings = await prisma.attendance_settings.findFirst()
     
     // Get TODAY's attendance records only
-    const todayAttendance = await prisma.attendance.findMany({
+    const todayAttendance = await prisma.attendances.findMany({
       where: {
         date: { gte: today, lte: todayEnd }
       }
@@ -331,7 +331,7 @@ export async function getCurrentDayAttendance(): Promise<{
 
     // Check if system was just reset (no attendance records in period at all)
     const totalAttendanceInPeriod = attendanceSettings?.periodStart && attendanceSettings?.periodEnd 
-      ? await prisma.attendance.count({
+      ? await prisma.attendances.count({
           where: {
             date: {
               gte: new Date(attendanceSettings.periodStart),
@@ -502,7 +502,7 @@ export async function updateAttendanceStatus(
     }
 
     // Update the attendance status in the database
-    await prisma.attendance.updateMany({
+    await prisma.attendances.updateMany({
       where: {
         users_id: users_id,
         date: new Date(date)
@@ -535,7 +535,7 @@ export async function updateAllAttendanceStatusForDate(
     }
 
     // Update all attendance records for the specified date
-    const result = await prisma.attendance.updateMany({
+    const result = await prisma.attendances.updateMany({
       where: {
         date: new Date(date)
       },
@@ -572,10 +572,10 @@ export async function getPersonnelAttendance(): Promise<{
     const endOfCurrentMonth = endOfMonth(now)
 
     // Get all personnel users with their attendance data for current month up to today
-    const users = await prisma.user.findMany({
+    const users = await prisma.users.findMany({
       where: { isActive: true, role: 'PERSONNEL' },
       include: {
-        personnelType: {
+        personnel_types: {
           select: {
             name: true,
             type: true,
@@ -598,7 +598,7 @@ export async function getPersonnelAttendance(): Promise<{
     })
 
     // Get attendance settings for proper time calculation
-    const attendanceSettings = await prisma.attendanceSettings.findFirst()
+    const attendanceSettings = await prisma.attendance_settings.findFirst()
     const timeInEnd = attendanceSettings?.timeInEnd || '09:00'
 
     // Calculate working days in current period
@@ -840,10 +840,10 @@ export async function getPersonnelHistory(userId: string): Promise<{
     const endOfCurrentMonth = endOfMonth(now)
 
     // Get user with personnel type
-    const user = await prisma.user.findUnique({
+    const user = await prisma.users.findUnique({
       where: { users_id: userId },
       include: {
-        personnelType: {
+        personnel_types: {
           select: {
             name: true,
             basicSalary: true
@@ -861,7 +861,7 @@ export async function getPersonnelHistory(userId: string): Promise<{
     const currentDate = todayStart.toISOString().split('T')[0]
     
     // Only get records up to today, not future dates
-    const attendanceRecords = await prisma.attendance.findMany({
+    const attendanceRecords = await prisma.attendances.findMany({
       where: {
         users_id: userId,
         date: {
@@ -875,7 +875,7 @@ export async function getPersonnelHistory(userId: string): Promise<{
     })
 
     // Get attendance settings for deduction calculations
-    const attendanceSettings = await prisma.attendanceSettings.findFirst()
+    const attendanceSettings = await prisma.attendance_settings.findFirst()
     const timeInEnd = attendanceSettings?.timeInEnd || '09:00'
 
     // Use STANDARD 22 working days for consistent daily rate calculation
