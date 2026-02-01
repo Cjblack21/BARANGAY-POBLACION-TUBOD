@@ -95,20 +95,20 @@ export async function POST(request: NextRequest) {
     const userIds = users.map(u => u.users_id)
 
     // Get attendance data for hours calculation
-    const attendance = await prisma.attendance.groupBy({
+    const attendance = await prisma.attendances.groupBy({
       by: ['users_id'],
       where: { users_id: { in: userIds }, date: { gte: periodStart, lte: periodEnd }, status: 'PRESENT' },
       _count: { _all: true }
     })
 
     // Get current period deductions
-    const deductions = await prisma.deduction.findMany({
+    const deductions = await prisma.deductions.findMany({
       where: { 
         users_id: { in: userIds }, 
         appliedAt: { gte: periodStart, lte: periodEnd } 
       },
       include: {
-        deductionType: {
+        deduction_types: {
           select: {
             name: true,
             description: true
@@ -147,8 +147,8 @@ export async function POST(request: NextRequest) {
       deductionsByUser.get(userId).push({
         id: deduction.deductions_id,
         amount: Number(deduction.amount),
-        type: deduction.deductionType.name,
-        description: deduction.deductionType.description,
+        type: deduction.deduction_types.name,
+        description: deduction.deduction_types.description,
         appliedAt: deduction.appliedAt,
         notes: deduction.notes
       })
