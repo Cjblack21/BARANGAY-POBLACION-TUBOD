@@ -133,14 +133,14 @@ export async function POST(request: NextRequest) {
       where: {
         users_id: { in: userIds },
         appliedAt: { gte: periodStart, lte: periodEnd },
-        deductionType: {
+        deduction_types: {
           name: {
             notIn: attendanceRelatedTypes
           }
         }
       },
       include: {
-        deductionType: {
+        deduction_types: {
           select: {
             name: true,
             description: true
@@ -260,8 +260,8 @@ export async function POST(request: NextRequest) {
       deductionsByUser.get(userId).push({
         id: deduction.deductions_id,
         amount: Number(deduction.amount),
-        type: deduction.deductionType.name,
-        description: deduction.deductionType.description,
+        type: deduction.deduction_types.name,
+        description: deduction.deduction_types.description,
         appliedAt: deduction.appliedAt,
         notes: deduction.notes
       })
@@ -432,13 +432,13 @@ export async function POST(request: NextRequest) {
     if (nextPayrollDate) {
       try {
         // Deactivate any existing active schedules
-        await prisma.payrollSchedule.updateMany({
+        await prisma.payroll_schedules.updateMany({
           where: { isActive: true },
           data: { isActive: false }
         })
 
         // Create new schedule for next payroll
-        nextSchedule = await prisma.payrollSchedule.create({
+        nextSchedule = await prisma.payroll_schedules.create({
           data: {
             scheduledDate: new Date(nextPayrollDate),
             notes: nextPayrollNotes || null,
