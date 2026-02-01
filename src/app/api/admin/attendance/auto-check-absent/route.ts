@@ -69,7 +69,7 @@ export async function POST() {
     })
 
     // Get all existing attendance records for today
-    const existingRecords = await prisma.attendance.findMany({
+    const existingRecords = await prisma.attendances.findMany({
       where: { 
         date: { gte: startOfToday, lte: endOfToday } 
       },
@@ -98,16 +98,16 @@ export async function POST() {
         const existingStatus = existingMap.get(user.users_id)
         
         // Get user's personnel type and basic salary for deduction calculation
-        const userData = await prisma.user.findUnique({
+        const userData = await prisma.users.findUnique({
           where: { users_id: user.users_id },
-          include: { personnelType: true }
+          include: { personnel_types: true }
         })
         
-        const basicSalary = userData?.personnelType?.basicSalary || 0
+        const basicSalary = userData?.personnel_types?.basicSalary || 0
         
         if (existingStatus === 'PENDING') {
           // Update existing PENDING record to ABSENT
-          await prisma.attendance.updateMany({
+          await prisma.attendances.updateMany({
             where: { 
               users_id: user.users_id,
               date: { gte: startOfToday, lte: endOfToday },
@@ -123,7 +123,7 @@ export async function POST() {
           markedCount++
         } else if (!existingStatus) {
           // Create new ABSENT record for users without any attendance today
-          await prisma.attendance.create({
+          await prisma.attendances.create({
             data: {
               users_id: user.users_id,
               date: today,
