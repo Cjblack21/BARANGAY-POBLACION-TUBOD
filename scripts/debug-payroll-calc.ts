@@ -4,7 +4,7 @@ import { calculateWorkingDaysInPhilippines } from '../src/lib/timezone'
 const prisma = new PrismaClient()
 
 async function main() {
-  const settings = await prisma.attendanceSettings.findFirst()
+  const settings = await prisma.attendance_settings.findFirst()
   
   if (!settings?.periodStart || !settings?.periodEnd) {
     console.log('❌ No period set')
