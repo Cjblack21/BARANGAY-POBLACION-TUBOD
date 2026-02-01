@@ -18,7 +18,7 @@ export async function DELETE(request: NextRequest) {
     }
 
     // Delete payroll entries that belong to this user
-    await prisma.payrollEntry.deleteMany({
+    await prisma.payroll_entries.deleteMany({
       where: {
         payroll_entries_id: {
           in: payrollIds
