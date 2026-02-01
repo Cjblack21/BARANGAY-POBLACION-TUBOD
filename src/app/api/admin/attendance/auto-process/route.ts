@@ -73,7 +73,7 @@ async function processDayAttendance(date: Date, settings: any) {
     const endOfTargetDay = getEndOfDayInPhilippines(date)
 
     // Get all active personnel
-    const activePersonnel = await prisma.user.findMany({
+    const activePersonnel = await prisma.users.findMany({
       where: { isActive: true, role: 'PERSONNEL' },
       select: { users_id: true, name: true, email: true }
     })
