@@ -23,9 +23,9 @@ export async function POST(request: NextRequest) {
     const endOfTargetDay = endOfDay(targetDate)
 
     // Check if user exists and is active
-    const user = await prisma.user.findUnique({ 
+    const user = await prisma.users.findUnique({ 
       where: { users_id },
-      include: { personnelType: true }
+      include: { personnel_types: true }
     })
     
     if (!user || !user.isActive) {
@@ -33,7 +33,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Find existing attendance record for the date
-    let attendanceRecord = await prisma.attendance.findFirst({
+    let attendanceRecord = await prisma.attendances.findFirst({
       where: { 
         users_id, 
         date: { gte: startOfTargetDay, lte: endOfTargetDay } 
@@ -43,7 +43,7 @@ export async function POST(request: NextRequest) {
     if (attendanceRecord) {
       // Update existing record to ABSENT only if it's still PENDING
       if (attendanceRecord.status === 'PENDING') {
-        attendanceRecord = await prisma.attendance.update({
+        attendanceRecord = await prisma.attendances.update({
           where: { attendances_id: attendanceRecord.attendances_id },
           data: { status: 'ABSENT' }
         })
@@ -57,11 +57,15 @@ export async function POST(request: NextRequest) {
       const normalizedDate = new Date(targetDate.getFullYear(), targetDate.getMonth(), targetDate.getDate(), 0, 0, 0, 0)
       
       // Create new ABSENT record
-      attendanceRecord = await prisma.attendance.create({
+      const { randomBytes } = await import('crypto')
+      const attendanceId = randomBytes(12).toString('hex')
+      attendanceRecord = await prisma.attendances.create({
         data: {
+          attendances_id: attendanceId,
           users_id,
           date: normalizedDate,
-          status: 'ABSENT'
+          status: 'ABSENT',
+          updatedAt: new Date()
         }
       })
     }
