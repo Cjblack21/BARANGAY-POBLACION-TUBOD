@@ -12,7 +12,7 @@ export async function GET() {
     }
 
     // Get all personnel types with user count
-    const personnelTypes = await prisma.personnelType.findMany({
+    const personnelTypes = await prisma.personnel_types.findMany({
       where: { isActive: true },
       include: {
         _count: {
