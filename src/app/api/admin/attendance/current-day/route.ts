@@ -124,15 +124,14 @@ export async function GET() {
       nowPhilippineTime: now.toISOString(),
       nowHHmm,
       cutoffTime: attendanceSettings?.timeOutEnd,
-      isPastCutoff: nowHHmm > (attendanceSettings?.timeOutEnd || ''),
-      noTimeOutCutoff: attendanceSettings?.noTimeOutCutoff
+      isPastCutoff: nowHHmm > (attendanceSettings?.timeOutEnd || '')
     })
     
     // Function to check if time-out window has passed
     const isTimeOutWindowPassed = () => {
-      if (!attendanceSettings || attendanceSettings.noTimeOutCutoff) {
-        console.log('⏰ Cutoff DISABLED')
-        return false // No time-out restrictions, don't auto-mark as absent
+      if (!attendanceSettings) {
+        console.log('⏰ No attendance settings')
+        return false // No settings, don't auto-mark as absent
       }
       if (!attendanceSettings.timeOutEnd) {
         console.log('⏰ No cutoff time set')
