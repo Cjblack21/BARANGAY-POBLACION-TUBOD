@@ -26,13 +26,13 @@ export async function GET(request: NextRequest) {
     const monthEnd = endOfMonth(monthStart)
 
     // Get all active personnel
-    const users = await prisma.user.findMany({
+    const users = await prisma.users.findMany({
       where: { 
         isActive: true, 
         role: 'PERSONNEL' 
       },
       include: {
-        personnelType: {
+        personnel_types: {
           select: {
             name: true,
             basicSalary: true
@@ -44,7 +44,7 @@ export async function GET(request: NextRequest) {
     const userIds = users.map(u => u.users_id)
 
     // Get payroll entries for the month
-    const payrollEntries = await prisma.payrollEntry.findMany({
+    const payrollEntries = await prisma.payroll_entries.findMany({
       where: {
         users_id: { in: userIds },
         processedAt: {
@@ -55,7 +55,7 @@ export async function GET(request: NextRequest) {
     })
 
     // Get deductions for the month
-    const deductions = await prisma.deduction.findMany({
+    const deductions = await prisma.deductions.findMany({
       where: {
         users_id: { in: userIds },
         appliedAt: {
@@ -64,16 +64,12 @@ export async function GET(request: NextRequest) {
         }
       },
       include: {
-        deductionType: {
-          select: {
-            name: true
-          }
-        }
+        deduction_types: true
       }
     })
 
     // Get loans for the month
-    const loans = await prisma.loan.findMany({
+    const loans = await prisma.loans.findMany({
       where: {
         users_id: { in: userIds },
         status: 'ACTIVE',
@@ -83,7 +79,7 @@ export async function GET(request: NextRequest) {
     })
 
     // Get attendance for the month
-    const attendance = await prisma.attendance.findMany({
+    const attendance = await prisma.attendances.findMany({
       where: {
         users_id: { in: userIds },
         date: {
@@ -107,7 +103,7 @@ export async function GET(request: NextRequest) {
       }, 0)
 
       const netPay = userPayroll.reduce((sum, entry) => sum + Number(entry.netPay), 0)
-      const basicSalary = user.personnelType?.basicSalary ? Number(user.personnelType.basicSalary) : 0
+      const basicSalary = user.personnel_types?.basicSalary ? Number(user.personnel_types.basicSalary) : 0
       
       const presentDays = userAttendance.filter(record => record.status === 'PRESENT').length
       const totalDays = userAttendance.length
@@ -117,7 +113,7 @@ export async function GET(request: NextRequest) {
         'Employee ID': user.users_id,
         'Name': user.name || '',
         'Email': user.email,
-        'Personnel Type': user.personnelType?.name || 'No Type',
+        'Personnel Type': user.personnel_types?.name || 'No Type',
         'Basic Salary': basicSalary,
         'Total Deductions': totalDeductions,
         'Total Loans': totalLoans,
