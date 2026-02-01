@@ -11,13 +11,13 @@ export async function GET() {
     }
 
     // Check all payroll entries
-    const allPayrollEntries = await prisma.payrollEntry.findMany({
+    const allPayrollEntries = await prisma.payroll_entries.findMany({
       select: {
         payroll_entries_id: true,
         status: true,
         releasedAt: true,
         processedAt: true,
-        user: {
+        users: {
           select: {
             name: true,
             email: true
@@ -28,7 +28,7 @@ export async function GET() {
     })
 
     // Check archived entries specifically
-    const archivedEntries = await prisma.payrollEntry.findMany({
+    const archivedEntries = await prisma.payroll_entries.findMany({
       where: {
         status: 'ARCHIVED'
       },
@@ -36,7 +36,7 @@ export async function GET() {
         payroll_entries_id: true,
         status: true,
         releasedAt: true,
-        user: {
+        users: {
           select: {
             name: true,
             email: true
