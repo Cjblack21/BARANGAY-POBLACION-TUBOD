@@ -13,16 +13,25 @@ export async function GET(request: NextRequest) {
 
     // Fetch ALL payroll entries that have a saved breakdownSnapshot
     // Don't filter by status or period - just get anything with a snapshot
-    const releasedPayrolls = await prisma.payrollEntry.findMany({
+    const releasedPayrolls = await prisma.payroll_entries.findMany({
       where: {
         breakdownSnapshot: {
           not: null // Only entries with saved snapshots
         }
       },
       include: {
-        user: {
-          include: {
-            personnelType: true
+        users: {
+          select: {
+            users_id: true,
+            name: true,
+            email: true,
+            personnel_types: {
+              select: {
+                name: true,
+                type: true,
+                department: true
+              }
+            }
           }
         }
       },
@@ -59,11 +68,11 @@ export async function GET(request: NextRequest) {
 
       return {
         users_id: entry.users_id,
-        name: entry.user?.name || 'N/A',
-        email: entry.user?.email || 'N/A',
-        personnelType: snapshot.personnelType || entry.user?.personnelType?.name,
-        personnelTypeCategory: entry.user?.personnelType?.type,
-        department: entry.user?.personnelType?.department,
+        name: entry.users.name,
+        email: entry.users.email,
+        personnelType: entry.users.personnel_types?.name || 'N/A',
+        personnelTypeCategory: entry.users.personnel_types?.type,
+        department: entry.users.personnel_types?.department,
         totalWorkHours: snapshot.totalWorkHours || 0,
         finalNetPay: snapshot.netPay, // USE EXACT NET PAY FROM SNAPSHOT
         status: entry.status,
