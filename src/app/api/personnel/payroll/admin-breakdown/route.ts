@@ -18,7 +18,7 @@ export async function GET(request: NextRequest) {
     let userId = session.user.id as string | undefined
     if (!userId && session.user.email) {
       console.log('🔍 Looking up user by email:', session.user.email)
-      const user = await prisma.user.findUnique({
+      const user = await prisma.users.findUnique({
         where: { email: session.user.email },
         select: { users_id: true }
       })
@@ -46,10 +46,10 @@ export async function GET(request: NextRequest) {
       // Fallback: fetch directly from database
       console.log('📦 Fetching from database directly...')
       
-      const userWithPayroll = await prisma.user.findUnique({
+      const userWithPayroll = await prisma.users.findUnique({
         where: { users_id: userId },
         include: {
-          personnelType: {
+          personnel_types: {
             select: {
               name: true,
               basicSalary: true
@@ -82,7 +82,7 @@ export async function GET(request: NextRequest) {
       periodEnd.setDate(periodEnd.getDate() + 13)
       periodEnd.setHours(23, 59, 59, 999)
       
-      const deductions = await prisma.deduction.findMany({
+      const deductions = await prisma.deductions.findMany({
         where: {
           users_id: userId,
           appliedAt: { gte: periodStart, lte: periodEnd }
@@ -103,12 +103,12 @@ export async function GET(request: NextRequest) {
           isMandatory: true
         })),
         ...deductions
-          .filter(d => !mandatoryTypeNames.has(d.deductionType.name)) // Avoid duplicates
+          .filter(d => !mandatoryTypeNames.has(d.deduction_types.name)) // Avoid duplicates
           .map(d => ({
-            type: d.deductionType.name,
+            type: d.deduction_types.name,
             amount: Number(d.amount),
-            description: d.deductionType.description || '-',
-            isMandatory: d.deductionType.isMandatory || false
+            description: d.deduction_types.description || '-',
+            isMandatory: d.deduction_types.isMandatory || false
           }))
       ]
       
@@ -116,9 +116,9 @@ export async function GET(request: NextRequest) {
         userId: userWithPayroll.users_id,
         name: userWithPayroll.name,
         email: userWithPayroll.email,
-        personnelType: userWithPayroll.personnelType?.name || 'N/A',
-        basicSalary: Number(userWithPayroll.personnelType?.basicSalary || 0),
-        biweeklyBasicSalary: Number(userWithPayroll.personnelType?.basicSalary || 0) / 2,
+        personnelType: userWithPayroll.personnel_types?.name || 'N/A',
+        basicSalary: Number(userWithPayroll.personnel_types?.basicSalary || 0),
+        biweeklyBasicSalary: Number(userWithPayroll.personnel_types?.basicSalary || 0) / 2,
         attendanceDeductions: 0,
         loanPayments: 0,
         databaseDeductions: deductions.reduce((sum, d) => sum + Number(d.amount), 0),
@@ -167,17 +167,17 @@ export async function GET(request: NextRequest) {
     const attendanceEndDate = periodEnd > today ? today : periodEnd
     
     // Fetch actual attendance records
-    const attendanceRecords = await prisma.attendance.findMany({
+    const attendanceRecords = await prisma.attendances.findMany({
       where: { users_id: userId, date: { gte: periodStart, lte: attendanceEndDate } },
       orderBy: { date: 'asc' }
     })
     
     // Get user's basic salary for deduction calculations
-    const user = await prisma.user.findUnique({ 
+    const user = await prisma.users.findUnique({ 
       where: { users_id: userId }, 
-      select: { personnelType: { select: { basicSalary: true } } } 
+      select: { personnel_types: { select: { basicSalary: true } } } 
     })
-    const basicSalary = user?.personnelType?.basicSalary ? Number(user.personnelType.basicSalary) : 0
+    const basicSalary = user?.personnel_types?.basicSalary ? Number(user.personnel_types.basicSalary) : 0
     
     // Calculate working days in period (same logic as personnel payroll route)
     const timeInEnd = attendanceSettings.timeInEnd || '09:30'
