@@ -53,13 +53,13 @@ async function main() {
     // Also check for individual deduction records that might reference absence
     const allDeductions = await prisma.deductions.findMany({
       include: {
-        deductionType: true
+        deduction_types: true
       }
     })
     
     const absenceDeductions = allDeductions.filter(d => 
-      d.deductionType.name.toLowerCase().includes('absence') ||
-      d.deductionType.name.toLowerCase().includes('absent')
+      d.deduction_types.name.toLowerCase().includes('absence') ||
+      d.deduction_types.name.toLowerCase().includes('absent')
     )
     
     if (absenceDeductions.length > 0) {
@@ -68,7 +68,7 @@ async function main() {
         await prisma.deductions.delete({
           where: { deductions_id: deduction.deductions_id }
         })
-        console.log(`🗑️  Deleted orphaned deduction: ${deduction.deductionType.name}`)
+        console.log(`🗑️  Deleted orphaned deduction: ${deduction.deduction_types.name}`)
       }
     } else {
       console.log('✅ No orphaned absence deduction records found')
