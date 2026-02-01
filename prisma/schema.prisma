@@ -20,6 +20,21 @@ model activity_logs {
   @@index([users_id], map: "activity_logs_users_id_fkey")
 }
 
+model attendances {
+  attendances_id String              @id
+  users_id       String
+  date           DateTime
+  timeIn         DateTime?
+  timeOut        DateTime?
+  status         attendances_status  @default(PENDING)
+  createdAt      DateTime            @default(now())
+  updatedAt      DateTime
+  users          users               @relation(fields: [users_id], references: [users_id])
+
+  @@unique([users_id, date])
+  @@index([users_id], map: "attendances_users_id_fkey")
+}
+
 model attendance_settings {
   attendance_settings_id String    @id
   autoMarkAbsent         Boolean   @default(true)
@@ -225,6 +240,7 @@ model users {
   createdAt          DateTime          @default(now())
   updatedAt          DateTime
   activity_logs      activity_logs[]
+  attendances        attendances[]
   deductions         deductions[]
   loans              loans[]
   overload_pays      overload_pays[]
@@ -278,4 +294,12 @@ enum payroll_entries_status {
   PENDING
   RELEASED
   ARCHIVED
+}
+
+enum attendances_status {
+  PENDING
+  PRESENT
+  ABSENT
+  LATE
+  PARTIAL
 }
