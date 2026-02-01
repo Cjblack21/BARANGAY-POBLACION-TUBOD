@@ -10,7 +10,7 @@ function generateSixDigitId() {
 
 // Function to check if ID already exists
 async function idExists(id: string) {
-  const user = await prisma.user.findUnique({
+  const user = await prisma.users.findUnique({
     where: { users_id: id }
   })
   return !!user
@@ -33,7 +33,7 @@ async function main() {
 
   // Create Admin user
   const adminId = await generateUniqueId()
-  const admin = await prisma.user.upsert({
+  const admin = await prisma.users.upsert({
     where: { email: 'admin@pms.com' },
     update: {},
     create: {
@@ -43,12 +43,13 @@ async function main() {
       name: 'System Administrator',
       role: 'ADMIN',
       isActive: true,
+      updatedAt: new Date(),
     },
   })
 
   // Create Personnel users
   const personnel1Id = await generateUniqueId()
-  const personnel1 = await prisma.user.upsert({
+  const personnel1 = await prisma.users.upsert({
     where: { email: 'john.doe@pms.com' },
     update: {},
     create: {
@@ -58,11 +59,12 @@ async function main() {
       name: 'John Doe',
       role: 'PERSONNEL',
       isActive: true,
+      updatedAt: new Date(),
     },
   })
 
   const personnel2Id = await generateUniqueId()
-  const personnel2 = await prisma.user.upsert({
+  const personnel2 = await prisma.users.upsert({
     where: { email: 'jane.smith@pms.com' },
     update: {},
     create: {
@@ -72,11 +74,12 @@ async function main() {
       name: 'Jane Smith',
       role: 'PERSONNEL',
       isActive: true,
+      updatedAt: new Date(),
     },
   })
 
   const personnel3Id = await generateUniqueId()
-  const personnel3 = await prisma.user.upsert({
+  const personnel3 = await prisma.users.upsert({
     where: { email: 'mike.johnson@pms.com' },
     update: {},
     create: {
@@ -86,6 +89,7 @@ async function main() {
       name: 'Mike Johnson',
       role: 'PERSONNEL',
       isActive: true,
+      updatedAt: new Date(),
     },
   })
 
@@ -98,10 +102,18 @@ async function main() {
     { name: 'Pag-IBIG', description: 'Home Development Mutual Fund', amount: 0 },
   ]
   for (const t of defaultTypes) {
-    await prisma.deductionType.upsert({
+    const deductionTypeId = await generateUniqueId()
+    await prisma.deduction_types.upsert({
       where: { name: t.name },
       update: {},
-      create: { name: t.name, description: t.description, amount: t.amount, isActive: true },
+      create: { 
+        deduction_types_id: deductionTypeId,
+        name: t.name, 
+        description: t.description, 
+        amount: t.amount, 
+        isActive: true, 
+        updatedAt: new Date() 
+      },
     })
   }
 
