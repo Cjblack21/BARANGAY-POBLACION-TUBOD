@@ -7,7 +7,7 @@ export const runtime = 'nodejs'
 
 export async function GET() {
   try {
-    const settings = await prisma.attendanceSettings.findFirst()
+    const settings = await prisma.attendance_settings.findFirst()
     return NextResponse.json({ settings: settings || null })
   } catch (error) {
     console.error('Error fetching attendance settings (public):', error)
