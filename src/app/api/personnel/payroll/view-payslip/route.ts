@@ -14,7 +14,7 @@ export async function POST(request: NextRequest) {
     const { periodStart, periodEnd } = await request.json()
 
     // Get the payroll entry for this user and period (from archived payroll)
-    const payrollEntry = await prisma.payrollEntry.findFirst({
+    const payrollEntry = await prisma.payroll_entries.findFirst({
       where: {
         users_id: session.user.id,
         periodStart: new Date(periodStart),
@@ -24,9 +24,9 @@ export async function POST(request: NextRequest) {
         }
       },
       include: {
-        user: {
+        users: {
           include: {
-            personnelType: true
+            personnel_types: true
           }
         }
       }
@@ -219,11 +219,11 @@ export async function POST(request: NextRequest) {
 
     <div class="info-row">
       <span class="label">Staff:</span>
-      <span>${payrollEntry.user?.name || 'N/A'}</span>
+      <span>${payrollEntry.users?.name || 'N/A'}</span>
     </div>
     <div class="info-row">
       <span class="label">Email:</span>
-      <span>${payrollEntry.user?.email || 'N/A'}</span>
+      <span>${payrollEntry.users?.email || 'N/A'}</span>
     </div>
     <div class="info-row">
       <span class="label">ID Number:</span>
