@@ -14,7 +14,7 @@ async function archiveReleasedPayrollDeductions() {
     console.log('🔍 Finding all RELEASED payroll entries...')
 
     // Get all released and archived payroll entries
-    const releasedPayrolls = await prisma.payrollEntry.findMany({
+    const releasedPayrolls = await prisma.payroll_entries.findMany({
       where: {
         status: { in: ['RELEASED', 'ARCHIVED'] }
       },
@@ -46,7 +46,7 @@ async function archiveReleasedPayrollDeductions() {
         where: {
           users_id: payroll.users_id,
           archivedAt: null,
-          deductionType: {
+          deduction_types: {
             isMandatory: false
           },
           appliedAt: {
@@ -55,7 +55,7 @@ async function archiveReleasedPayrollDeductions() {
           }
         },
         include: {
-          deductionType: {
+          deduction_types: {
             select: {
               name: true,
               isMandatory: true
@@ -66,11 +66,11 @@ async function archiveReleasedPayrollDeductions() {
 
       // Filter out attendance-related deductions (Late, Absent, etc.)
       const nonMandatory = userDeductions.filter(d => 
-        !d.deductionType.name.includes('Late') &&
-        !d.deductionType.name.includes('Absent') &&
-        !d.deductionType.name.includes('Early') &&
-        !d.deductionType.name.includes('Partial') &&
-        !d.deductionType.name.includes('Tardiness')
+        !d.deduction_types.name.includes('Late') &&
+        !d.deduction_types.name.includes('Absent') &&
+        !d.deduction_types.name.includes('Early') &&
+        !d.deduction_types.name.includes('Partial') &&
+        !d.deduction_types.name.includes('Tardiness')
       )
 
       if (nonMandatory.length > 0) {
@@ -81,7 +81,7 @@ async function archiveReleasedPayrollDeductions() {
         if (idsToArchive.length > 0) {
           console.log(`   🗑️  Found ${idsToArchive.length} non-mandatory deductions to archive:`)
           nonMandatory.forEach(d => {
-            console.log(`      - ${d.deductionType.name}: ₱${d.amount}`)
+            console.log(`      - ${d.deduction_types.name}: ₱${d.amount}`)
           })
 
           // Archive them
