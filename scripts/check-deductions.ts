@@ -3,7 +3,7 @@ import { PrismaClient } from '@prisma/client'
 const prisma = new PrismaClient()
 
 async function main() {
-  const all = await prisma.deductionType.findMany()
+  const all = await prisma.deduction_types.findMany()
   
   console.log('All Deduction Types:')
   all.forEach(d => {

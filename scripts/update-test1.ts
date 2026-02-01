@@ -4,12 +4,12 @@ const prisma = new PrismaClient()
 
 async function main() {
   // Check if test1 exists
-  const test1 = await prisma.deductionType.findFirst({
+  const test1 = await prisma.deduction_types.findFirst({
     where: { name: 'test1' }
   })
   
   if (test1) {
-    await prisma.deductionType.update({
+    await prisma.deduction_types.update({
       where: { deduction_types_id: test1.deduction_types_id },
       data: { isMandatory: true }
     })
@@ -19,7 +19,7 @@ async function main() {
   }
   
   // Show all current deductions
-  const all = await prisma.deductionType.findMany({
+  const all = await prisma.deduction_types.findMany({
     orderBy: { isMandatory: 'desc' }
   })
   

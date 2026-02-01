@@ -3,9 +3,9 @@ import { PrismaClient } from '@prisma/client'
 const prisma = new PrismaClient()
 
 async function main() {
-  const deductions = await prisma.deduction.findMany({
+  const deductions = await prisma.deductions.findMany({
     where: {
-      user: { name: 'Mike Johnson' },
+      users: { name: 'Mike Johnson' },
       archivedAt: null
     },
     include: {

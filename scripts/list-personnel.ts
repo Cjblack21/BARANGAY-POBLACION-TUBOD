@@ -3,7 +3,7 @@ import { PrismaClient } from '@prisma/client'
 const prisma = new PrismaClient()
 
 async function listPersonnel() {
-  const users = await prisma.user.findMany({
+  const users = await prisma.users.findMany({
     where: { role: 'PERSONNEL', isActive: true },
     select: { name: true, email: true, users_id: true }
   })

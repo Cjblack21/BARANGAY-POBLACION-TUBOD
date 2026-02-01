@@ -10,7 +10,7 @@ async function main() {
   const standardMandatory = ['PhilHealth', 'SSS', 'Pag-IBIG']
   
   for (const name of standardMandatory) {
-    await prisma.deductionType.updateMany({
+    await prisma.deduction_types.updateMany({
       where: { name },
       data: { isMandatory: true }
     })
@@ -29,7 +29,7 @@ async function main() {
   console.log('✅ Updated mandatory deductions successfully!')
   
   // Show the results
-  const mandatory = await prisma.deductionType.findMany({
+  const mandatory = await prisma.deduction_types.findMany({
     where: { isMandatory: true }
   })
   

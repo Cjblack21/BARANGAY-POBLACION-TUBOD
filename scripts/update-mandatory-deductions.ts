@@ -19,7 +19,7 @@ async function main() {
   ]
 
   // First, let's see what deduction types exist
-  const allTypes = await prisma.deductionType.findMany({
+  const allTypes = await prisma.deduction_types.findMany({
     select: {
       deduction_types_id: true,
       name: true,
@@ -35,7 +35,7 @@ async function main() {
   })
 
   // Update all matching deduction types to be mandatory
-  const result = await prisma.deductionType.updateMany({
+  const result = await prisma.deduction_types.updateMany({
     where: {
       name: {
         in: mandatoryDeductionNames
@@ -49,7 +49,7 @@ async function main() {
   console.log(`\n✅ Updated ${result.count} deduction types to mandatory`)
 
   // Fetch updated deduction types to show in response
-  const updatedTypes = await prisma.deductionType.findMany({
+  const updatedTypes = await prisma.deduction_types.findMany({
     where: {
       name: {
         in: mandatoryDeductionNames

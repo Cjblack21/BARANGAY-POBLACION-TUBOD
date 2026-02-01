@@ -3,16 +3,16 @@ import { PrismaClient } from '@prisma/client'
 const prisma = new PrismaClient()
 
 async function calculateDailyRate() {
-  const users = await prisma.user.findMany({
+  const users = await prisma.users.findMany({
     where: { role: 'PERSONNEL', isActive: true },
-    include: { personnelType: true }
+    include: { personnel_types: true }
   })
   
   console.log('📊 Daily Salary Rates:\n')
   
   for (const user of users) {
-    if (user.personnelType?.basicSalary) {
-      const monthlySalary = Number(user.personnelType.basicSalary)
+    if (user.personnel_types?.basicSalary) {
+      const monthlySalary = Number(user.personnel_types.basicSalary)
       const biweeklySalary = monthlySalary / 2
       
       // Assuming 22 working days per month

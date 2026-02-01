@@ -42,14 +42,14 @@ async function main() {
   ]
 
   for (const type of mandatoryTypes) {
-    const existing = await prisma.deductionType.findFirst({
+    const existing = await prisma.deduction_types.findFirst({
       where: { name: type.name }
     })
 
     if (existing) {
       console.log(`✓ ${type.name} already exists, skipping...`)
     } else {
-      await prisma.deductionType.create({
+      await prisma.deduction_types.create({
         data: type
       })
       console.log(`✓ Created ${type.name}`)
