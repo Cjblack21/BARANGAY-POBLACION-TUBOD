@@ -12,7 +12,7 @@ export async function DELETE() {
     }
 
     // Check if user is admin
-    const user = await prisma.user.findUnique({
+    const user = await prisma.users.findUnique({
       where: { users_id: session.user.id },
       select: { role: true },
     })
@@ -25,7 +25,7 @@ export async function DELETE() {
     
     // Delete all attendance-related deductions (Late Arrival, Early Timeout, Absence)
     console.log('🗑️ Step 1: Deleting attendance-related deductions...')
-    const deductionTypes = await prisma.deductionType.findMany({
+    const deductionTypes = await prisma.deduction_types.findMany({
       where: {
         OR: [
           { name: 'Late Arrival' },
@@ -36,7 +36,7 @@ export async function DELETE() {
     })
     
     const deductionTypeIds = deductionTypes.map(dt => dt.deduction_types_id)
-    const deductionsDeleted = await prisma.deduction.deleteMany({
+    const deductionsDeleted = await prisma.deductions.deleteMany({
       where: {
         deduction_types_id: { in: deductionTypeIds }
       }
@@ -45,7 +45,7 @@ export async function DELETE() {
     
     // Delete all attendance records
     console.log('🗑️ Step 2: Deleting all attendance records...')
-    const attendanceDeleted = await prisma.attendance.deleteMany({})
+    const attendanceDeleted = await prisma.attendances.deleteMany({})
     console.log(`✅ Deleted ${attendanceDeleted.count} attendance records`)
 
     return NextResponse.json({ 
