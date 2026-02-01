@@ -88,8 +88,8 @@ export async function POST(request: NextRequest) {
     console.log('Users data:', users.map(u => ({
       users_id: u.users_id,
       name: u.name,
-      hasPersonnelType: !!u.personnelType,
-      basicSalary: u.personnelType?.basicSalary
+      hasPersonnelType: !!u.personnel_types,
+      basicSalary: u.personnel_types?.basicSalary
     })))
 
     const userIds = users.map(u => u.users_id)
@@ -184,7 +184,7 @@ export async function POST(request: NextRequest) {
     }
 
     for (const user of users) {
-      const basicSalary = user.personnelType?.basicSalary ? Number(user.personnelType.basicSalary) : 0
+      const basicSalary = user.personnel_types?.basicSalary ? Number(user.personnel_types.basicSalary) : 0
       const deductionData = deductionsMap.get(user.users_id) || { total: 0, details: [] }
       const totalDeductions = deductionData.total
       const loanPayments = loanPaymentsMap.get(user.users_id) || 0
