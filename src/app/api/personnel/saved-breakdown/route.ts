@@ -28,16 +28,17 @@ export async function GET(request: NextRequest) {
     }
 
     // Return EXACT data from admin's view
+    const entry = userEntry as any
     return NextResponse.json({
-      monthlyBasicSalary: userEntry.personnelType?.basicSalary || 0,
-      periodSalary: (userEntry.personnelType?.basicSalary || 0) / 2,
-      overloadPay: userEntry.totalAdditions || 0,
-      totalDeductions: userEntry.totalDeductions || 0,
-      netPay: userEntry.netSalary || 0,
-      attendanceDeductions: userEntry.attendanceDeductions || 0,
-      loanDeductions: userEntry.loanPayments || 0,
-      otherDeductions: userEntry.databaseDeductions || 0,
-      status: userEntry.status,
+      monthlyBasicSalary: entry.personnelType?.basicSalary || 0,
+      periodSalary: (entry.personnelType?.basicSalary || 0) / 2,
+      overloadPay: entry.totalAdditions || 0,
+      totalDeductions: entry.totalDeductions || 0,
+      netPay: entry.netSalary || 0,
+      attendanceDeductions: entry.attendanceDeductions || 0,
+      loanDeductions: entry.loanPayments || 0,
+      otherDeductions: entry.databaseDeductions || 0,
+      status: entry.status,
       periodStart: result.summary.periodStart,
       periodEnd: result.summary.periodEnd
     })
