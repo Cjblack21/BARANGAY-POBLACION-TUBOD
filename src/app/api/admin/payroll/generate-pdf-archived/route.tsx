@@ -29,7 +29,7 @@ export async function POST(request: NextRequest) {
     console.log('📅 Searching for entries with exact period:', periodStartDate, 'to', periodEndDate)
 
     // Get archived payroll entries for this period (can be RELEASED or ARCHIVED status)
-    const archivedEntries = await prisma.payrollEntry.findMany({
+    const archivedEntries = await prisma.payroll_entries.findMany({
       where: {
         periodStart: {
           gte: new Date(periodStart + 'T00:00:00.000Z'),
@@ -44,7 +44,7 @@ export async function POST(request: NextRequest) {
         }
       },
       include: {
-        user: {
+        users: {
           select: {
             users_id: true,
             name: true,
@@ -72,7 +72,7 @@ export async function POST(request: NextRequest) {
 
     // Get the actual attendance data for this period to show real work hours
     const userIds = archivedEntries.map(e => e.users_id)
-    const attendance = await prisma.attendance.findMany({
+    const attendance = await prisma.attendances.findMany({
       where: {
         users_id: { in: userIds },
         date: {
@@ -103,13 +103,13 @@ export async function POST(request: NextRequest) {
       const overtime = Number(entry.overtime || 0)
       const deductions = Number(entry.deductions)
       const netPay = Number(entry.netPay)
-      const workHours = workHoursMap.get(entry.users_id) || 0
+      const workHours = workHoursMap.get(entry.users.id) || 0
       const grossPay = basicSalary + overtime
 
       return {
-        users_id: entry.users_id,
-        name: entry.user?.name || 'Unknown',
-        email: entry.user?.email || '',
+        users_id: entry.users.id,
+        name: entry.users.name,
+        email: entry.users.email || '',
         totalHours: workHours,
         totalSalary: netPay,
         released: true,
@@ -132,7 +132,7 @@ export async function POST(request: NextRequest) {
     console.log('📄 Prepared payslip data with real values for', payslipData.length, 'employees')
 
     // Get header settings
-    const headerSettings = await prisma.headerSettings.findFirst()
+    const headerSettings = await prisma.header_settings.findFirst()
 
     // Generate PDF
     const pdfStream = await renderToStream(
