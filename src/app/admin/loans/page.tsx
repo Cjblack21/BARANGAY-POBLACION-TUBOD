@@ -371,10 +371,12 @@ export default function LoansPage() {
   const completedLoans = items.filter(item => item.status === 'COMPLETED').length
   const totalLoanAmount = items.reduce((sum, item) => sum + item.amount, 0)
   const totalOutstanding = items.reduce((sum, item) => sum + item.balance, 0)
-  const totalPerPayrollPayments = items.reduce((sum, item) => {
-    const monthlyPayment = item.amount * (item.monthlyPaymentPercent / 100)
-    return sum + monthlyPayment
-  }, 0)
+  const totalPerPayrollPayments = items
+    .filter(item => item.status === 'ACTIVE')
+    .reduce((sum, item) => {
+      const monthlyPayment = item.amount * (item.monthlyPaymentPercent / 100)
+      return sum + monthlyPayment
+    }, 0)
 
   const activeLoansCount = items.filter(item => item.status === 'ACTIVE').length
   const pendingLoansCount = items.filter(item => item.status === 'PENDING').length
@@ -383,27 +385,36 @@ export default function LoansPage() {
   const currentList = activeTab === 'archived' ? filteredArchived : filtered
 
   return (
-    <div className="flex-1 space-y-6 p-4 pt-6">
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-        <div className="space-y-1">
-          <h2 className="text-2xl sm:text-3xl font-bold tracking-tight flex items-center gap-2">
-            <Banknote className="h-6 w-6 sm:h-8 sm:w-8 text-blue-600" />
-            Loan Management
-          </h2>
-          <p className="text-muted-foreground">Manage staff loans and approve requests</p>
-        </div>
-        <div className="flex items-center gap-2 flex-wrap">
-          <Dialog open={open} onOpenChange={(newOpen) => {
-            setOpen(newOpen)
-            if (newOpen) {
-              loadUsers()
-              setUserSearch("")
-            }
-          }}>
+    <div className="flex-1 space-y-6 p-4 md:p-6 pt-6">
+      {/* Header Section */}
+      <div className="flex flex-col gap-4">
+        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+          <div className="space-y-2">
+            <div className="flex items-center gap-3">
+              <div className="p-2 bg-blue-100 dark:bg-blue-900/20 rounded-lg">
+                <Banknote className="h-6 w-6 text-blue-600 dark:text-blue-400" />
+              </div>
+              <div>
+                <h2 className="text-2xl md:text-3xl font-bold tracking-tight">
+                  Loan Management
+                </h2>
+                <p className="text-sm text-muted-foreground">Manage staff loans and approve requests</p>
+              </div>
+            </div>
+          </div>
+          <div className="flex items-center gap-2 flex-wrap">
+            <Dialog open={open} onOpenChange={(newOpen) => {
+              setOpen(newOpen)
+              if (newOpen) {
+                loadUsers()
+                setUserSearch("")
+              }
+            }}>
             <DialogTrigger asChild>
-              <Button variant="outline" className="bg-blue-600 text-white hover:bg-blue-700 hover:text-white">
-                <Plus className="h-4 w-4 mr-2" />
-                Add Loan
+              <Button className="bg-blue-600 hover:bg-blue-700 text-white gap-2">
+                <Plus className="h-4 w-4" />
+                <span className="hidden sm:inline">Add Loan</span>
+                <span className="sm:hidden">Add</span>
               </Button>
             </DialogTrigger>
             <DialogContent className="w-full sm:max-w-6xl max-h-[90vh] overflow-y-auto" style={{ width: '95vw', maxWidth: '1200px' }}>
@@ -432,7 +443,7 @@ export default function LoansPage() {
                         <div className="relative">
                           <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                           <Input
-                            placeholder="Search employee..."
+                            placeholder="Search staff..."
                             value={userSearch}
                             onChange={(e) => setUserSearch(e.target.value)}
                             className="w-full pl-10"
@@ -674,11 +685,12 @@ export default function LoansPage() {
               </div>
             </DialogContent>
           </Dialog>
+          </div>
         </div>
       </div>
 
       {/* Tab Navigation */}
-      <div className="flex gap-2 border-b">
+      <div className="flex gap-2 border-b overflow-x-auto">
         <Button
           variant={activeTab === 'active' ? 'default' : 'ghost'}
           onClick={() => setActiveTab('active')}
@@ -722,9 +734,9 @@ export default function LoansPage() {
         </Button>
       </div>
 
-      {/* Statistics Cards - Updated to include Pending */}
+      {/* Statistics Cards */}
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        <Card className="border-l-4 border-l-blue-500">
+        <Card className="cursor-pointer hover:shadow-xl transition-all duration-300 hover:scale-105 border-l-4 border-l-blue-500">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Active Loans</CardTitle>
             <User className="h-4 w-4 text-blue-600" />
@@ -735,7 +747,7 @@ export default function LoansPage() {
           </CardContent>
         </Card>
 
-        <Card className="border-l-4 border-l-yellow-500">
+        <Card className="cursor-pointer hover:shadow-xl transition-all duration-300 hover:scale-105 border-l-4 border-l-yellow-500">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Pending Requests</CardTitle>
             <Clock className="h-4 w-4 text-yellow-600" />
@@ -746,51 +758,71 @@ export default function LoansPage() {
           </CardContent>
         </Card>
 
-        <Card className="border-l-4 border-l-green-500">
+        <Card className="cursor-pointer hover:shadow-xl transition-all duration-300 hover:scale-105 border-l-4 border-l-green-500">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Total Disbursed</CardTitle>
-            <span className="text-2xl font-bold text-blue-600">₱</span>
+            <Banknote className="h-4 w-4 text-green-600" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">₱{totalLoanAmount.toLocaleString()}</div>
+            <div className="text-2xl font-bold">₱{totalLoanAmount.toLocaleString('en-PH', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</div>
             <p className="text-xs text-muted-foreground">All time loan amount</p>
           </CardContent>
         </Card>
 
-        <Card className="border-l-4 border-l-purple-500">
+        <Card className="cursor-pointer hover:shadow-xl transition-all duration-300 hover:scale-105 border-l-4 border-l-purple-500">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Per Payroll</CardTitle>
             <CreditCard className="h-4 w-4 text-purple-600" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">₱{totalPerPayrollPayments.toLocaleString(undefined, { maximumFractionDigits: 2 })}</div>
+            <div className="text-2xl font-bold">₱{totalPerPayrollPayments.toLocaleString('en-PH', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</div>
             <p className="text-xs text-muted-foreground">Per-payroll collection</p>
           </CardContent>
         </Card>
       </div>
 
-      <Card>
-        <CardHeader>
+      {/* Loans List */}
+      <Card className="border-0 shadow-md">
+        <CardHeader className="border-b bg-muted/30">
           <div className="flex flex-col gap-4">
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-              <div className="flex items-center gap-2">
-                <Banknote className="h-5 w-5 text-muted-foreground" />
-                <CardTitle>
+            <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+              <div className="flex items-center gap-3">
+                <div className="p-2 bg-primary/10 rounded-lg">
+                  <Banknote className="h-5 w-5 text-primary" />
+                </div>
+                <CardTitle className="text-xl">
                   {activeTab === 'active' ? 'Active Loans' :
                     activeTab === 'pending' ? 'Pending Requests' :
                       activeTab === 'rejected' ? 'Rejected Loans' : 'Archived Loans'}
                 </CardTitle>
               </div>
-              <div className="relative w-full sm:w-64">
+              <div className="relative w-full md:w-80">
                 <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                 <Input
-                  placeholder="Search..."
+                  placeholder="Search staff by name or email..."
                   value={search}
                   onChange={(e) => setSearch(e.target.value)}
                   className="w-full pl-10"
                 />
               </div>
             </div>
+            {selectedIds.length > 0 && (
+              <div className="flex items-center justify-between p-3 bg-red-50 dark:bg-red-900/20 rounded-lg border border-red-200 dark:border-red-800">
+                <span className="text-sm font-medium text-red-700 dark:text-red-300">
+                  {selectedIds.length} item(s) selected
+                </span>
+                <Button
+                  variant="destructive"
+                  size="sm"
+                  onClick={bulkDelete}
+                  disabled={isDeleting}
+                  className="gap-2"
+                >
+                  <Trash2 className="h-4 w-4" />
+                  {isDeleting ? 'Deleting...' : 'Delete Selected'}
+                </Button>
+              </div>
+            )}
           </div>
         </CardHeader>
         <CardContent>

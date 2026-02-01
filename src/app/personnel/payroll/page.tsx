@@ -144,7 +144,7 @@ export default function PersonnelPayrollPage() {
       setLoading(true)
       console.log('Loading payroll data...')
 
-      const response = await fetch('/api/personnel/payroll', { cache: 'no-store' })
+      const response = await fetch(`/api/personnel/payroll?t=${Date.now()}`, { cache: 'no-store' })
       console.log('Response status:', response.status)
       console.log('Response ok:', response.ok)
 
@@ -157,6 +157,12 @@ export default function PersonnelPayrollPage() {
           releaseTime: payrollData.periodInfo?.current?.releaseTime,
           scheduledRelease: payrollData.periodInfo?.current?.scheduledRelease
         })
+        console.log('📦 Archived Payrolls:', payrollData.archivedPayrolls)
+        if (payrollData.archivedPayrolls && payrollData.archivedPayrolls.length > 0) {
+          console.log('📦 First archived payroll:', payrollData.archivedPayrolls[0])
+          console.log('📦 First archived payroll user:', payrollData.archivedPayrolls[0].user)
+          console.log('📦 First archived payroll users:', payrollData.archivedPayrolls[0].users)
+        }
         setData(payrollData)
       } else {
         let errorPayload: any = {}
@@ -221,9 +227,30 @@ export default function PersonnelPayrollPage() {
     }
   }
 
-  const viewDetails = async (payroll: any) => {
+  const openPayslipDetails = async (payroll: any) => {
+    console.log('🔍 Opening payslip for:', payroll)
+    console.log('🔍 Payroll user data:', payroll.user)
+    console.log('🔍 Payroll users data:', payroll.users)
+    
+    // If user data is missing, use session data (since user is viewing their own payslip)
+    if (!payroll.user && !payroll.users) {
+      console.log('⚠️ User data missing, using session data')
+      const response = await fetch('/api/auth/session')
+      if (response.ok) {
+        const session = await response.json()
+        console.log('📦 Session data:', session)
+        
+        // Use session data to populate user info
+        payroll.user = {
+          users_id: session.user?.id || payroll.users_id,
+          name: session.user?.name || 'N/A',
+          email: session.user?.email || 'N/A'
+        }
+        console.log('✅ Set user data from session:', payroll.user)
+      }
+    }
+    
     setSelectedPayroll(payroll)
-    setSelectedBreakdown(null)
     setDetailsOpen(true)
   }
 
@@ -361,14 +388,11 @@ export default function PersonnelPayrollPage() {
           }
         }
 
-        // Use snapshot data directly when available
-        const monthlyBasic = snapshot?.monthlyBasicSalary
-          ? Number(snapshot.monthlyBasicSalary)
-          : Number(latestPayroll.user?.personnelType?.basicSalary || 20000)
-
-        const periodSalary = snapshot?.monthlyBasicSalary
-          ? Number(snapshot.monthlyBasicSalary)
-          : monthlyBasic / 2
+        // Get the actual monthly basic salary from personnel type
+        const monthlyBasic = Number(latestPayroll.user?.personnelType?.basicSalary || 5000)
+        
+        // Period salary is the same as monthly basic for display
+        const periodSalary = monthlyBasic
 
         const dbNetPay = Number(latestPayroll.netPay || 0)
         const deductions = Number(latestPayroll.deductions || 0)
@@ -471,42 +495,44 @@ export default function PersonnelPayrollPage() {
             // Current Payroll Tab - Show only the latest released
             currentPayroll ? (
               <div className="space-y-4">
-                <div className="relative overflow-hidden border-2 border-green-200 dark:border-green-800 rounded-xl bg-gradient-to-br from-green-50 to-emerald-50 dark:from-green-950/20 dark:to-emerald-950/20 p-5 shadow-sm hover:shadow-md transition-all">
+                <div className="relative overflow-hidden border-2 border-green-200 dark:border-green-800 rounded-xl bg-gradient-to-br from-green-50 to-emerald-50 dark:from-green-950/20 dark:to-emerald-950/20 p-4 sm:p-5 shadow-sm hover:shadow-md transition-all">
                   <div className="absolute top-0 right-0 w-32 h-32 bg-green-500/10 rounded-full -mr-16 -mt-16"></div>
-                  <div className="relative">
-                    <div className="flex items-center justify-between mb-4">
+                  <div className="relative space-y-4">
+                    {/* Header Section */}
+                    <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
                       <div className="flex items-center gap-2">
-                        <div className="p-2 bg-green-600 rounded-lg">
+                        <div className="p-2 bg-green-600 rounded-lg shrink-0">
                           <FileText className="h-5 w-5 text-white" />
                         </div>
-                        <div>
+                        <div className="min-w-0">
                           <p className="text-xs font-medium text-green-700 dark:text-green-400">Current Period</p>
-                          <p className="text-sm font-semibold text-gray-900 dark:text-gray-100">
+                          <p className="text-xs sm:text-sm font-semibold text-gray-900 dark:text-gray-100 truncate">
                             {formatDate(currentPayroll.periodStart)} - {formatDate(currentPayroll.periodEnd)}
                           </p>
                         </div>
                       </div>
-                      <Badge variant="default" className="bg-green-600 shadow-sm">
+                      <Badge variant="default" className="bg-green-600 shadow-sm self-start sm:self-auto">
                         {currentPayroll.status}
                       </Badge>
                     </div>
+                    
+                    {/* Net Pay Section */}
                     <div className="bg-white/50 dark:bg-gray-900/50 rounded-lg p-4 backdrop-blur-sm">
-                      <div className="flex items-end justify-between">
-                        <div>
+                      <div className="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-4">
+                        <div className="flex-1">
                           <p className="text-xs font-medium text-muted-foreground mb-1">Net Pay</p>
-                          <p className="text-2xl sm:text-3xl font-bold text-green-600 dark:text-green-500">
+                          <p className="text-3xl sm:text-4xl font-bold text-green-600 dark:text-green-500">
                             {formatCurrency(Number(currentPayroll.netPay))}
                           </p>
                           <p className="text-xs text-muted-foreground mt-1">Take home amount</p>
                         </div>
                         <Button
-                          className="bg-green-600 hover:bg-green-700 shadow-md"
-                          size="sm"
-                          onClick={() => viewDetails(currentPayroll)}
+                          className="bg-green-600 hover:bg-green-700 shadow-md w-full sm:w-auto"
+                          size="default"
+                          onClick={() => openPayslipDetails(currentPayroll)}
                         >
                           <FileText className="h-4 w-4 mr-2" />
-                          <span className="hidden sm:inline">View Details</span>
-                          <span className="sm:hidden">View</span>
+                          View Details
                         </Button>
                       </div>
                     </div>
@@ -588,7 +614,7 @@ export default function PersonnelPayrollPage() {
                                 <Button
                                   variant="outline"
                                   size="sm"
-                                  onClick={() => viewDetails(payroll)}
+                                  onClick={() => openPayslipDetails(payroll)}
                                   className="shadow-sm"
                                 >
                                   <FileText className="h-4 w-4 sm:mr-2" />
@@ -635,6 +661,9 @@ export default function PersonnelPayrollPage() {
             let snapshot = selectedPayroll.breakdownSnapshot
             console.log('🔥 RAW breakdownSnapshot:', selectedPayroll.breakdownSnapshot)
             console.log('🔥 Type:', typeof selectedPayroll.breakdownSnapshot)
+            console.log('🔥 selectedPayroll.user:', selectedPayroll.user)
+            console.log('🔥 selectedPayroll.user?.personnelType:', selectedPayroll.user?.personnelType)
+            console.log('🔥 selectedPayroll.users_id:', selectedPayroll.users_id)
 
             if (snapshot && typeof snapshot === 'string') {
               try {
@@ -646,21 +675,21 @@ export default function PersonnelPayrollPage() {
               }
             }
 
-            // Use snapshot data directly when available
-            const monthlyBasic = snapshot?.monthlyBasicSalary
-              ? Number(snapshot.monthlyBasicSalary)
-              : Number(selectedPayroll.user?.personnelType?.basicSalary || 20000)
-
-            const periodSalary = snapshot?.monthlyBasicSalary
-              ? Number(snapshot.monthlyBasicSalary)
-              : monthlyBasic / 2
+            // Get the actual monthly basic salary from personnel type
+            const monthlyBasic = Number(selectedPayroll.user?.personnelType?.basicSalary || selectedPayroll.user?.personnel_types?.basicSalary || 5000)
+            
+            // Period salary is for calculation purposes only
+            const periodSalary = monthlyBasic
 
             const dbNetPay = Number(selectedPayroll.netPay || 0)
             const deductions = Number(selectedPayroll.deductions || 0)
 
             // Get details from snapshot (archived) or fetched data (current)
             let overloadPayDetails = snapshot?.overloadPayDetails || []
-            let deductionDetails = snapshot?.deductionDetails || []
+            let deductionDetails = [
+              ...(snapshot?.deductionDetails || []),
+              ...(snapshot?.attendanceDeductionDetails || [])
+            ]
             let loanDetails = snapshot?.loanDetails || []
 
             // If no snapshot, use fetched details
@@ -728,7 +757,7 @@ export default function PersonnelPayrollPage() {
                 {/* Header with Logo */}
                 <div className="text-center border-b-2 border-gray-300 dark:border-gray-700 pb-4">
                   <div className="flex justify-center mb-3">
-                    <img src="/brgy-logo.png" alt="Barangay Logo" className="h-16 w-16" />
+                    <img src="/brgy-logo.png" alt="Barangay Logo" className="h-28 w-28 rounded-full object-cover" />
                   </div>
                   <h3 className="font-bold text-base">TUBOD BARANGAY POBLACION</h3>
                   <p className="text-xs text-muted-foreground">Tubod, Lanao del Norte</p>
@@ -736,27 +765,27 @@ export default function PersonnelPayrollPage() {
                   <h2 className="font-bold text-xl mt-3">PAYROLL DETAILS</h2>
                 </div>
 
-                {/* Personnel Information */}
+                {/* Staff Information */}
                 <div className="space-y-1 text-sm border-b pb-3">
                   <div className="flex justify-between">
-                    <span className="font-semibold">Personnel:</span>
-                    <span>{selectedPayroll.user?.name || 'N/A'}</span>
+                    <span className="font-semibold">Staff:</span>
+                    <span>{selectedPayroll.user?.name || selectedPayroll.users?.name || 'N/A'}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="font-semibold">Staff ID:</span>
+                    <span>{selectedPayroll.user?.users_id || selectedPayroll.users?.users_id || selectedPayroll.users_id || 'N/A'}</span>
                   </div>
                   <div className="flex justify-between">
                     <span className="font-semibold">Email:</span>
-                    <span className="text-xs">{selectedPayroll.user?.email || 'N/A'}</span>
+                    <span className="text-xs">{selectedPayroll.user?.email || selectedPayroll.users?.email || 'N/A'}</span>
                   </div>
                   <div className="flex justify-between">
-                    <span className="font-semibold">Department:</span>
-                    <span>{selectedPayroll.user?.department || 'N/A'}</span>
+                    <span className="font-semibold">BLGU:</span>
+                    <span>{selectedPayroll.user?.personnelType?.department || selectedPayroll.user?.personnel_types?.department || selectedPayroll.users?.personnel_types?.department || 'Barangay Officials'}</span>
                   </div>
                   <div className="flex justify-between">
                     <span className="font-semibold">Position:</span>
-                    <span>{selectedPayroll.user?.position || 'N/A'}</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="font-semibold">Personnel Type:</span>
-                    <span>{selectedPayroll.user?.personnelType?.name || snapshot?.personnelType || 'N/A'}</span>
+                    <span>{selectedPayroll.user?.personnelType?.name || selectedPayroll.user?.personnel_types?.name || selectedPayroll.users?.personnel_types?.name || 'Barangay Officials'}</span>
                   </div>
                   <div className="flex justify-between">
                     <span className="font-semibold">Period:</span>

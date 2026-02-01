@@ -182,6 +182,7 @@ export interface PayslipData {
     deductionDetails: any[]
     loanDetails?: any[]
     otherDeductionDetails?: any[]
+    attendanceDeductionDetails?: any[]
   }
 }
 
@@ -270,18 +271,36 @@ const Payslip: React.FC<PayslipProps> = ({ employee, period, headerSettings }) =
                 ₱{(breakdown.grossPay || 0).toLocaleString(undefined, { maximumFractionDigits: 2 })}
               </Text>
             </View>
-            <View style={styles.payrollRow}>
-              <Text style={styles.payrollLabel}>Att. Ded:</Text>
-              <Text style={styles.payrollValue}>
-                -₱{(breakdown.attendanceDeductions || 0).toLocaleString(undefined, { maximumFractionDigits: 2 })}
-              </Text>
-            </View>
-            <View style={styles.payrollRow}>
-              <Text style={styles.payrollLabel}>Other Ded:</Text>
-              <Text style={styles.payrollValue}>
-                -₱{(breakdown.nonAttendanceDeductions || 0).toLocaleString(undefined, { maximumFractionDigits: 2 })}
-              </Text>
-            </View>
+            {/* Attendance Deductions Section */}
+            {breakdown.attendanceDeductionDetails && breakdown.attendanceDeductionDetails.length > 0 ? (
+              <View style={{ marginTop: 2, paddingTop: 2, borderTop: '1pt solid #eee' }}>
+                <Text style={{ fontSize: 6, fontWeight: 'bold', marginBottom: 1, color: '#dc2626' }}>Attendance Deductions:</Text>
+                {breakdown.attendanceDeductionDetails.map((deduction: any, index: number) => (
+                  <View key={index} style={{ flexDirection: 'row', justifyContent: 'space-between', marginBottom: 0.5 }}>
+                    <Text style={{ fontSize: 5, maxWidth: '65%', color: '#666' }}>
+                      {deduction.type || deduction.description || 'Attendance Deduction'}
+                    </Text>
+                    <Text style={{ fontSize: 5, fontWeight: 'bold', color: '#dc2626' }}>
+                      -₱{(deduction.amount || 0).toLocaleString(undefined, { maximumFractionDigits: 2 })}
+                    </Text>
+                  </View>
+                ))}
+                <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginTop: 1, paddingTop: 1, borderTop: '0.5pt solid #ddd' }}>
+                  <Text style={{ fontSize: 6, fontWeight: 'bold' }}>Total Att. Ded:</Text>
+                  <Text style={{ fontSize: 6, fontWeight: 'bold', color: '#dc2626' }}>
+                    -₱{(breakdown.attendanceDeductions || 0).toLocaleString(undefined, { maximumFractionDigits: 2 })}
+                  </Text>
+                </View>
+              </View>
+            ) : breakdown.attendanceDeductions > 0 ? (
+              <View style={styles.payrollRow}>
+                <Text style={styles.payrollLabel}>Att. Ded:</Text>
+                <Text style={styles.payrollValue}>
+                  -₱{(breakdown.attendanceDeductions || 0).toLocaleString(undefined, { maximumFractionDigits: 2 })}
+                </Text>
+              </View>
+            ) : null}
+            
             {/* Loan Details Section */}
             {breakdown.loanDetails && breakdown.loanDetails.length > 0 ? (
               <View style={{ marginTop: 2, paddingTop: 2, borderTop: '1pt solid #eee' }}>

@@ -905,7 +905,7 @@ export async function generatePayroll(customPeriodStart?: string, customPeriodEn
             users_id: user.users_id,
             periodStart: periodStart,
             periodEnd: periodEnd,
-            basicSalary: grossSalary,
+            basicSalary: basicSalary,  // Store actual basic salary, not gross
             overtime: totalOverloadPay,
             deductions: totalDeductions + loanPayments,
             netPay: netPay,
@@ -1001,9 +1001,24 @@ export async function releasePayroll(entryIds: string[]): Promise<{
           databaseDeductions: summaryEntry.databaseDeductions,
           loanPayments: summaryEntry.loanPayments,
           attendanceRecords: summaryEntry.attendanceRecords,
-          deductionDetails: summaryEntry.deductionDetails,
-          loanDetails: (summaryEntry as any).loanDetails || [],
-          overloadPayDetails: (summaryEntry as any).overloadPayDetails || [],
+          deductionDetails: (summaryEntry.deductionDetails || []).map((d: any) => ({
+            type: d.type,
+            amount: Number(d.amount),
+            description: d.description || '',
+            isMandatory: d.isMandatory || false,
+            appliedAt: d.appliedAt,
+            notes: d.notes
+          })),
+          loanDetails: ((summaryEntry as any).loanDetails || []).map((l: any) => ({
+            type: l.purpose || l.type || 'Loan',
+            amount: Number(l.amount || l.payment || 0),
+            remainingBalance: Number(l.balance || l.remainingBalance || 0),
+            purpose: l.purpose
+          })),
+          overloadPayDetails: ((summaryEntry as any).overloadPayDetails || []).map((op: any) => ({
+            type: op.type || 'OVERTIME',
+            amount: Number(op.amount)
+          })),
           personnelType: summaryEntry.personnelType?.name
         }
 
@@ -1272,8 +1287,9 @@ export async function releasePayrollWithAudit(
           return sum + monthlyPayment
         }, 0)
 
-        // Update breakdown with ALL current deductions
-        breakdownData.deductionDetails = allCurrentDeductions.map(d => ({
+        // Update breakdown with non-attendance deductions only (mandatory + other)
+        // Attendance deductions are stored separately to avoid duplicates
+        breakdownData.deductionDetails = personalDeductions.map(d => ({
           id: d.deductions_id,
           type: d.deduction_types.name,
           amount: Number(d.amount),
@@ -1282,10 +1298,34 @@ export async function releasePayrollWithAudit(
           notes: d.notes,
           isMandatory: d.deduction_types.isMandatory
         }))
+        
+        // Add attendance deduction details separately for payslip display
+        breakdownData.attendanceDeductionDetails = attendanceDeductions.map(d => ({
+          type: d.deduction_types.name,
+          amount: Number(d.amount),
+          description: d.deduction_types.description || '',
+          appliedAt: d.appliedAt.toISOString(),
+          notes: d.notes
+        }))
+        
+        // Add loan details for payslip display
+        breakdownData.loanDetails = activeLoans.map(loan => ({
+          amount: Number(loan.amount),
+          monthlyPaymentPercent: Number(loan.monthlyPaymentPercent),
+          payment: (Number(loan.amount) * Number(loan.monthlyPaymentPercent)) / 100,
+          purpose: loan.purpose,
+          balance: Number(loan.balance)
+        }))
+        
         breakdownData.databaseDeductions = totalPersonalDeductions
         breakdownData.attendanceDeductions = includeAttendanceDeductions ? totalAttendanceDeductions : 0
         breakdownData.loanPayments = totalLoanPayments
-        breakdownData.totalDeductions = totalAllDeductions + totalLoanPayments
+        
+        // Calculate total deductions based on whether attendance deductions are included
+        const actualDeductionsToApply = includeAttendanceDeductions 
+          ? (totalAttendanceDeductions + totalPersonalDeductions) 
+          : totalPersonalDeductions
+        breakdownData.totalDeductions = actualDeductionsToApply + totalLoanPayments
 
         // Recalculate net pay based on current breakdown
         const grossSalary = Number(currentEntry?.basicSalary || 0) + Number(currentEntry?.overtime || 0)

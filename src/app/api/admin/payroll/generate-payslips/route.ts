@@ -150,10 +150,22 @@ async function handlePayslipGeneration(periodStart: string | null, periodEnd: st
           isMandatory: deduction.deduction_types.isMandatory
         }))
 
-      // USE BREAKDOWN DATA ONLY - NO RECALCULATION
-      const storedBreakdown = (entry as any).breakdown as any
+      // Parse breakdown snapshot to get stored deduction details
+      let storedBreakdown: any = null
+      if (entry.breakdownSnapshot) {
+        try {
+          storedBreakdown = typeof entry.breakdownSnapshot === 'string' 
+            ? JSON.parse(entry.breakdownSnapshot) 
+            : entry.breakdownSnapshot
+        } catch (e) {
+          console.error('Failed to parse breakdownSnapshot:', e)
+        }
+      }
+      
       const attendanceDeductionDetails = storedBreakdown?.attendanceDeductionDetails || []
-      const totalAttendanceDeductions = storedBreakdown?.totalAttendanceDeductions || 0
+      const totalAttendanceDeductions = storedBreakdown?.attendanceDeductions || 0
+      const storedLoanDetails = storedBreakdown?.loanDetails || []
+      const storedOtherDeductionDetails = storedBreakdown?.deductionDetails || []
       
       // Calculate total work hours from attendance records
       const totalWorkHours = attendanceRecords.reduce((sum, record) => {
@@ -166,8 +178,12 @@ async function handlePayslipGeneration(periodStart: string | null, periodEnd: st
         return sum + hours
       }, 0)
 
-      const totalLoanPayments = loanDetails.reduce((sum, loan) => sum + loan.amount, 0)
-      const totalOtherDeductions = otherDeductionDetails.reduce((sum, ded) => sum + ded.amount, 0)
+      // Use stored breakdown details if available, otherwise fall back to live data
+      const finalLoanDetails = storedLoanDetails.length > 0 ? storedLoanDetails : loanDetails
+      const finalOtherDeductionDetails = storedOtherDeductionDetails.length > 0 ? storedOtherDeductionDetails : otherDeductionDetails
+      
+      const totalLoanPayments = finalLoanDetails.reduce((sum: number, loan: any) => sum + Number(loan.payment || loan.amount || 0), 0)
+      const totalOtherDeductions = finalOtherDeductionDetails.reduce((sum: number, ded: any) => sum + Number(ded.amount || 0), 0)
 
       return {
         users_id: entry.users_id,
@@ -187,9 +203,9 @@ async function handlePayslipGeneration(periodStart: string | null, periodEnd: st
           grossPay: Number(entry.basicSalary) + Number(entry.overtime),
           totalDeductions: Number(entry.deductions),
           netPay: Number(entry.netPay),
-          deductionDetails: otherDeductionDetails,
-          loanDetails: loanDetails,
-          otherDeductionDetails: otherDeductionDetails,
+          deductionDetails: finalOtherDeductionDetails,
+          loanDetails: finalLoanDetails,
+          otherDeductionDetails: finalOtherDeductionDetails,
           attendanceDeductionDetails: attendanceDeductionDetails
         }
       }

@@ -315,34 +315,45 @@ export default function PersonalDeductionsPage() {
     }, 0)
 
     return (
-        <div className="flex-1 space-y-6 p-4 pt-6">
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-                <div className="space-y-1">
-                    <h2 className="text-2xl sm:text-3xl font-bold tracking-tight flex items-center gap-2">
-                        <DeductionIcon className="h-6 w-6 sm:h-8 sm:w-8 text-red-600" />
-                        Staff Deductions
-                    </h2>
-                    <p className="text-muted-foreground">Manage individual staff deductions (non-mandatory)</p>
-                </div>
-                <div className="flex items-center gap-2 flex-wrap">
-                    <Button
-                        variant={activeTab === 'archived' ? 'default' : 'outline'}
-                        onClick={() => setActiveTab(activeTab === 'active' ? 'archived' : 'active')}
-                    >
-                        <Archive className="h-4 w-4 mr-2" />
-                        {activeTab === 'archived' ? 'Active Deductions' : 'Archived Deductions'}
-                    </Button>
-                    <Dialog open={open} onOpenChange={(newOpen) => {
-                        setOpen(newOpen)
-                        if (newOpen) {
-                            loadUsers()
-                            setUserSearch("")
-                        }
-                    }}>
+        <div className="flex-1 space-y-6 p-4 md:p-6 pt-6">
+            {/* Header Section */}
+            <div className="flex flex-col gap-4">
+                <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+                    <div className="space-y-2">
+                        <div className="flex items-center gap-3">
+                            <div className="p-2 bg-red-100 dark:bg-red-900/20 rounded-lg">
+                                <DeductionIcon className="h-6 w-6 text-red-600 dark:text-red-400" />
+                            </div>
+                            <div>
+                                <h2 className="text-2xl md:text-3xl font-bold tracking-tight">
+                                    Staff Deductions
+                                </h2>
+                                <p className="text-sm text-muted-foreground">Manage individual staff deductions (non-mandatory)</p>
+                            </div>
+                        </div>
+                    </div>
+                    <div className="flex items-center gap-2 flex-wrap">
+                        <Button
+                            variant={activeTab === 'archived' ? 'default' : 'outline'}
+                            onClick={() => setActiveTab(activeTab === 'active' ? 'archived' : 'active')}
+                            className="gap-2"
+                        >
+                            <Archive className="h-4 w-4" />
+                            <span className="hidden sm:inline">{activeTab === 'archived' ? 'Active Deductions' : 'Archived Deductions'}</span>
+                            <span className="sm:hidden">{activeTab === 'archived' ? 'Active' : 'Archived'}</span>
+                        </Button>
+                        <Dialog open={open} onOpenChange={(newOpen) => {
+                            setOpen(newOpen)
+                            if (newOpen) {
+                                loadUsers()
+                                setUserSearch("")
+                            }
+                        }}>
                         <DialogTrigger asChild>
-                            <Button variant="outline" className="border-red-200 hover:bg-red-50 text-red-700">
-                                <Plus className="h-4 w-4 mr-2" />
-                                Add Staff Deduction
+                            <Button className="bg-red-600 hover:bg-red-700 text-white gap-2">
+                                <Plus className="h-4 w-4" />
+                                <span className="hidden sm:inline">Add Staff Deduction</span>
+                                <span className="sm:hidden">Add</span>
                             </Button>
                         </DialogTrigger>
                         <DialogContent className="w-full sm:max-w-6xl max-h-[90vh] overflow-y-auto" style={{ width: '95vw', maxWidth: '1200px' }}>
@@ -615,152 +626,312 @@ export default function PersonalDeductionsPage() {
                         </DialogContent>
                     </Dialog>
                 </div>
+                </div>
             </div>
 
-            {/* Statistics */}
+            {/* Statistics Cards */}
             <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-                <Card className="border-l-4 border-l-red-500">
+                <Card className="relative overflow-hidden border-0 shadow-md hover:shadow-lg transition-shadow">
+                    <div className="absolute top-0 right-0 w-24 h-24 bg-red-500/10 rounded-full -mr-12 -mt-12" />
                     <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                        <CardTitle className="text-sm font-medium">Active Deductions</CardTitle>
-                        <FileText className="h-4 w-4 text-red-600" />
+                        <CardTitle className="text-sm font-medium text-muted-foreground">Active Deductions</CardTitle>
+                        <div className="p-2 bg-red-100 dark:bg-red-900/20 rounded-lg">
+                            <FileText className="h-4 w-4 text-red-600 dark:text-red-400" />
+                        </div>
                     </CardHeader>
                     <CardContent>
-                        <div className="text-2xl font-bold">{activeDeductionsCount}</div>
-                        <p className="text-xs text-muted-foreground">Currently active</p>
+                        <div className="text-3xl font-bold text-red-600">{activeDeductionsCount}</div>
+                        <p className="text-xs text-muted-foreground mt-1">Currently active</p>
                     </CardContent>
                 </Card>
-                <Card className="border-l-4 border-l-orange-500">
+                <Card className="relative overflow-hidden border-0 shadow-md hover:shadow-lg transition-shadow">
+                    <div className="absolute top-0 right-0 w-24 h-24 bg-orange-500/10 rounded-full -mr-12 -mt-12" />
                     <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                        <CardTitle className="text-sm font-medium">Total Amount</CardTitle>
-                        <span className="text-2xl font-bold text-red-600">₱</span>
+                        <CardTitle className="text-sm font-medium text-muted-foreground">Total Amount</CardTitle>
+                        <div className="p-2 bg-orange-100 dark:bg-orange-900/20 rounded-lg">
+                            <Banknote className="h-4 w-4 text-orange-600 dark:text-orange-400" />
+                        </div>
                     </CardHeader>
                     <CardContent>
-                        <div className="text-2xl font-bold">₱{totalDeductionAmount.toLocaleString()}</div>
-                        <p className="text-xs text-muted-foreground">All time deductions</p>
+                        <div className="text-3xl font-bold text-orange-600">₱{totalDeductionAmount.toLocaleString()}</div>
+                        <p className="text-xs text-muted-foreground mt-1">All time deductions</p>
                     </CardContent>
                 </Card>
-                <Card className="border-l-4 border-l-yellow-500">
+                <Card className="relative overflow-hidden border-0 shadow-md hover:shadow-lg transition-shadow">
+                    <div className="absolute top-0 right-0 w-24 h-24 bg-yellow-500/10 rounded-full -mr-12 -mt-12" />
                     <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                        <CardTitle className="text-sm font-medium">Outstanding Balance</CardTitle>
-                        <TrendingUp className="h-4 w-4 text-red-600" />
+                        <CardTitle className="text-sm font-medium text-muted-foreground">Outstanding Balance</CardTitle>
+                        <div className="p-2 bg-yellow-100 dark:bg-yellow-900/20 rounded-lg">
+                            <TrendingUp className="h-4 w-4 text-yellow-600 dark:text-yellow-400" />
+                        </div>
                     </CardHeader>
                     <CardContent>
-                        <div className="text-2xl font-bold">₱{totalDeductionOutstanding.toLocaleString()}</div>
-                        <p className="text-xs text-muted-foreground">Remaining to be paid</p>
+                        <div className="text-3xl font-bold text-yellow-600">₱{totalDeductionOutstanding.toLocaleString()}</div>
+                        <p className="text-xs text-muted-foreground mt-1">Remaining to be paid</p>
                     </CardContent>
                 </Card>
-                <Card className="border-l-4 border-l-pink-500">
+                <Card className="relative overflow-hidden border-0 shadow-md hover:shadow-lg transition-shadow">
+                    <div className="absolute top-0 right-0 w-24 h-24 bg-pink-500/10 rounded-full -mr-12 -mt-12" />
                     <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                        <CardTitle className="text-sm font-medium">Per Payroll</CardTitle>
-                        <CreditCard className="h-4 w-4 text-pink-600" />
+                        <CardTitle className="text-sm font-medium text-muted-foreground">Per Payroll</CardTitle>
+                        <div className="p-2 bg-pink-100 dark:bg-pink-900/20 rounded-lg">
+                            <CreditCard className="h-4 w-4 text-pink-600 dark:text-pink-400" />
+                        </div>
                     </CardHeader>
                     <CardContent>
-                        <div className="text-2xl font-bold">₱{totalDeductionPerPayrollPayments.toLocaleString(undefined, { maximumFractionDigits: 2 })}</div>
-                        <p className="text-xs text-muted-foreground">Per-payroll collection</p>
+                        <div className="text-3xl font-bold text-pink-600">₱{totalDeductionPerPayrollPayments.toLocaleString(undefined, { maximumFractionDigits: 2 })}</div>
+                        <p className="text-xs text-muted-foreground mt-1">Per-payroll collection</p>
                     </CardContent>
                 </Card>
             </div>
 
-            <Card>
-                <CardHeader>
+            {/* Deductions List */}
+            <Card className="border-0 shadow-md">
+                <CardHeader className="border-b bg-muted/30">
                     <div className="flex flex-col gap-4">
-                        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-                            <div className="flex items-center gap-2">
-                                <DeductionIcon className="h-5 w-5 text-muted-foreground" />
-                                <CardTitle>{activeTab === 'active' ? 'Active Deductions' : 'Archived Deductions'}</CardTitle>
+                        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+                            <div className="flex items-center gap-3">
+                                <div className="p-2 bg-primary/10 rounded-lg">
+                                    <DeductionIcon className="h-5 w-5 text-primary" />
+                                </div>
+                                <CardTitle className="text-xl">{activeTab === 'active' ? 'Active Deductions' : 'Archived Deductions'}</CardTitle>
                             </div>
-                            <div className="relative w-full sm:w-64">
+                            <div className="relative w-full md:w-80">
                                 <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                                 <Input
-                                    placeholder="Search..."
+                                    placeholder="Search by name, email, or date..."
                                     value={search}
                                     onChange={(e) => setSearch(e.target.value)}
                                     className="w-full pl-10"
                                 />
                             </div>
                         </div>
+                        {selectedIds.length > 0 && (
+                            <div className="flex items-center justify-between p-3 bg-red-50 dark:bg-red-900/20 rounded-lg border border-red-200 dark:border-red-800">
+                                <span className="text-sm font-medium text-red-700 dark:text-red-300">
+                                    {selectedIds.length} item(s) selected
+                                </span>
+                                <Button
+                                    variant="destructive"
+                                    size="sm"
+                                    onClick={bulkDelete}
+                                    disabled={isDeleting}
+                                    className="gap-2"
+                                >
+                                    <Trash2 className="h-4 w-4" />
+                                    {isDeleting ? 'Deleting...' : 'Delete Selected'}
+                                </Button>
+                            </div>
+                        )}
                     </div>
                 </CardHeader>
-                <CardContent>
-                    {/* List View */}
-                    <div className="space-y-4">
-                        {(activeTab === 'active' ? filtered : filteredArchived).map((item) => (
-                            <div key={item.loans_id} className="flex flex-col sm:flex-row items-start sm:items-center justify-between p-4 border rounded-lg gap-4 bg-card hover:bg-accent/5 transition-colors">
-                                <div className="flex items-center gap-4 w-full sm:w-auto">
-                                    <div className="flex items-center gap-1">
-                                        <input
-                                            type="checkbox"
-                                            className="h-4 w-4"
-                                            checked={selectedIds.includes(item.loans_id)}
-                                            onChange={() => toggleSelect(item.loans_id)}
-                                        />
-                                    </div>
-                                    <Avatar className="h-10 w-10 border-2 border-muted">
-                                        <AvatarFallback className="bg-red-100 text-red-700 font-bold">
-                                            {initials(item.userName, item.userEmail)}
-                                        </AvatarFallback>
-                                    </Avatar>
-                                    <div className="space-y-1">
-                                        <div className="flex items-center gap-2">
-                                            <p className="font-semibold text-lg">{item.userName || item.userEmail}</p>
-                                            <Badge variant="outline" className="bg-red-50 text-red-700 text-[10px] h-5 px-1.5 border-red-200">
-                                                {item.department || 'N/A'}
-                                            </Badge>
-                                        </div>
-                                        <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                                            <FileText className="h-3 w-3" />
-                                            <span className="font-medium text-foreground/80">{item.purpose?.replace('[DEDUCTION] ', '')}</span>
-                                            <span>•</span>
-                                            <span>{format(new Date(item.createdAt), 'MMM dd, yyyy')}</span>
-                                        </div>
-                                    </div>
-                                </div>
-
-                                <div className="flex items-center justify-between sm:justify-end gap-6 w-full sm:w-auto mt-2 sm:mt-0">
-                                    <div className="text-right">
-                                        <p className="text-xs text-muted-foreground uppercase tracking-wider font-semibold">Amount</p>
-                                        <p className="font-bold text-base">₱{item.amount.toLocaleString()}</p>
-                                    </div>
-                                    <div className="text-right hidden sm:block">
-                                        <p className="text-xs text-muted-foreground uppercase tracking-wider font-semibold">Balance</p>
-                                        <p className="font-bold text-base text-red-600">₱{item.balance.toLocaleString()}</p>
-                                    </div>
-                                    <div className="flex items-center gap-2">
-                                        <Badge className={
-                                            item.status === 'ACTIVE' ? 'bg-blue-100 text-blue-800 hover:bg-blue-200' :
-                                                item.status === 'COMPLETED' ? 'bg-green-100 text-green-800 hover:bg-green-200' :
-                                                    'bg-gray-100 text-gray-800'
-                                        }>
-                                            {item.status}
-                                        </Badge>
-                                        <DropdownMenu>
-                                            <DropdownMenuTrigger asChild>
-                                                <Button variant="ghost" size="icon" className="h-8 w-8">
-                                                    <TrendingUp className="h-4 w-4" />
-                                                </Button>
-                                            </DropdownMenuTrigger>
-                                            <DropdownMenuContent align="end">
-                                                <DropdownMenuItem onClick={() => viewDetails(item)}>
-                                                    <Eye className="h-4 w-4 mr-2" /> View Details
-                                                </DropdownMenuItem>
-                                                <DropdownMenuItem onClick={() => startEdit(item)}>
-                                                    <FileText className="h-4 w-4 mr-2" /> Edit
-                                                </DropdownMenuItem>
-                                                <DropdownMenuItem onClick={() => archiveDeduction(item)}>
-                                                    <Archive className="h-4 w-4 mr-2" /> Archive
-                                                </DropdownMenuItem>
-                                                <DropdownMenuItem onClick={() => deleteDeduction(item)} className="text-red-600">
-                                                    <Trash2 className="h-4 w-4 mr-2" /> Delete
-                                                </DropdownMenuItem>
-                                            </DropdownMenuContent>
-                                        </DropdownMenu>
-                                    </div>
-                                </div>
+                <CardContent className="p-0">
+                    {(activeTab === 'active' ? filtered : filteredArchived).length === 0 ? (
+                        <div className="flex flex-col items-center justify-center py-16 text-center">
+                            <div className="p-4 bg-muted/50 rounded-full mb-4">
+                                <DeductionIcon className="h-12 w-12 text-muted-foreground" />
                             </div>
-                        ))}
-                    </div>
+                            <h3 className="text-lg font-semibold mb-2">No deductions found</h3>
+                            <p className="text-sm text-muted-foreground max-w-sm">
+                                {search ? 'Try adjusting your search terms' : 'Get started by adding a new staff deduction'}
+                            </p>
+                        </div>
+                    ) : (
+                        <div className="divide-y">
+                            {(activeTab === 'active' ? filtered : filteredArchived).map((item) => (
+                                <div key={item.loans_id} className="p-4 md:p-6 hover:bg-muted/30 transition-colors">
+                                    <div className="flex flex-col md:flex-row md:items-center gap-4">
+                                        {/* Checkbox & Avatar */}
+                                        <div className="flex items-center gap-4 flex-1">
+                                            <input
+                                                type="checkbox"
+                                                className="h-4 w-4 rounded border-gray-300"
+                                                checked={selectedIds.includes(item.loans_id)}
+                                                onChange={() => toggleSelect(item.loans_id)}
+                                            />
+                                            <Avatar className="h-12 w-12 border-2 border-muted">
+                                                <AvatarFallback className="bg-gradient-to-br from-red-100 to-red-200 text-red-700 font-bold text-base">
+                                                    {initials(item.userName, item.userEmail)}
+                                                </AvatarFallback>
+                                            </Avatar>
+                                            <div className="flex-1 min-w-0">
+                                                <div className="flex items-center gap-2 flex-wrap mb-1">
+                                                    <p className="font-semibold text-base md:text-lg truncate">{item.userName || item.userEmail}</p>
+                                                    <Badge variant="outline" className="bg-red-50 dark:bg-red-900/20 text-red-700 dark:text-red-300 text-xs border-red-200 dark:border-red-800">
+                                                        {item.department || 'N/A'}
+                                                    </Badge>
+                                                </div>
+                                                <div className="flex items-center gap-2 text-sm text-muted-foreground flex-wrap">
+                                                    <FileText className="h-3.5 w-3.5" />
+                                                    <span className="font-medium">{item.purpose?.replace('[DEDUCTION] ', '')}</span>
+                                                    <span className="hidden sm:inline">•</span>
+                                                    <Clock className="h-3.5 w-3.5 hidden sm:inline" />
+                                                    <span className="hidden sm:inline">{format(new Date(item.createdAt), 'MMM dd, yyyy')}</span>
+                                                </div>
+                                            </div>
+                                        </div>
+
+                                        {/* Amount & Actions */}
+                                        <div className="flex items-center justify-between md:justify-end gap-4 md:gap-6 ml-16 md:ml-0">
+                                            <div className="flex gap-4 md:gap-6">
+                                                <div className="text-left md:text-right">
+                                                    <p className="text-xs text-muted-foreground uppercase tracking-wider font-semibold mb-1">Amount</p>
+                                                    <p className="font-bold text-base md:text-lg">₱{item.amount.toLocaleString()}</p>
+                                                </div>
+                                                <div className="text-left md:text-right">
+                                                    <p className="text-xs text-muted-foreground uppercase tracking-wider font-semibold mb-1">Balance</p>
+                                                    <p className="font-bold text-base md:text-lg text-red-600 dark:text-red-400">₱{item.balance.toLocaleString()}</p>
+                                                </div>
+                                            </div>
+                                            <div className="flex items-center gap-2">
+                                                <Badge className={
+                                                    item.status === 'ACTIVE' ? 'bg-blue-100 text-blue-800 hover:bg-blue-200 dark:bg-blue-900/30 dark:text-blue-300' :
+                                                        item.status === 'COMPLETED' ? 'bg-green-100 text-green-800 hover:bg-green-200 dark:bg-green-900/30 dark:text-green-300' :
+                                                            'bg-gray-100 text-gray-800 dark:bg-gray-800 dark:text-gray-300'
+                                                }>
+                                                    {item.status}
+                                                </Badge>
+                                                <DropdownMenu>
+                                                    <DropdownMenuTrigger asChild>
+                                                        <Button variant="ghost" size="icon" className="h-9 w-9">
+                                                            <TrendingUp className="h-4 w-4" />
+                                                        </Button>
+                                                    </DropdownMenuTrigger>
+                                                    <DropdownMenuContent align="end" className="w-48">
+                                                        <DropdownMenuItem onClick={() => viewDetails(item)} className="gap-2">
+                                                            <Eye className="h-4 w-4" /> View Details
+                                                        </DropdownMenuItem>
+                                                        <DropdownMenuItem onClick={() => startEdit(item)} className="gap-2">
+                                                            <FileText className="h-4 w-4" /> Edit
+                                                        </DropdownMenuItem>
+                                                        <DropdownMenuItem onClick={() => archiveDeduction(item)} className="gap-2">
+                                                            <Archive className="h-4 w-4" /> Archive
+                                                        </DropdownMenuItem>
+                                                        <DropdownMenuItem onClick={() => deleteDeduction(item)} className="text-red-600 gap-2">
+                                                            <Trash2 className="h-4 w-4" /> Delete
+                                                        </DropdownMenuItem>
+                                                    </DropdownMenuContent>
+                                                </DropdownMenu>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            ))}
+                        </div>
+                    )}
                 </CardContent>
             </Card>
+
+            {/* View Details Dialog */}
+            <Dialog open={detailsOpen} onOpenChange={setDetailsOpen}>
+                <DialogContent className="max-w-2xl">
+                    <DialogHeader>
+                        <DialogTitle>Deduction Details</DialogTitle>
+                    </DialogHeader>
+                    {selectedLoan && (
+                        <div className="space-y-4">
+                            <div className="grid grid-cols-2 gap-4">
+                                <div>
+                                    <p className="text-sm text-muted-foreground">Staff Name</p>
+                                    <p className="font-semibold">{selectedLoan.userName || selectedLoan.userEmail}</p>
+                                </div>
+                                <div>
+                                    <p className="text-sm text-muted-foreground">Department</p>
+                                    <p className="font-semibold">{selectedLoan.department || 'N/A'}</p>
+                                </div>
+                                <div>
+                                    <p className="text-sm text-muted-foreground">Purpose</p>
+                                    <p className="font-semibold">{selectedLoan.purpose?.replace('[DEDUCTION] ', '')}</p>
+                                </div>
+                                <div>
+                                    <p className="text-sm text-muted-foreground">Status</p>
+                                    <Badge className={
+                                        selectedLoan.status === 'ACTIVE' ? 'bg-blue-100 text-blue-800' :
+                                            selectedLoan.status === 'COMPLETED' ? 'bg-green-100 text-green-800' :
+                                                'bg-gray-100 text-gray-800'
+                                    }>
+                                        {selectedLoan.status}
+                                    </Badge>
+                                </div>
+                                <div>
+                                    <p className="text-sm text-muted-foreground">Total Amount</p>
+                                    <p className="font-semibold text-lg">₱{selectedLoan.amount.toLocaleString()}</p>
+                                </div>
+                                <div>
+                                    <p className="text-sm text-muted-foreground">Balance</p>
+                                    <p className="font-semibold text-lg text-red-600">₱{selectedLoan.balance.toLocaleString()}</p>
+                                </div>
+                                <div>
+                                    <p className="text-sm text-muted-foreground">Monthly Payment %</p>
+                                    <p className="font-semibold">{selectedLoan.monthlyPaymentPercent}%</p>
+                                </div>
+                                <div>
+                                    <p className="text-sm text-muted-foreground">Term</p>
+                                    <p className="font-semibold">{selectedLoan.termMonths} months</p>
+                                </div>
+                                <div>
+                                    <p className="text-sm text-muted-foreground">Created At</p>
+                                    <p className="font-semibold">{format(new Date(selectedLoan.createdAt), 'MMM dd, yyyy')}</p>
+                                </div>
+                            </div>
+                        </div>
+                    )}
+                </DialogContent>
+            </Dialog>
+
+            {/* Edit Dialog */}
+            <Dialog open={editOpen} onOpenChange={setEditOpen}>
+                <DialogContent className="max-w-md">
+                    <DialogHeader>
+                        <DialogTitle>Edit Deduction</DialogTitle>
+                    </DialogHeader>
+                    <div className="space-y-4">
+                        <div className="space-y-2">
+                            <label className="text-sm font-medium">Purpose</label>
+                            <Input
+                                value={editForm.purpose.replace('[DEDUCTION] ', '')}
+                                onChange={(e) => setEditForm(f => ({ ...f, purpose: `[DEDUCTION] ${e.target.value}` }))}
+                                placeholder="Purpose"
+                            />
+                        </div>
+                        <div className="space-y-2">
+                            <label className="text-sm font-medium">Monthly Payment %</label>
+                            <Input
+                                type="number"
+                                value={editForm.monthlyPaymentPercent}
+                                onChange={(e) => setEditForm(f => ({ ...f, monthlyPaymentPercent: Number(e.target.value) }))}
+                                placeholder="Percentage"
+                            />
+                        </div>
+                        <div className="space-y-2">
+                            <label className="text-sm font-medium">Term (Months)</label>
+                            <Input
+                                type="number"
+                                value={editForm.termMonths}
+                                onChange={(e) => setEditForm(f => ({ ...f, termMonths: Number(e.target.value) }))}
+                                placeholder="Months"
+                            />
+                        </div>
+                        <div className="space-y-2">
+                            <label className="text-sm font-medium">Status</label>
+                            <select
+                                value={editForm.status}
+                                onChange={(e) => setEditForm(f => ({ ...f, status: e.target.value }))}
+                                className="w-full border rounded-md px-3 py-2"
+                            >
+                                <option value="ACTIVE">Active</option>
+                                <option value="COMPLETED">Completed</option>
+                            </select>
+                        </div>
+                        <div className="flex gap-2 justify-end pt-4">
+                            <Button variant="outline" onClick={() => setEditOpen(false)}>Cancel</Button>
+                            <Button onClick={submitEdit} disabled={editSaving}>
+                                {editSaving ? 'Saving...' : 'Save Changes'}
+                            </Button>
+                        </div>
+                    </div>
+                </DialogContent>
+            </Dialog>
         </div>
     )
 }

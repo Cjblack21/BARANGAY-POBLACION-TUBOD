@@ -128,10 +128,10 @@ export default function PayrollPage() {
   const [hasAutoReleased, setHasAutoReleased] = useState(false)
   const [showPrintModal, setShowPrintModal] = useState(false)
   const [showPreviewModal, setShowPreviewModal] = useState(false)
-  const [previewHtml, setPreviewHtml] = useState<string>('')
-  const [previewLoading, setPreviewLoading] = useState(false)
+  const [previewHtml, setPreviewHtml] = useState('')
   const [previewMode, setPreviewMode] = useState<'all' | 'single'>('all')
   const [previewSearch, setPreviewSearch] = useState('')
+  const [previewStaffCount, setPreviewStaffCount] = useState(0)
   const iframeRef = useRef<HTMLIFrameElement | null>(null)
   const [previewScale, setPreviewScale] = useState(1)
   const [panPosition, setPanPosition] = useState({ x: 0, y: 0 })
@@ -984,7 +984,37 @@ html, body { margin: 0 !important; padding: 0 !important; overflow: hidden !impo
       const rawHtml = await response.text()
       const htmlContent = injectPreviewStyles(sanitizeForPreview(rawHtml))
       console.log('✅ Received HTML content, length:', htmlContent.length)
+      
+      // Extract staff count from HTML by counting payslip sections
+      // Try multiple patterns to handle different HTML formats
+      let staffCount = 0
+      const patterns = [
+        /class="payslip"/g,
+        /class='payslip'/g,
+        /class=\\"payslip\\"/g,
+        /<div[^>]*payslip[^>]*>/g
+      ]
+      
+      for (const pattern of patterns) {
+        const matches = htmlContent.match(pattern)
+        if (matches && matches.length > 0) {
+          staffCount = matches.length
+          console.log('📊 Detected staff count using pattern:', pattern, '=', staffCount)
+          break
+        }
+      }
+      
+      if (staffCount === 0) {
+        console.warn('⚠️ Could not detect staff count from HTML, using fallback')
+        // Fallback: try to count by looking for staff names or IDs
+        const staffIdMatches = htmlContent.match(/Staff ID:/g)
+        staffCount = staffIdMatches ? staffIdMatches.length : 0
+      }
+      
+      console.log('📊 Final staff count:', staffCount)
+      
       setPreviewHtml(htmlContent)
+      setPreviewStaffCount(staffCount)
       setShowPreviewModal(true)
 
       // Dismiss loading toast after preview opens
@@ -3183,10 +3213,6 @@ html, body { margin: 0 !important; padding: 0 !important; overflow: hidden !impo
                     : 'Current Period'
                   }
                 </Badge>
-                <Badge variant="secondary" className="text-sm px-3 py-1">
-                  <Users className="h-3 w-3 mr-1" />
-                  {payrollEntries.length} Personnel
-                </Badge>
               </div>
             </div>
 
@@ -3231,8 +3257,8 @@ html, body { margin: 0 !important; padding: 0 !important; overflow: hidden !impo
                   value={previewMode}
                   onChange={(e) => setPreviewMode(e.target.value as 'all' | 'single')}
                 >
-                  <option value="all">All Personnel</option>
-                  <option value="single">Single Personnel</option>
+                  <option value="all">All Staff</option>
+                  <option value="single">Single Staff</option>
                 </select>
               </div>
 
@@ -3432,6 +3458,13 @@ html, body { margin: 0 !important; padding: 0 !important; overflow: hidden !impo
                   if (printWindow) {
                     printWindow.document.write(previewHtml)
                     printWindow.document.close()
+                    
+                    // Wait for content to load then trigger print
+                    setTimeout(() => {
+                      printWindow.focus()
+                      printWindow.print()
+                    }, 500)
+                    
                     setShowPreviewModal(false)
                     toast.success('Opening print dialog...')
                   } else {
@@ -3533,27 +3566,34 @@ html, body { margin: 0 !important; padding: 0 !important; overflow: hidden !impo
                       </TableRow>
                     </TableHeader>
                     <TableBody>
-                      {filteredPersonnel.map((person) => (
-                        <TableRow key={person.payroll_entries_id}>
-                          <TableCell className="font-mono text-xs text-muted-foreground">{person.users_id || 'N/A'}</TableCell>
-                          <TableCell className="font-medium">{person.user?.name || 'N/A'}</TableCell>
-                          <TableCell>{person.user?.personnelType?.department || 'N/A'}</TableCell>
-                          <TableCell>{person.user?.personnelType?.name || 'N/A'}</TableCell>
-                          <TableCell className="text-right font-semibold text-green-600 dark:text-green-400">
-                            {formatCurrency(Number(person.netPay || 0))}
-                          </TableCell>
-                          <TableCell className="text-center">
-                            <Button
-                              size="sm"
-                              variant="outline"
-                              onClick={() => setSelectedArchivedEntry(person)}
-                            >
-                              <Eye className="h-4 w-4 mr-1" />
-                              Details
-                            </Button>
-                          </TableCell>
-                        </TableRow>
-                      ))}
+                      {filteredPersonnel.map((person) => {
+                        // Calculate Net Pay exactly like ArchivedPayrollDetailsDialog does
+                        const grossPay = Number(person.basicSalary || 0) + Number(person.overtime || 0)
+                        const deductions = Number(person.deductions || 0)
+                        const displayNetPay = grossPay - deductions
+                        
+                        return (
+                          <TableRow key={person.payroll_entries_id}>
+                            <TableCell className="font-mono text-xs text-muted-foreground">{person.users_id || 'N/A'}</TableCell>
+                            <TableCell className="font-medium">{person.user?.name || 'N/A'}</TableCell>
+                            <TableCell>{person.user?.personnelType?.department || 'N/A'}</TableCell>
+                            <TableCell>{person.user?.personnelType?.name || 'N/A'}</TableCell>
+                            <TableCell className="text-right font-semibold text-green-600 dark:text-green-400">
+                              {formatCurrency(displayNetPay)}
+                            </TableCell>
+                            <TableCell className="text-center">
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                onClick={() => setSelectedArchivedEntry(person)}
+                              >
+                                <Eye className="h-4 w-4 mr-1" />
+                                Details
+                              </Button>
+                            </TableCell>
+                          </TableRow>
+                        )
+                      })}
                     </TableBody>
                   </Table>
                 )

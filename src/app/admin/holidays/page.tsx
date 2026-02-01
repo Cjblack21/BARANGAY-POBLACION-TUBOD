@@ -299,14 +299,23 @@ export default function HolidaysPage() {
             Manage holidays and special days for the payroll system
           </p>
         </div>
-        <SSRSafe>
-          <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-            <DialogTrigger asChild>
-              <Button onClick={resetForm}>
-                <Plus className="h-4 w-4 mr-2" />
-                Add Holiday
-              </Button>
-            </DialogTrigger>
+        <div className="flex gap-2">
+          <Button
+            variant="outline"
+            onClick={() => handleImport('philippine')}
+            disabled={importing}
+          >
+            <Download className="h-4 w-4 mr-2" />
+            Import PH Holidays
+          </Button>
+          <SSRSafe>
+            <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+              <DialogTrigger asChild>
+                <Button onClick={resetForm}>
+                  <Plus className="h-4 w-4 mr-2" />
+                  Add Holiday
+                </Button>
+              </DialogTrigger>
           <DialogContent>
             <DialogHeader>
               <DialogTitle>
@@ -378,6 +387,7 @@ export default function HolidaysPage() {
           </DialogContent>
           </Dialog>
         </SSRSafe>
+        </div>
       </div>
 
       {/* Statistics Cards */}
@@ -439,11 +449,11 @@ export default function HolidaysPage() {
       <div className="grid gap-6 lg:grid-cols-3">
         {/* Holidays Table */}
         <div className="lg:col-span-2">
-          <Card>
-        <CardHeader className="pb-4">
+          <Card className="shadow-md">
+        <CardHeader className="pb-4 border-b bg-muted/30">
           <div className="flex items-center justify-between">
             <CardTitle className="flex items-center gap-3 text-xl">
-              <Calendar className="h-6 w-6" />
+              <Calendar className="h-6 w-6 text-blue-600" />
               Holidays Calendar - {format(currentMonth, 'MMMM yyyy')}
             </CardTitle>
             <div className="flex gap-2">
@@ -464,16 +474,17 @@ export default function HolidaysPage() {
             </div>
           </div>
         </CardHeader>
-        <CardContent>
+        <CardContent className="p-0">
           {isLoading ? (
             <div className="text-center py-8">
               <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto"></div>
               <p className="text-muted-foreground mt-2">Loading holidays...</p>
             </div>
           ) : (
+            <div className="overflow-x-auto">
             <Table>
               <TableHeader>
-                <TableRow>
+                <TableRow className="bg-muted/50 hover:bg-muted/50">
                   <TableHead className="px-6 py-4">
                     <div className="flex items-center gap-2">
                       <Calendar className="h-4 w-4" />
@@ -561,6 +572,7 @@ export default function HolidaysPage() {
                 )}
               </TableBody>
             </Table>
+            </div>
           )}
         </CardContent>
       </Card>
@@ -568,10 +580,10 @@ export default function HolidaysPage() {
 
         {/* Calendar Sidebar */}
         <div className="lg:col-span-1">
-          <Card>
-            <CardHeader className="pb-4">
+          <Card className="shadow-md">
+            <CardHeader className="pb-4 border-b bg-muted/30">
               <CardTitle className="flex items-center gap-3 text-xl">
-                <MapPin className="h-6 w-6" />
+                <MapPin className="h-6 w-6 text-green-600" />
                 Philippines Holidays
               </CardTitle>
             </CardHeader>

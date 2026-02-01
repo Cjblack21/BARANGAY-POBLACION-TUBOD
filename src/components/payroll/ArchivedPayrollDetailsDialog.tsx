@@ -42,6 +42,7 @@ export default function ArchivedPayrollDetailsDialog({
     const overloadPayDetails = liveData?.overloadPayDetails || []
     const deductionDetails = liveData?.deductionDetails || []
     const loanDetails = liveData?.loanDetails || []
+    const attendanceDeductionDetails = liveData?.attendanceDeductionDetails || []
 
     const monthlyBasic = Number(entry.user?.personnelType?.basicSalary || 0)
     const deductions = Number(entry.deductions || 0)
@@ -82,11 +83,9 @@ export default function ArchivedPayrollDetailsDialog({
         ` : '')
 
     const deductionsRows = (() => {
+      // Use attendanceDeductionDetails directly from snapshot
+      const attendance = attendanceDeductionDetails
       const mandatory = deductionDetails.filter((d: any) => d.isMandatory)
-      const attendance = deductionDetails.filter((d: any) => {
-        const type = d.type?.toLowerCase() || ''
-        return !d.isMandatory && (type.includes('late') || type.includes('early') || type.includes('absent') || type.includes('tardiness') || type.includes('partial'))
-      })
       const other = deductionDetails.filter((d: any) => {
         const type = d.type?.toLowerCase() || ''
         return !d.isMandatory && !type.includes('late') && !type.includes('early') && !type.includes('absent') && !type.includes('tardiness') && !type.includes('partial')
@@ -95,13 +94,22 @@ export default function ArchivedPayrollDetailsDialog({
       const actualLoans = loanDetails.filter((l: any) => !l.type?.startsWith('[DEDUCTION]'))
       const deductionPayments = loanDetails.filter((l: any) => l.type?.startsWith('[DEDUCTION]'))
 
+      console.log('🖨️ Print deductions:', {
+        attendance: attendance.length,
+        mandatory: mandatory.length,
+        other: other.length,
+        loans: actualLoans.length,
+        deductionDetails: deductionDetails,
+        attendanceDeductionDetails: attendanceDeductionDetails
+      })
+
       const rows: string[] = []
 
       attendance.forEach((d: any) => {
         rows.push(`<tr><td class="td">Attendance: ${String(d.type || 'Attendance')}</td><td class="td right">${formatCurrencyPrint(Number(d.amount || 0))}</td></tr>`)
       })
       mandatory.forEach((d: any) => {
-        rows.push(`<tr><td class="td">Mandatory: ${String(d.type || 'Mandatory')}</td><td class="td right">${formatCurrencyPrint(Number(d.amount || 0))}</td></tr>`)
+        rows.push(`<tr><td class="td">${String(d.type || 'Mandatory')}</td><td class="td right">-${formatCurrencyPrint(Number(d.amount || 0))}</td></tr>`)
       })
       actualLoans.forEach((l: any) => {
         rows.push(`<tr><td class="td">Loan: ${String(l.type || 'Loan')}</td><td class="td right">${formatCurrencyPrint(Number(l.amount || 0))}</td></tr>`)
@@ -258,6 +266,28 @@ export default function ArchivedPayrollDetailsDialog({
         overloadPayDetails = snapshot?.overloadPayDetails || []
         deductionDetails = snapshot?.deductionDetails || []
         loanDetails = snapshot?.loanDetails || []
+        
+        // Keep attendance deduction details separate to avoid duplicates
+        const attendanceDeductionDetails = snapshot?.attendanceDeductionDetails || []
+        
+        // Map loan details to have the correct 'amount' field (should be 'payment')
+        if (loanDetails.length > 0) {
+          loanDetails = loanDetails.map((loan: any) => ({
+            ...loan,
+            amount: loan.payment || loan.amount || 0,
+            type: loan.purpose || loan.type || 'Loan'
+          }))
+        }
+
+        console.log('📦 Snapshot data:', {
+          overloadPayDetails: overloadPayDetails.length,
+          deductionDetails: deductionDetails.length,
+          loanDetails: loanDetails.length,
+          attendanceDeductionDetails: attendanceDeductionDetails.length
+        })
+
+        // Store attendance deduction details separately
+        const snapshotAttendanceDeductionDetails = attendanceDeductionDetails
 
         // If snapshot doesn't have detailed breakdown, fetch live data as fallback
         if (deductionDetails.length === 0 && loanDetails.length === 0) {
@@ -326,9 +356,23 @@ export default function ArchivedPayrollDetailsDialog({
           } catch (error) {
             console.error('Error fetching live data:', error)
           }
+        } else {
+          // Use snapshot data including attendance deduction details
+          setLiveData({ 
+            overloadPayDetails, 
+            deductionDetails, 
+            loanDetails, 
+            attendanceDeductionDetails: snapshotAttendanceDeductionDetails 
+          })
+          return
         }
 
-        setLiveData({ overloadPayDetails, deductionDetails, loanDetails })
+        setLiveData({ 
+          overloadPayDetails, 
+          deductionDetails, 
+          loanDetails,
+          attendanceDeductionDetails: snapshotAttendanceDeductionDetails 
+        })
       } catch (error) {
         console.error('Error fetching live breakdown:', error)
       } finally {
@@ -360,6 +404,7 @@ export default function ArchivedPayrollDetailsDialog({
   const overloadPayDetails = liveData?.overloadPayDetails || []
   const deductionDetails = liveData?.deductionDetails || []
   const loanDetails = liveData?.loanDetails || []
+  const attendanceDeductionDetails = liveData?.attendanceDeductionDetails || []
 
   // Calculate overload pay
   let overloadPay = overloadPayDetails.reduce((sum: number, detail: any) => sum + Number(detail.amount), 0)
@@ -367,11 +412,10 @@ export default function ArchivedPayrollDetailsDialog({
     overloadPay = dbNetPay - periodSalary + deductions
   }
 
+  // Use attendanceDeductionDetails directly from snapshot instead of filtering
+  const attendanceDeductions = attendanceDeductionDetails
+  
   const mandatoryDeductions = deductionDetails.filter((d: any) => d.isMandatory)
-  const attendanceDeductions = deductionDetails.filter((d: any) => {
-    const type = d.type?.toLowerCase() || ''
-    return !d.isMandatory && (type.includes('late') || type.includes('early') || type.includes('absent') || type.includes('tardiness') || type.includes('partial'))
-  })
   const otherDeductions = deductionDetails.filter((d: any) => {
     const type = d.type?.toLowerCase() || ''
     return !d.isMandatory && !type.includes('late') && !type.includes('early') && !type.includes('absent') && !type.includes('tardiness') && !type.includes('partial')

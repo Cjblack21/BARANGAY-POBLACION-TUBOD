@@ -120,11 +120,13 @@ export async function GET(request: NextRequest) {
         breakdownSnapshot: true, // INCLUDE SNAPSHOT
         users: {
           select: {
+            users_id: true,
             name: true,
             email: true,
             personnel_types: {
               select: {
                 name: true,
+                department: true,
                 basicSalary: true
               }
             }
@@ -172,11 +174,13 @@ export async function GET(request: NextRequest) {
           breakdownSnapshot: true, // INCLUDE SNAPSHOT
           users: {
             select: {
+              users_id: true,
               name: true,
               email: true,
               personnel_types: {
                 select: {
                   name: true,
+                  department: true,
                   basicSalary: true
                 }
               }
@@ -215,11 +219,13 @@ export async function GET(request: NextRequest) {
       include: {
         users: {
           select: {
+            users_id: true,
             name: true,
             email: true,
             personnel_types: {
               select: {
                 name: true,
+                department: true,
                 basicSalary: true
               }
             }
@@ -236,12 +242,23 @@ export async function GET(request: NextRequest) {
     archivedEntries.forEach(entry => {
       const key = `${entry.periodStart.toISOString()}_${entry.periodEnd.toISOString()}`
       if (!groupedArchived.has(key)) {
+        // Map the user data - Prisma returns 'users' but frontend expects 'user'
+        const userData = entry.users ? {
+          users_id: entry.users.users_id,
+          name: entry.users.name,
+          email: entry.users.email,
+          personnelType: entry.users.personnel_types,
+          personnel_types: entry.users.personnel_types
+        } : null
+        
         groupedArchived.set(key, {
           periodStart: entry.periodStart,
           periodEnd: entry.periodEnd,
           status: entry.status,
-          payroll_entries_id: entry.payroll_entries_id, // Use first entry's ID
-          user: entry.users,
+          payroll_entries_id: entry.payroll_entries_id,
+          users_id: entry.users_id,
+          user: userData,
+          users: userData,
           netPay: entry.netPay,
           deductions: entry.deductions,
           breakdownSnapshot: entry.breakdownSnapshot
@@ -252,6 +269,10 @@ export async function GET(request: NextRequest) {
     const archivedPayrolls = Array.from(groupedArchived.values())
 
     console.log(`Found ${archivedEntries.length} archived payroll entries, grouped into ${archivedPayrolls.length} periods`)
+    if (archivedPayrolls.length > 0) {
+      console.log('🔍 First archived payroll:', JSON.stringify(archivedPayrolls[0], null, 2))
+      console.log('🔍 First archived entry from DB:', JSON.stringify(archivedEntries[0], null, 2))
+    }
 
     // Get user's deductions and loans for current period
     const deductions = await prisma.deductions.findMany({

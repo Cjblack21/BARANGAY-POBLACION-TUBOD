@@ -845,14 +845,14 @@ export default function DeductionsPage() {
           <>
             <Button
               onClick={() => setSyncMandatoryOpen(true)}
-              className="bg-gradient-to-r from-orange-500 to-red-500 hover:from-orange-600 hover:to-red-600 text-white shadow-md hover:shadow-lg transition-all duration-300"
+              className="bg-blue-600 hover:bg-blue-700 text-white shadow-md hover:shadow-lg transition-all duration-300"
             >
               <CheckCheck className="h-4 w-4 mr-2" />
               Apply Mandatory Deductions
             </Button>
             <Dialog open={typeOpen} onOpenChange={setTypeOpen}>
               <DialogTrigger asChild>
-                <Button className="bg-orange-500 hover:bg-orange-600 text-white"><Plus className="h-4 w-4 mr-2" />Add Mandatory Deduction</Button>
+                <Button className="bg-green-600 hover:bg-green-700 text-white"><Plus className="h-4 w-4 mr-2" />Add Mandatory Deduction</Button>
               </DialogTrigger>
               <DialogContent className="max-h-[85vh] overflow-y-auto max-w-2xl">
                 <DialogHeader>
@@ -919,11 +919,48 @@ export default function DeductionsPage() {
         </div>
       </div>
 
+      {/* Statistics Cards */}
+      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+        <Card className="border-l-4 border-l-blue-500">
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Mandatory Deduction Types</CardTitle>
+            <BadgeMinus className="h-4 w-4 text-blue-600" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">{types.filter(t => t.isMandatory).length}</div>
+            <p className="text-xs text-muted-foreground">Required deduction types</p>
+          </CardContent>
+        </Card>
+
+        <Card className="border-l-4 border-l-purple-500">
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Active Mandatory Types</CardTitle>
+            <CheckCheck className="h-4 w-4 text-purple-600" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">{types.filter(t => t.isMandatory && t.isActive).length}</div>
+            <p className="text-xs text-muted-foreground">Currently active</p>
+          </CardContent>
+        </Card>
+
+        <Card className="border-l-4 border-l-green-500">
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Mandatory Deductions</CardTitle>
+            <BadgeMinus className="h-4 w-4 text-green-600" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">{deductions.filter(d => d.deduction_types.isMandatory).length}</div>
+            <p className="text-xs text-muted-foreground">Applied to staff</p>
+          </CardContent>
+        </Card>
+      </div>
+
       {/* Mandatory Deductions Card */}
-      <Card>
-        <CardHeader>
+      <Card className="shadow-md">
+        <CardHeader className="border-b bg-muted/30">
           <div className="flex items-center justify-between">
-            <CardTitle className="flex items-center gap-2">
+            <CardTitle className="flex items-center gap-2 text-xl">
+              <BadgeMinus className="h-5 w-5 text-blue-600" />
               <span>Mandatory Deductions</span>
             </CardTitle>
             {selectedMandatoryTypesForDelete.length > 0 && (
@@ -939,13 +976,14 @@ export default function DeductionsPage() {
             )}
           </div>
         </CardHeader>
-        <CardContent>
+        <CardContent className="p-0">
           {loading ? (
-            <div className="py-6">Loading...</div>
+            <div className="py-6 text-center">Loading...</div>
           ) : (
-            <Table>
-              <TableHeader>
-                <TableRow>
+            <div className="overflow-x-auto">
+              <Table>
+                <TableHeader>
+                  <TableRow className="bg-muted/50 hover:bg-muted/50">
                   <TableHead className="w-32">
                     <div className="flex items-center gap-2">
                       <Button
@@ -1025,14 +1063,18 @@ export default function DeductionsPage() {
                 )}
               </TableBody>
             </Table>
+            </div>
           )}
         </CardContent>
       </Card>
 
-      <Card>
-        <CardHeader>
+      <Card className="shadow-md">
+        <CardHeader className="border-b bg-muted/30">
           <div className="flex items-center justify-between">
-            <CardTitle>Current Deductions</CardTitle>
+            <CardTitle className="flex items-center gap-2 text-xl">
+              <BadgeMinus className="h-5 w-5 text-green-600" />
+              <span>Current Deductions</span>
+            </CardTitle>
             {selectedDeductions.length > 0 && (
               <Button
                 variant="destructive"
@@ -1046,13 +1088,14 @@ export default function DeductionsPage() {
             )}
           </div>
         </CardHeader>
-        <CardContent>
+        <CardContent className="p-0">
           {loading ? (
-            <div className="py-6">Loading...</div>
+            <div className="py-6 text-center">Loading...</div>
           ) : (
-            <Table>
-              <TableHeader>
-                <TableRow>
+            <div className="overflow-x-auto">
+              <Table>
+                <TableHeader>
+                  <TableRow className="bg-muted/50 hover:bg-muted/50">
                   <TableHead className="w-32">
                     <div className="flex items-center gap-2">
                       <Button
@@ -1156,6 +1199,7 @@ export default function DeductionsPage() {
                 )}
               </TableBody>
             </Table>
+            </div>
           )}
         </CardContent>
       </Card>
@@ -1413,14 +1457,9 @@ export default function DeductionsPage() {
                 <>
                   <Input
                     placeholder="Search staff..."
-                    value={employeeSearch}
-                    onChange={(e) => setEmployeeSearch(e.target.value)}
-                    className="w-[200px]"
+                    value={syncPersonnelSearch}
+                    onChange={(e) => setSyncPersonnelSearch(e.target.value)}
                   />
-                  <Button onClick={() => setDeductionOpen(true)}>
-                    <Plus className="h-4 w-4 mr-2" />
-                    Add Staff Deduction
-                  </Button>
                   <div className="border rounded-md p-4 max-h-[280px] overflow-y-auto">
                     <Command className="border-0">
                       <CommandList>
@@ -1435,7 +1474,7 @@ export default function DeductionsPage() {
                               <CommandItem
                                 key={person.users_id}
                                 onSelect={() => toggleSyncPersonnel(person.users_id)}
-                                className="flex items-center gap-3 cursor-pointer"
+                                className="flex items-center gap-3 cursor-pointer aria-selected:bg-accent hover:bg-accent data-[selected=true]:bg-accent"
                               >
                                 <Button
                                   variant="ghost"
@@ -1447,7 +1486,7 @@ export default function DeductionsPage() {
                                   className="h-8 w-8 p-0 flex-shrink-0"
                                 >
                                   {syncSelectedPersonnel.includes(person.users_id) ? (
-                                    <CheckSquare className="h-5 w-5 text-orange-600 fill-orange-100" />
+                                    <CheckSquare className="h-5 w-5 text-primary" />
                                   ) : (
                                     <Square className="h-5 w-5 text-muted-foreground" />
                                   )}
@@ -1488,7 +1527,7 @@ export default function DeductionsPage() {
             <Button
               onClick={syncMandatoryDeductions}
               disabled={selectedMandatoryTypes.length === 0 || (!syncSelectAllPersonnel && syncSelectedPersonnel.length === 0)}
-              className="bg-orange-500 hover:bg-orange-600"
+              className="bg-blue-600 hover:bg-blue-700"
             >
               <CheckCheck className="h-4 w-4 mr-2" />
               Apply Deductions
