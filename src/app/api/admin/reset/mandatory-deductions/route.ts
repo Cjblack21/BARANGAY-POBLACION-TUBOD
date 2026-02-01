@@ -12,9 +12,9 @@ export async function DELETE() {
     }
 
     // Delete all mandatory deductions
-    const result = await prisma.deduction.deleteMany({
+    const result = await prisma.deductions.deleteMany({
       where: {
-        deductionType: {
+        deduction_types: {
           isMandatory: true
         }
       }
