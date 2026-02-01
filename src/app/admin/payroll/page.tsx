@@ -45,6 +45,7 @@ type PayrollEntry = {
     monthlyBasicSalary?: number // Monthly reference (optional)
     overloadPay?: number // Total additional pay
     overloadPayDetails?: Array<{ type: string, amount: number }> // Additional pay breakdown by type
+    grossPay?: number // Total gross pay (basic + overload)
     loanDeductions: number
     otherDeductions: number
     netPay?: number // Calculated net pay from backend
