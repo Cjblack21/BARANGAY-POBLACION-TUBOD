@@ -118,7 +118,7 @@ export async function GET() {
     const nowHHmm = `${nowHH}:${nowMM}`
     
     // Get attendance settings to check time-out window
-    const attendanceSettings = await prisma.attendanceSettings.findFirst()
+    const attendanceSettings = await prisma.attendance_settings.findFirst()
     
     console.log('⏰ CUTOFF DEBUG:', {
       nowPhilippineTime: now.toISOString(),
@@ -165,7 +165,7 @@ export async function GET() {
         }
 
         // Calculate earnings based on ACTUAL seconds worked
-        const basicSalary = user.personnelType?.basicSalary ? Number(user.personnelType.basicSalary) : 0
+        const basicSalary = user.personnel_types?.basicSalary ? Number(user.personnel_types.basicSalary) : 0
         
         let earnings = 0
         let deductions = 0
@@ -240,7 +240,7 @@ export async function GET() {
             users_id: user.users_id,
             name: user.name,
             email: user.email,
-            personnelType: user.personnelType
+            personnel_types: user.personnel_types
           },
           workHours: Math.max(0, workHours),
           earnings,
@@ -248,7 +248,7 @@ export async function GET() {
         }
       } else {
         // No attendance record for today - determine status based on time-out window
-        const basicSalary = user.personnelType?.basicSalary ? Number(user.personnelType.basicSalary) : 0
+        const basicSalary = user.personnel_types?.basicSalary ? Number(user.personnel_types.basicSalary) : 0
         
         // If Sunday or a holiday, do not mark absent or deduct
         if (isSunday || holiday) {
@@ -263,7 +263,7 @@ export async function GET() {
               users_id: user.users_id,
               name: user.name,
               email: user.email,
-              personnelType: user.personnelType
+              personnel_types: user.personnel_types
             },
             workHours: 0,
             earnings: 0,
@@ -279,7 +279,7 @@ export async function GET() {
           const deductions = attendanceDeductionMap.get(user.users_id) || 0
 
           // Persist absence deduction idempotently
-          const absenceType = await prisma.deductionType.upsert({
+          const absenceType = await prisma.deduction_types.upsert({
             where: { name: 'Absence Deduction' },
             update: {},
             create: { name: 'Absence Deduction', amount: deductions, isActive: true },
@@ -297,12 +297,16 @@ export async function GET() {
               data: { amount: deductions },
             })
           } else {
+            const { randomBytes } = await import('crypto')
+            const deductionId = randomBytes(12).toString('hex')
             await prisma.deductions.create({
               data: {
+                deductions_id: deductionId,
                 users_id: user.users_id,
                 deduction_types_id: absenceType.deduction_types_id,
                 amount: deductions,
                 appliedAt: today,
+                updatedAt: new Date()
               },
             })
           }
@@ -318,7 +322,7 @@ export async function GET() {
               users_id: user.users_id,
               name: user.name,
               email: user.email,
-              personnelType: user.personnelType
+              personnel_types: user.personnel_types
             },
             workHours: 0,
             earnings,
@@ -341,7 +345,7 @@ export async function GET() {
               users_id: user.users_id,
               name: user.name,
               email: user.email,
-              personnelType: user.personnelType
+              personnel_types: user.personnel_types
             },
             workHours: 0,
             earnings,
