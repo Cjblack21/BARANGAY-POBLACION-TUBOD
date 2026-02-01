@@ -15,15 +15,17 @@ export async function DELETE() {
     const attendanceRelatedTypes = ['Late Arrival', 'Late Penalty', 'Absence Deduction', 'Absent', 'Late', 'Tardiness', 'Partial Attendance', 'Early Time-Out']
 
     // Delete all non-mandatory deductions (excluding attendance-related ones)
-    const result = await prisma.deduction.deleteMany({
+    const result = await prisma.deductions.deleteMany({
       where: {
         AND: [
           {
-            deductionType: {
-              isMandatory: false,
-              name: {
-                notIn: attendanceRelatedTypes
-              }
+            deduction_types: {
+              isMandatory: false
+            }
+          },
+          {
+            deduction_types: {
+              name: { notIn: attendanceRelatedTypes }
             }
           }
         ]
