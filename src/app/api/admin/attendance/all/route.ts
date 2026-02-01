@@ -21,7 +21,7 @@ export async function GET(request: NextRequest) {
     const skip = (page - 1) * limit
 
     // Get attendance settings to determine current period
-    const attendanceSettings = await prisma.attendanceSettings.findFirst()
+    const attendanceSettings = await prisma.attendance_settings.findFirst()
 
     // Build where clause
     const whereClause: any = {}
@@ -50,15 +50,15 @@ export async function GET(request: NextRequest) {
     }
 
     // Get all attendance records including auto-marked ABSENT records
-    const attendanceRecords = await prisma.attendance.findMany({
+    const attendanceRecords = await prisma.attendances.findMany({
       where: whereClause,
       include: {
-        user: {
+        users: {
           select: {
             users_id: true,
             name: true,
             email: true,
-            personnelType: {
+            personnel_types: {
               select: {
                 personnel_types_id: true,
                 name: true,
