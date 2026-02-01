@@ -16,7 +16,7 @@ export async function GET(request: NextRequest) {
     // Get userId
     let userId = session.user.id as string | undefined
     if (!userId && session.user.email) {
-      const user = await prisma.user.findUnique({
+      const user = await prisma.users.findUnique({
         where: { email: session.user.email },
         select: { users_id: true }
       })
@@ -45,7 +45,7 @@ export async function GET(request: NextRequest) {
     console.log('📅 Period:', { periodStart, periodEnd })
     
     // FIRST: Check if there's a released payroll with snapshot for this period
-    const releasedPayroll = await prisma.payrollEntry.findFirst({
+    const releasedPayroll = await prisma.payroll_entries.findFirst({
       where: {
         users_id: userId,
         periodStart: periodStart,
@@ -93,7 +93,7 @@ export async function GET(request: NextRequest) {
     // Fetch mandatory deductions (same as admin logic)
     let mandatoryDeductions: any[] = []
     try {
-      const types = await prisma.deductionType.findMany({
+      const types = await prisma.deduction_types.findMany({
         where: { isMandatory: true, isActive: true }
       })
       mandatoryDeductions = types.map(t => ({
@@ -108,25 +108,25 @@ export async function GET(request: NextRequest) {
     }
 
     // Get user with basic salary
-    const user = await prisma.user.findUnique({ 
+    const user = await prisma.users.findUnique({ 
       where: { users_id: userId }, 
       select: { 
-        personnelType: { 
+        personnel_types: { 
           select: { basicSalary: true } 
         } 
       } 
     })
-    const basicSalary = user?.personnelType?.basicSalary ? Number(user.personnelType.basicSalary) : 0
+    const basicSalary = user?.personnel_types?.basicSalary ? Number(user.personnel_types.basicSalary) : 0
     const biweeklyBasicSalary = basicSalary / 2
 
     // Get ALL deductions but separate attendance-related from non-attendance deductions
-    const allDeductions = await prisma.deduction.findMany({
+    const allDeductions = await prisma.deductions.findMany({
       where: { 
         users_id: userId, 
         appliedAt: { gte: periodStart, lte: periodEnd }
       },
       include: {
-        deductionType: {
+        deduction_types: {
           select: {
             name: true,
             description: true
@@ -143,7 +143,7 @@ export async function GET(request: NextRequest) {
     const { start: startOfToday, end: endOfToday } = getTodayRangeInPhilippines()
     
     // Get attendance settings to check cutoff
-    const attendanceSettings = await prisma.attendanceSettings.findFirst()
+    const attendanceSettings = await prisma.attendance_settings.findFirst()
     const nowHH = nowPH.getHours().toString().padStart(2, '0')
     const nowMM = nowPH.getMinutes().toString().padStart(2, '0')
     const nowHHmm = `${nowHH}:${nowMM}`
@@ -155,10 +155,10 @@ export async function GET(request: NextRequest) {
     
     // Filter out TODAY's absence deductions if we're before cutoff
     const attendanceDeductions = allDeductions.filter(d => {
-      if (!attendanceRelatedTypes.includes(d.deductionType.name)) return false
+      if (!attendanceRelatedTypes.includes(d.deduction_types.name)) return false
       
       // If this is an absence deduction for TODAY and we're before cutoff, exclude it
-      if (d.deductionType.name === 'Absence Deduction' && isBeforeCutoff) {
+      if (d.deduction_types.name === 'Absence Deduction' && isBeforeCutoff) {
         const deductionDate = new Date(d.appliedAt)
         const isToday = deductionDate >= startOfToday && deductionDate <= endOfToday
         if (isToday) {
@@ -170,7 +170,7 @@ export async function GET(request: NextRequest) {
       return true
     })
     
-    const nonAttendanceDeductions = allDeductions.filter(d => !attendanceRelatedTypes.includes(d.deductionType.name))
+    const nonAttendanceDeductions = allDeductions.filter(d => !attendanceRelatedTypes.includes(d.deduction_types.name))
 
     // Calculate attendance deductions from actual records
     const actualAttendanceDeductions = attendanceDeductions.reduce((sum, d) => sum + Number(d.amount), 0)
@@ -197,7 +197,7 @@ export async function GET(request: NextRequest) {
     }
 
     // Get active loans
-    const loans = await prisma.loan.findMany({
+    const loans = await prisma.loans.findMany({
       where: {
         users_id: userId,
         status: 'ACTIVE',
@@ -247,8 +247,8 @@ export async function GET(request: NextRequest) {
     })
     
     console.log('📋 Other deductions details:', nonAttendanceDeductions.map(d => ({
-      name: d.deductionType.name,
-      description: d.deductionType.description,
+      name: d.deduction_types.name,
+      description: d.deduction_types.description,
       amount: Number(d.amount)
     })))
 
@@ -256,11 +256,11 @@ export async function GET(request: NextRequest) {
     const mandatoryTypeNames = new Set(mandatoryDeductions.map((md: any) => md.type))
     
     const otherDeductionsResponse = nonAttendanceDeductions.map(d => ({
-      name: d.deductionType.name,
+      name: d.deduction_types.name,
       amount: Number(d.amount),
       appliedAt: d.appliedAt,
-      description: d.deductionType.description || '-',
-      isMandatory: mandatoryTypeNames.has(d.deductionType.name)
+      description: d.deduction_types.description || '-',
+      isMandatory: mandatoryTypeNames.has(d.deduction_types.name)
     }))
     
     // Add mandatory deductions that aren't already in the list
@@ -298,7 +298,7 @@ export async function GET(request: NextRequest) {
       attendanceRecords: attendanceRecordsForDisplay,
       attendanceDetails: attendanceDeductions.map(d => ({
         date: d.appliedAt,
-        type: d.deductionType.name,
+        type: d.deduction_types.name,
         amount: Number(d.amount)
       })),
       // Use calculated deductions from live records
