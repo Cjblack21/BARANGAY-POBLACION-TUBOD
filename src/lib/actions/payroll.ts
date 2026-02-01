@@ -1119,11 +1119,11 @@ export async function getPayrollEntries(): Promise<{
       basicSalary: Number(entry.basicSalary),
       deductions: Number(entry.deductions),
       netPay: Number(entry.netPay),
-      user: {
-        ...entry.user,
-        personnelType: entry.user.personnelType ? {
-          ...entry.user.personnelType,
-          basicSalary: Number(entry.user.personnelType.basicSalary)
+      users: {
+        ...entry.users,
+        personnel_types: entry.users.personnel_types ? {
+          ...entry.users.personnel_types,
+          basicSalary: Number(entry.users.personnel_types.basicSalary)
         } : undefined
       }
     }))
