@@ -1,4 +1,5 @@
 import { PrismaClient } from '@prisma/client'
+import { randomBytes } from 'crypto'
 import { getTodayRangeInPhilippines, getNowInPhilippines } from '../src/lib/timezone'
 import { calculateAbsenceDeduction } from '../src/lib/attendance-calculations'
 
@@ -70,11 +71,14 @@ async function triggerAutoMarkAbsent() {
           })
           console.log(`✅ Updated ${user.name}: PENDING → ABSENT`)
         } else {
+          const attendanceId = randomBytes(12).toString('hex')
           await prisma.attendances.create({
             data: {
+              attendances_id: attendanceId,
               users_id: user.users_id,
               date: new Date(startOfToday),
-              status: 'ABSENT'
+              status: 'ABSENT',
+              updatedAt: new Date()
             }
           })
           console.log(`✅ Created ABSENT record for ${user.name}`)
