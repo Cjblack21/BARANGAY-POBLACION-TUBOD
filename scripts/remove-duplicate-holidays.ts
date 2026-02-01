@@ -7,7 +7,7 @@ async function removeDuplicateHolidays() {
     console.log('🔍 Checking for duplicate holidays...')
 
     // Get all holidays
-    const allHolidays = await prisma.holiday.findMany({
+    const allHolidays = await prisma.holidays.findMany({
       orderBy: [
         { date: 'asc' },
         { createdAt: 'asc' }
@@ -48,7 +48,7 @@ async function removeDuplicateHolidays() {
         
         for (const holiday of toDelete) {
           console.log(`  ❌ Deleting: ${holiday.name} (ID: ${holiday.holidays_id})`)
-          await prisma.holiday.delete({
+          await prisma.holidays.delete({
             where: { holidays_id: holiday.holidays_id }
           })
           duplicatesRemoved++
@@ -64,7 +64,7 @@ async function removeDuplicateHolidays() {
     }
 
     // Show final count
-    const finalCount = await prisma.holiday.count()
+    const finalCount = await prisma.holidays.count()
     console.log(`\n📊 Final holiday count: ${finalCount}`)
 
   } catch (error) {
