@@ -27,8 +27,8 @@ export async function POST(request: NextRequest) {
 
     // Resolve user either by users_id or email
     const user = inputUsersId
-      ? await prisma.user.findUnique({ where: { users_id: inputUsersId } })
-      : await prisma.user.findUnique({ where: { email: inputEmail! } })
+      ? await prisma.users.findUnique({ where: { users_id: inputUsersId } })
+      : await prisma.users.findUnique({ where: { email: inputEmail! } })
 
     if (!user || !user.isActive) {
       return NextResponse.json({ error: 'User not found or inactive' }, { status: 404 })
@@ -38,7 +38,7 @@ export async function POST(request: NextRequest) {
     const users_id = user.users_id
 
     const now = getNowInPhilippines()
-    const settings = await prisma.attendanceSettings.findFirst()
+    const settings = await prisma.attendance_settings.findFirst()
     const nowHH = now.getHours().toString().padStart(2, '0')
     const nowMM = now.getMinutes().toString().padStart(2, '0')
     const nowHHmm = `${nowHH}:${nowMM}`
@@ -56,7 +56,7 @@ export async function POST(request: NextRequest) {
     const endToday = getEndOfDayInPhilippines(now)
 
     // Find or create today's record
-    let record = await prisma.attendance.findFirst({
+    let record = await prisma.attendances.findFirst({
       where: { users_id, date: { gte: startToday, lte: endToday } },
     })
 
@@ -96,9 +96,9 @@ export async function POST(request: NextRequest) {
       // First punch (time-in) - determine status based on timing
       if (settings?.timeInEnd) {
         // Get user's basic salary for calculation
-        const userWithSalary = await prisma.user.findUnique({
+        const userWithSalary = await prisma.users.findUnique({
           where: { users_id },
-          include: { personnelType: true }
+          include: { personnel_types: true }
         })
         
         if (userWithSalary?.personnelType?.basicSalary) {
@@ -145,7 +145,7 @@ export async function POST(request: NextRequest) {
       // Normalize date to start of day to ensure consistency with existing records
       const normalizedDate = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 0, 0, 0, 0)
       
-      record = await prisma.attendance.create({
+      record = await prisma.attendances.create({
         data: {
           users_id,
           date: normalizedDate,
@@ -167,9 +167,9 @@ export async function POST(request: NextRequest) {
       // Time-in for existing record - determine status based on timing
       if (settings?.timeInEnd) {
         // Get user's basic salary for calculation
-        const userWithSalary = await prisma.user.findUnique({
+        const userWithSalary = await prisma.users.findUnique({
           where: { users_id },
-          include: { personnelType: true }
+          include: { personnel_types: true }
         })
         
         if (userWithSalary?.personnelType?.basicSalary) {
@@ -213,7 +213,7 @@ export async function POST(request: NextRequest) {
         status = AttendanceStatus.PRESENT // Default to present if no late deduction logic
       }
       
-      record = await prisma.attendance.update({
+      record = await prisma.attendances.update({
         where: { attendances_id: record.attendances_id },
         data: { timeIn: now, status },
       })
@@ -232,9 +232,9 @@ export async function POST(request: NextRequest) {
       
       if (settings?.timeOutStart) {
         // Get user's basic salary for calculation
-        const userWithSalary = await prisma.user.findUnique({
+        const userWithSalary = await prisma.users.findUnique({
           where: { users_id },
-          include: { personnelType: true }
+          include: { personnel_types: true }
         })
         
         if (userWithSalary?.personnelType?.basicSalary) {
@@ -245,7 +245,7 @@ export async function POST(request: NextRequest) {
         }
       }
       
-      record = await prisma.attendance.update({
+      record = await prisma.attendances.update({
         where: { attendances_id: record.attendances_id },
         data: { timeOut: now },
       })
