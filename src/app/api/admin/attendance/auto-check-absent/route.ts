@@ -63,7 +63,7 @@ export async function POST() {
     endOfToday.setHours(23, 59, 59, 999)
 
     // Get all active personnel users
-    const activeUsers = await prisma.user.findMany({
+    const activeUsers = await prisma.users.findMany({
       where: { isActive: true, role: 'PERSONNEL' },
       select: { users_id: true, name: true, email: true }
     })
