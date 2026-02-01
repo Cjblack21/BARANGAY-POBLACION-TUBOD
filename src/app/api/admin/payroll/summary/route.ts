@@ -60,7 +60,7 @@ export async function GET() {
       users_id: true, 
       name: true, 
       email: true,
-      personnelType: {
+      personnel_types: {
         select: {
           name: true,
           basicSalary: true,
@@ -225,9 +225,9 @@ export async function GET() {
   for (const record of allAttendanceRecords) {
     const userId = record.users_id
     const user = users.find(u => u.users_id === userId)
-    if (!user || !user.personnelType || !user.personnelType.basicSalary) return
+    if (!user || !user.personnel_types || !user.personnel_types.basicSalary) return
     
-    const basicSalary = Number(user.personnelType.basicSalary)
+    const basicSalary = Number(user.personnel_types.basicSalary)
     let dayEarnings = 0
     let dayDeductions = 0
     let dayWorkHours = 0
@@ -386,7 +386,7 @@ export async function GET() {
     const user = users.find(u => u.users_id === userId)
     if (!user) return
     
-    const monthlyBasicSalary = user.personnelType?.basicSalary ? Number(user.personnelType.basicSalary) : 0
+    const monthlyBasicSalary = user.personnel_types?.basicSalary ? Number(user.personnel_types.basicSalary) : 0
     const dailySalary = monthlyBasicSalary / 22
     const perSecondRate = dailySalary / 8 / 60 / 60
     
@@ -465,7 +465,7 @@ export async function GET() {
 
   // Calculate real-time payroll for each user
   const rows = users.map(u => {
-    const basicSalary = u.personnelType?.basicSalary ? Number(u.personnelType.basicSalary) : 0
+    const basicSalary = u.personnel_types?.basicSalary ? Number(u.personnel_types.basicSalary) : 0
     const biweeklyBasicSalary = basicSalary / 2 // Convert monthly to biweekly
     const nonAttendanceDeductionData = nonAttendanceDeductionsMap.get(u.users_id) || { total: 0, details: [] }
     const liveAttendanceDeductions = liveAttendanceDeductionsMap.get(u.users_id) || 0 // USE LIVE CALCULATION
@@ -489,9 +489,9 @@ export async function GET() {
       users_id: u.users_id,
       name: u.name,
       email: u.email,
-      department: u.personnelType?.department || '-',
-      position: u.personnelType?.name || '-',
-      personnelType: u.personnelType?.type || null,
+      department: u.personnel_types?.department || '-',
+      position: u.personnel_types?.name || '-',
+      personnelType: u.personnel_types?.type || null,
       totalHours: realWorkHours, // Now shows actual work hours
       totalSalary: netPay,
       released: releasedSet.has(u.users_id),
