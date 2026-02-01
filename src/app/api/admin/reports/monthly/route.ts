@@ -32,13 +32,13 @@ export async function GET(request: NextRequest) {
     console.log(`Generating monthly report for ${format(monthStart, 'MMMM yyyy')}`)
 
     // Get all active personnel
-    const users = await prisma.user.findMany({
+    const users = await prisma.users.findMany({
       where: { 
         isActive: true, 
         role: 'PERSONNEL' 
       },
       include: {
-        personnelType: {
+        personnel_types: {
           select: {
             name: true,
             type: true,
@@ -52,7 +52,7 @@ export async function GET(request: NextRequest) {
     const userIds = users.map(u => u.users_id)
 
     // Get payroll entries for the month (using periodStart/periodEnd)
-    const payrollEntries = await prisma.payrollEntry.findMany({
+    const payrollEntries = await prisma.payroll_entries.findMany({
       where: {
         users_id: { in: userIds },
         OR: [
@@ -71,11 +71,11 @@ export async function GET(request: NextRequest) {
         ]
       },
       include: {
-        user: {
+        users: {
           select: {
             name: true,
             email: true,
-            personnelType: {
+            personnel_types: {
               select: {
                 name: true
               }
@@ -86,7 +86,7 @@ export async function GET(request: NextRequest) {
     })
 
     // Get deductions for the month
-    const deductions = await prisma.deduction.findMany({
+    const deductions = await prisma.deductions.findMany({
       where: {
         users_id: { in: userIds },
         appliedAt: {
@@ -95,16 +95,12 @@ export async function GET(request: NextRequest) {
         }
       },
       include: {
-        deductionType: {
-          select: {
-            name: true
-          }
-        }
+        deduction_types: true
       }
     })
 
     // Get loans for the month
-    const loans = await prisma.loan.findMany({
+    const loans = await prisma.loans.findMany({
       where: {
         users_id: { in: userIds },
         status: 'ACTIVE',
@@ -114,7 +110,7 @@ export async function GET(request: NextRequest) {
     })
 
     // Get attendance for the month
-    const attendance = await prisma.attendance.findMany({
+    const attendance = await prisma.attendances.findMany({
       where: {
         users_id: { in: userIds },
         date: {
@@ -169,16 +165,16 @@ export async function GET(request: NextRequest) {
       }, 0)
 
       const netPay = userPayroll.reduce((sum, entry) => sum + Number(entry.netPay), 0)
-      const basicSalary = user.personnelType?.basicSalary ? Number(user.personnelType.basicSalary) : 0
+      const basicSalary = user.personnel_types?.basicSalary ? Number(user.personnel_types.basicSalary) : 0
       const userAttendanceRate = userAttendance.total > 0 ? (userAttendance.present / userAttendance.total) * 100 : 0
 
       return {
         users_id: user.users_id,
         name: user.name,
         email: user.email,
-        position: user.personnelType?.name || 'No Position',
-        personnelType: user.personnelType?.type || null,
-        department: user.personnelType?.department || 'No Department',
+        position: user.personnel_types?.name || 'No Position',
+        personnelType: user.personnel_types?.name || 'No Type',
+        department: user.personnel_types?.department || 'No Department',
         basicSalary,
         totalDeductions: totalUserDeductions,
         totalLoans: totalUserLoans,
