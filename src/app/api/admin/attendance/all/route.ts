@@ -262,7 +262,7 @@ export async function GET(request: NextRequest) {
           users_id: user.users_id,
           name: user.name,
           email: user.email,
-          personnelType: user.personnelType
+          personnel_types: user.personnel_types
         },
         workHours: Math.max(0, workHours),
         earnings,
