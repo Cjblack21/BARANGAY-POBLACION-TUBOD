@@ -19,7 +19,7 @@ export async function POST(req: Request) {
     const { name, email, password } = validation.data
 
     // Check if user already exists
-    const existingUser = await prisma.user.findUnique({
+    const existingUser = await prisma.users.findUnique({
       where: { email: email.toLowerCase() }
     })
 
@@ -34,13 +34,17 @@ export async function POST(req: Request) {
     const hashedPassword = await bcrypt.hash(password, 10)
 
     // Create user with PERSONNEL role by default
-    const user = await prisma.user.create({
+    const { randomBytes } = await import('crypto')
+    const userId = randomBytes(12).toString('hex')
+    const user = await prisma.users.create({
       data: {
+        users_id: userId,
         name,
         email: email.toLowerCase(),
         password: hashedPassword,
         role: "PERSONNEL",
         isActive: true,
+        updatedAt: new Date()
       },
       select: {
         users_id: true,
