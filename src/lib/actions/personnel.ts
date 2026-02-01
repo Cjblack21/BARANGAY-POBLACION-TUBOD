@@ -101,7 +101,7 @@ export async function getPersonnelDashboard(): Promise<{
     })
 
     // Get current period payroll status
-    const currentPayroll = await prisma.payrollEntry.findFirst({
+    const currentPayroll = await prisma.payroll_entries.findFirst({
       where: {
         users_id: userId,
         processedAt: {
