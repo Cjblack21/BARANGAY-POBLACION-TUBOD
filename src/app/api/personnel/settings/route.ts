@@ -12,15 +12,19 @@ export async function GET() {
     }
 
     // Get or create user settings
-    let settings = await prisma.userSettings.findUnique({
+    let settings = await prisma.user_settings.findUnique({
       where: { users_id: session.user.id },
     })
 
     // Create default settings if they don't exist
     if (!settings) {
-      settings = await prisma.userSettings.create({
+      const { randomBytes } = await import('crypto')
+      const settingsId = randomBytes(12).toString('hex')
+      settings = await prisma.user_settings.create({
         data: {
+          user_settings_id: settingsId,
           users_id: session.user.id,
+          updatedAt: new Date()
         },
       })
     }
@@ -54,7 +58,7 @@ export async function PUT(request: NextRequest) {
     } = body
 
     // Update or create settings
-    const settings = await prisma.userSettings.upsert({
+    const settings = await prisma.user_settings.upsert({
       where: { users_id: session.user.id },
       update: {
         theme,
@@ -65,6 +69,7 @@ export async function PUT(request: NextRequest) {
         attendanceReminders,
       },
       create: {
+        user_settings_id: (() => { const { randomBytes } = require('crypto'); return randomBytes(12).toString('hex'); })(),
         users_id: session.user.id,
         theme,
         language,
@@ -72,6 +77,7 @@ export async function PUT(request: NextRequest) {
         payrollNotifications,
         systemNotifications,
         attendanceReminders,
+        updatedAt: new Date()
       },
     })
 
