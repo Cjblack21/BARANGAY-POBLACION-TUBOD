@@ -12,12 +12,15 @@ export async function GET() {
     }
 
     // Get header settings from database or return defaults
-    let settings = await prisma.headerSettings.findFirst()
+    let settings = await prisma.header_settings.findFirst()
 
     if (!settings) {
       // Create default settings if none exist
-      settings = await prisma.headerSettings.create({
+      const { randomBytes } = await import('crypto')
+      const settingsId = randomBytes(12).toString('hex')
+      settings = await prisma.header_settings.create({
         data: {
+          id: settingsId,
           schoolName: "TUBOD BARANGAY POBLACION",
           schoolAddress: "Tubod, Lanao del Norte",
           systemName: "POBLACION - PMS",
@@ -26,7 +29,8 @@ export async function GET() {
           headerAlignment: 'center',
           fontSize: 'medium',
           customText: "",
-          workingDays: JSON.stringify(["Monday", "Tuesday", "Wednesday", "Thursday", "Friday"])
+          workingDays: JSON.stringify(["Monday", "Tuesday", "Wednesday", "Thursday", "Friday"]),
+          updatedAt: new Date()
         }
       })
     }
@@ -80,12 +84,12 @@ export async function POST(request: Request) {
     }
 
     // Check if settings exist
-    const existingSettings = await prisma.headerSettings.findFirst()
+    const existingSettings = await prisma.header_settings.findFirst()
 
     let settings
     if (existingSettings) {
       // Update existing settings
-      settings = await prisma.headerSettings.update({
+      settings = await prisma.header_settings.update({
         where: { id: existingSettings.id },
         data: {
           schoolName,
@@ -101,8 +105,11 @@ export async function POST(request: Request) {
       })
     } else {
       // Create new settings
-      settings = await prisma.headerSettings.create({
+      const { randomBytes } = await import('crypto')
+      const settingsId = randomBytes(12).toString('hex')
+      settings = await prisma.header_settings.create({
         data: {
+          id: settingsId,
           schoolName,
           schoolAddress,
           systemName,
@@ -111,7 +118,8 @@ export async function POST(request: Request) {
           headerAlignment: headerAlignment || 'center',
           fontSize: fontSize || 'medium',
           customText: customText || "",
-          workingDays: JSON.stringify(workingDays || ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday"])
+          workingDays: JSON.stringify(workingDays || ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday"]),
+          updatedAt: new Date()
         }
       })
     }
