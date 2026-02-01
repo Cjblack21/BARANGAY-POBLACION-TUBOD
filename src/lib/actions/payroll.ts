@@ -235,14 +235,18 @@ export async function getPayrollSummary(): Promise<{
     if (!hasGenerated) {
       console.log('⚠️ No payroll entries found for this period. Please click "Generate Payroll" to create payroll.')
       return {
-        periodStart: periodStart.toISOString(),
-        periodEnd: periodEnd.toISOString(),
-        totalEmployees: 0,
-        totalGrossSalary: 0,
-        totalDeductions: 0,
-        totalNetSalary: 0,
-        payrollEntries: [],
-        workingDays: 0
+        success: true,
+        summary: {
+          periodStart: periodStart.toISOString(),
+          periodEnd: periodEnd.toISOString(),
+          totalEmployees: 0,
+          totalGrossSalary: 0,
+          totalDeductions: 0,
+          totalNetSalary: 0,
+          payrollEntries: [],
+          hasGenerated: false,
+          hasReleased: false
+        }
       }
     }
 
