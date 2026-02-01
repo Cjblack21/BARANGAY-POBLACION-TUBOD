@@ -18,7 +18,7 @@ export async function GET() {
     const { start: startOfToday, end: endOfToday } = getTodayRangeInPhilippines()
     const today = new Date(startOfToday)
     const isSunday = today.getDay() === 0
-    const holiday = await prisma.holiday.findFirst({
+    const holiday = await prisma.holidays.findFirst({
       where: {
         date: {
           gte: startOfToday,
@@ -28,10 +28,10 @@ export async function GET() {
     })
 
     // Get all personnel users
-    const users = await prisma.user.findMany({
+    const users = await prisma.users.findMany({
       where: { isActive: true, role: 'PERSONNEL' },
       include: {
-        personnelType: {
+        personnel_types: {
           select: {
             basicSalary: true
           }
@@ -42,7 +42,7 @@ export async function GET() {
     const userIds = users.map(u => u.users_id)
 
     // Get today's attendance records
-    const attendanceRecords = await prisma.attendance.findMany({
+    const attendanceRecords = await prisma.attendances.findMany({
       where: {
         users_id: { in: userIds },
         date: {
@@ -51,12 +51,12 @@ export async function GET() {
         }
       },
       include: {
-        user: {
+        users: {
           select: {
             users_id: true,
             name: true,
             email: true,
-            personnelType: {
+            personnel_types: {
               select: {
                 basicSalary: true
               }
@@ -73,7 +73,7 @@ export async function GET() {
     })
 
     // Get all attendance-related deductions for today
-    const attendanceDeductions = await prisma.deduction.findMany({
+    const attendanceDeductions = await prisma.deductions.findMany({
       where: {
         users_id: { in: userIds },
         appliedAt: {
@@ -284,7 +284,7 @@ export async function GET() {
             update: {},
             create: { name: 'Absence Deduction', amount: deductions, isActive: true },
           })
-          const existing = await prisma.deduction.findFirst({
+          const existing = await prisma.deductions.findFirst({
             where: {
               users_id: user.users_id,
               deduction_types_id: absenceType.deduction_types_id,
@@ -292,12 +292,12 @@ export async function GET() {
             },
           })
           if (existing) {
-            await prisma.deduction.update({
+            await prisma.deductions.update({
               where: { deductions_id: existing.deductions_id },
               data: { amount: deductions },
             })
           } else {
-            await prisma.deduction.create({
+            await prisma.deductions.create({
               data: {
                 users_id: user.users_id,
                 deduction_types_id: absenceType.deduction_types_id,
