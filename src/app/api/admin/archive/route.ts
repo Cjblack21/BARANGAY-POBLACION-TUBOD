@@ -14,16 +14,16 @@ export async function GET() {
     console.log('Fetching archived payroll and loan data...')
 
     // Fetch archived payrolls
-    const archivedPayrolls = await prisma.payrollEntry.findMany({
+    const archivedPayrolls = await prisma.payroll_entries.findMany({
       where: {
         status: {
           in: ['RELEASED', 'ARCHIVED']
         }
       },
       include: {
-        user: {
+        users: {
           include: {
-            personnelType: true
+            personnel_types: true
           }
         }
       },
@@ -33,15 +33,15 @@ export async function GET() {
     })
 
     // Fetch archived loans
-    const archivedLoans = await prisma.loan.findMany({
+    const archivedLoans = await prisma.loans.findMany({
       where: { archivedAt: { not: null } },
       include: {
-        user: { 
+        users: { 
           select: { 
             users_id: true, 
             name: true, 
             email: true,
-            personnelType: {
+            personnel_types: {
               select: {
                 department: true
               }
@@ -113,9 +113,9 @@ export async function GET() {
     const loanArchiveList = archivedLoans.map(l => ({
       loans_id: l.loans_id,
       users_id: l.users_id,
-      userName: l.user?.name ?? null,
-      userEmail: l.user?.email || '',
-      department: l.user?.personnelType?.department ?? null,
+      userName: l.users?.name ?? null,
+      userEmail: l.users?.email || '',
+      department: l.users?.personnel_types?.department ?? null,
       amount: Number(l.amount),
       balance: Number(l.balance),
       monthlyPaymentPercent: Number(l.monthlyPaymentPercent),
