@@ -9,7 +9,7 @@ import { prisma } from '@/lib/prisma'
 export async function GET() {
   try {
     // Get attendance settings to check if it's time to release
-    const settings = await prisma.attendanceSettings.findFirst()
+    const settings = await prisma.attendance_settings.findFirst()
     
     if (!settings?.periodStart || !settings?.periodEnd || !settings?.timeOutEnd) {
       return NextResponse.json({
@@ -39,7 +39,7 @@ export async function GET() {
     }
 
     // Check if there are pending payroll entries
-    const pendingPayrolls = await prisma.payrollEntry.findMany({
+    const pendingPayrolls = await prisma.payroll_entries.findMany({
       where: {
         periodStart: { gte: new Date(settings.periodStart) },
         periodEnd: { lte: new Date(settings.periodEnd) },
