@@ -20,21 +20,21 @@ export async function POST(request: NextRequest) {
     const { periodStart, periodEnd } = getCurrentBiweeklyPeriod()
     
     // Check if user has personnel type
-    const user = await prisma.user.findUnique({
+    const user = await prisma.users.findUnique({
       where: { users_id: userId },
-      include: { personnelType: true }
+      include: { personnel_types: true }
     })
 
     if (!user) {
       return NextResponse.json({ error: 'User not found' }, { status: 404 })
     }
 
-    if (!user.personnelType) {
+    if (!user.personnel_types) {
       return NextResponse.json({ error: 'User has no personnel type assigned' }, { status: 400 })
     }
 
     // Check if payroll already exists
-    const existingPayroll = await prisma.payrollEntry.findFirst({
+    const existingPayroll = await prisma.payroll_entries.findFirst({
       where: {
         users_id: userId,
         processedAt: {
@@ -52,14 +52,20 @@ export async function POST(request: NextRequest) {
     }
 
     // Create test payroll entry
-    const basicSalary = Number(user.personnelType.basicSalary)
-    const biweeklyBasicSalary = basicSalary / 2
+    const basicSalary = user.personnel_types.basicSalary
+    if (!basicSalary) {
+      return NextResponse.json({ error: 'Personnel type has no basic salary assigned' }, { status: 400 })
+    }
+    const biweeklyBasicSalary = Number(basicSalary) / 2
     const overtime = 0
     const deductions = 0
     const netPay = biweeklyBasicSalary
 
-    const payroll = await prisma.payrollEntry.create({
+    const { randomBytes } = await import('crypto')
+    const payrollId = randomBytes(12).toString('hex')
+    const payroll = await prisma.payroll_entries.create({
       data: {
+        payroll_entries_id: payrollId,
         users_id: userId,
         periodStart: periodStart,
         periodEnd: periodEnd,
@@ -68,7 +74,8 @@ export async function POST(request: NextRequest) {
         deductions: deductions,
         netPay: netPay,
         status: 'PENDING',
-        processedAt: new Date()
+        processedAt: new Date(),
+        updatedAt: new Date()
       }
     })
 
@@ -81,7 +88,7 @@ export async function POST(request: NextRequest) {
       user: {
         name: user.name,
         email: user.email,
-        personnelType: user.personnelType.name
+        personnelType: user.personnel_types.name
       }
     })
 
