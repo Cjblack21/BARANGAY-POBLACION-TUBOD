@@ -9,7 +9,7 @@ async function main() {
       archivedAt: null
     },
     include: {
-      deductionType: {
+      deduction_types: {
         select: {
           name: true,
           isMandatory: true
@@ -20,7 +20,7 @@ async function main() {
 
   console.log('\n📋 Mike Johnson\'s Deductions:')
   deductions.forEach(d => {
-    console.log(`  ✓ ${d.deductionType.name}: isMandatory=${d.deductionType.isMandatory} (amount: ₱${d.amount})`)
+    console.log(`  ✓ ${d.deduction_types.name}: isMandatory=${d.deduction_types.isMandatory} (amount: ₱${d.amount})`)
   })
   console.log('')
 }
