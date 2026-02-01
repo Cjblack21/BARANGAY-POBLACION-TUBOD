@@ -18,7 +18,7 @@ async function testBreakdownAPI() {
     
     const user = await prisma.users.findFirst({
       where: { email: 'bryllecooked@pms.com' },
-      include: { personnelType: true }
+      include: { personnel_types: true }
     })
     
     if (!user) {
@@ -27,7 +27,7 @@ async function testBreakdownAPI() {
     }
     
     console.log(`👤 User: ${user.name}`)
-    console.log(`   Basic Salary: ₱${user.personnelType?.basicSalary || 0}`)
+    console.log(`   Basic Salary: ₱${user.personnel_types?.basicSalary || 0}`)
     console.log('')
     
     // Get attendance records in period
