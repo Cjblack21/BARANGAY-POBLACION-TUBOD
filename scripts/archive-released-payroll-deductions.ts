@@ -42,7 +42,7 @@ async function archiveReleasedPayrollDeductions() {
       endOfDayPH.setHours(23, 59, 59, 999)
 
       // Get all non-mandatory deductions for this user in this period
-      const userDeductions = await prisma.deduction.findMany({
+      const userDeductions = await prisma.deductions.findMany({
         where: {
           users_id: payroll.users_id,
           archivedAt: null,
@@ -85,7 +85,7 @@ async function archiveReleasedPayrollDeductions() {
           })
 
           // Archive them
-          const result = await prisma.deduction.updateMany({
+          const result = await prisma.deductions.updateMany({
             where: {
               deductions_id: { in: idsToArchive }
             },

@@ -94,12 +94,12 @@ async function fixTodaysAbsentToPending() {
     console.log('\n💡 Refresh your payroll page to see the updated status')
     
     // Also remove any absence deductions created today
-    const absenceType = await prisma.deductionType.findFirst({
+    const absenceType = await prisma.deduction_types.findFirst({
       where: { name: 'Absence Deduction' }
     })
     
     if (absenceType) {
-      const deductionResult = await prisma.deduction.deleteMany({
+      const deductionResult = await prisma.deductions.deleteMany({
         where: {
           deduction_types_id: absenceType.deduction_types_id,
           appliedAt: {

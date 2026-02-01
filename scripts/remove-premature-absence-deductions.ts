@@ -45,7 +45,7 @@ async function removePrematureAbsenceDeductions() {
     console.log(`📅 Today's date range: ${startOfToday.toISOString()} to ${endOfToday.toISOString()}`)
     
     // Find absence deduction type
-    const absenceType = await prisma.deductionType.findFirst({
+    const absenceType = await prisma.deduction_types.findFirst({
       where: { name: 'Absence Deduction' }
     })
     
@@ -55,7 +55,7 @@ async function removePrematureAbsenceDeductions() {
     }
     
     // Find all absence deductions created TODAY
-    const todayAbsenceDeductions = await prisma.deduction.findMany({
+    const todayAbsenceDeductions = await prisma.deductions.findMany({
       where: {
         deduction_types_id: absenceType.deduction_types_id,
         appliedAt: {
@@ -85,7 +85,7 @@ async function removePrematureAbsenceDeductions() {
     }
     
     // Delete these premature deductions
-    const result = await prisma.deduction.deleteMany({
+    const result = await prisma.deductions.deleteMany({
       where: {
         deduction_types_id: absenceType.deduction_types_id,
         appliedAt: {

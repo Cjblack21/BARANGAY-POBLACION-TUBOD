@@ -44,7 +44,7 @@ async function checkStatus() {
     console.log('\n\n💰 DEDUCTIONS (ACTIVE):')
     console.log('='.repeat(60))
     
-    const activeDeductions = await prisma.deduction.findMany({
+    const activeDeductions = await prisma.deductions.findMany({
       where: {
         archivedAt: null
       },
@@ -82,7 +82,7 @@ async function checkStatus() {
     console.log('\n\n🗑️  DEDUCTIONS (ARCHIVED):')
     console.log('='.repeat(60))
     
-    const archivedDeductions = await prisma.deduction.findMany({
+    const archivedDeductions = await prisma.deductions.findMany({
       where: {
         archivedAt: { not: null }
       },

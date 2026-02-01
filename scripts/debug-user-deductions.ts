@@ -38,8 +38,8 @@ async function debugUserDeductions(userEmail?: string) {
     
     // Find user
     const user = userEmail 
-      ? await prisma.user.findUnique({ where: { email: userEmail }, include: { personnelType: true } })
-      : await prisma.user.findFirst({ where: { role: 'PERSONNEL' }, include: { personnelType: true } })
+      ? await prisma.users.findUnique({ where: { email: userEmail }, include: { personnelType: true } })
+      : await prisma.users.findFirst({ where: { role: 'PERSONNEL' }, include: { personnelType: true } })
     
     if (!user) {
       console.log('❌ No user found')
@@ -90,7 +90,7 @@ async function debugUserDeductions(userEmail?: string) {
     
     // Get all deductions in period
     if (settings.periodStart && settings.periodEnd) {
-      const deductions = await prisma.deduction.findMany({
+      const deductions = await prisma.deductions.findMany({
         where: {
           users_id: user.users_id,
           appliedAt: { gte: settings.periodStart, lte: settings.periodEnd }

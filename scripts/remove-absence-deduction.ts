@@ -7,7 +7,7 @@ async function main() {
   
   try {
     // Find the Absence Deduction type
-    const absenceDeductionType = await prisma.deductionType.findFirst({
+    const absenceDeductionType = await prisma.deduction_types.findFirst({
       where: {
         name: 'Absence Deduction'
       }
@@ -21,7 +21,7 @@ async function main() {
     console.log(`📋 Found "Absence Deduction" type with ID: ${absenceDeductionType.deduction_types_id}`)
     
     // Delete all deductions of this type first
-    const deletedDeductions = await prisma.deduction.deleteMany({
+    const deletedDeductions = await prisma.deductions.deleteMany({
       where: {
         deduction_types_id: absenceDeductionType.deduction_types_id
       }
@@ -30,7 +30,7 @@ async function main() {
     console.log(`🗑️  Deleted ${deletedDeductions.count} deduction records`)
     
     // Delete the deduction type
-    await prisma.deductionType.delete({
+    await prisma.deduction_types.delete({
       where: {
         deduction_types_id: absenceDeductionType.deduction_types_id
       }

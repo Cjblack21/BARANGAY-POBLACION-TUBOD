@@ -12,21 +12,21 @@ async function archiveOldDeductions() {
     console.log('🔍 Finding non-mandatory deductions that should be archived...\n')
 
     // Get all non-mandatory, non-attendance deductions that are still active
-    const activeDeductions = await prisma.deduction.findMany({
+    const activeDeductions = await prisma.deductions.findMany({
       where: {
         archivedAt: null,
-        deductionType: {
+        deduction_types: {
           isMandatory: false
         }
       },
       include: {
-        user: {
+        users: {
           select: {
             name: true,
             email: true
           }
         },
-        deductionType: {
+        deduction_types: {
           select: {
             name: true,
             isMandatory: true
@@ -40,11 +40,11 @@ async function archiveOldDeductions() {
 
     // Filter out attendance deductions
     const nonMandatory = activeDeductions.filter(d => 
-      !d.deductionType.name.includes('Late') &&
-      !d.deductionType.name.includes('Absent') &&
-      !d.deductionType.name.includes('Early') &&
-      !d.deductionType.name.includes('Partial') &&
-      !d.deductionType.name.includes('Tardiness')
+      !d.deduction_types.name.includes('Late') &&
+      !d.deduction_types.name.includes('Absent') &&
+      !d.deduction_types.name.includes('Early') &&
+      !d.deduction_types.name.includes('Partial') &&
+      !d.deduction_types.name.includes('Tardiness')
     )
 
     console.log(`Found ${nonMandatory.length} active non-mandatory deductions:\n`)
@@ -56,7 +56,7 @@ async function archiveOldDeductions() {
 
     // Show all deductions
     nonMandatory.forEach((d, index) => {
-      console.log(`${index + 1}. ${d.user.name}: ${d.deductionType.name}`)
+      console.log(`${index + 1}. ${d.users.name}: ${d.deduction_types.name}`)
       console.log(`   Amount: ₱${Number(d.amount).toFixed(2)}`)
       console.log(`   Applied: ${d.appliedAt.toISOString().split('T')[0]}`)
       console.log(`   ID: ${d.deductions_id}\n`)
@@ -70,7 +70,7 @@ async function archiveOldDeductions() {
       .filter(id => !id.startsWith('auto-'))
 
     if (idsToArchive.length > 0) {
-      const result = await prisma.deduction.updateMany({
+      const result = await prisma.deductions.updateMany({
         where: {
           deductions_id: { in: idsToArchive }
         },

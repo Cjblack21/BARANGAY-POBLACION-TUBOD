@@ -7,7 +7,7 @@ async function main() {
   
   try {
     // Find all deduction types with "Absence" or "Absent" in the name
-    const absenceTypes = await prisma.deductionType.findMany({
+    const absenceTypes = await prisma.deduction_types.findMany({
       where: {
         OR: [
           { name: { contains: 'Absence' } },
@@ -31,7 +31,7 @@ async function main() {
       
       // Delete all deductions of these types
       for (const type of absenceTypes) {
-        const deletedDeductions = await prisma.deduction.deleteMany({
+        const deletedDeductions = await prisma.deductions.deleteMany({
           where: {
             deduction_types_id: type.deduction_types_id
           }
@@ -39,7 +39,7 @@ async function main() {
         console.log(`🗑️  Deleted ${deletedDeductions.count} deduction record(s) for "${type.name}"`)
         
         // Delete the deduction type
-        await prisma.deductionType.delete({
+        await prisma.deduction_types.delete({
           where: {
             deduction_types_id: type.deduction_types_id
           }
@@ -51,7 +51,7 @@ async function main() {
     console.log('\n📊 Checking for any remaining absence deductions...')
     
     // Also check for individual deduction records that might reference absence
-    const allDeductions = await prisma.deduction.findMany({
+    const allDeductions = await prisma.deductions.findMany({
       include: {
         deductionType: true
       }
@@ -65,7 +65,7 @@ async function main() {
     if (absenceDeductions.length > 0) {
       console.log(`⚠️  Found ${absenceDeductions.length} orphaned absence deduction record(s)`)
       for (const deduction of absenceDeductions) {
-        await prisma.deduction.delete({
+        await prisma.deductions.delete({
           where: { deductions_id: deduction.deductions_id }
         })
         console.log(`🗑️  Deleted orphaned deduction: ${deduction.deductionType.name}`)
