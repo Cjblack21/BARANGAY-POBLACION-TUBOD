@@ -83,11 +83,15 @@ export async function POST(request: NextRequest) {
           })
         } else {
           // Create new ABSENT record
+          const { randomBytes } = await import('crypto')
+          const attendanceId = randomBytes(12).toString('hex')
           await prisma.attendances.create({
             data: {
+              attendances_id: attendanceId,
               users_id: user.users_id,
               date: targetDate,
-              status: 'ABSENT'
+              status: 'ABSENT',
+              updatedAt: new Date()
             }
           })
           
