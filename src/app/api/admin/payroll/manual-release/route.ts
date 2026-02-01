@@ -438,11 +438,15 @@ export async function POST(request: NextRequest) {
         })
 
         // Create new schedule for next payroll
+        const { randomBytes } = await import('crypto')
+        const scheduleId = randomBytes(12).toString('hex')
         nextSchedule = await prisma.payroll_schedules.create({
           data: {
+            payroll_schedule_id: scheduleId,
             scheduledDate: new Date(nextPayrollDate),
             notes: nextPayrollNotes || null,
-            isActive: true
+            isActive: true,
+            updatedAt: new Date()
           }
         })
 
