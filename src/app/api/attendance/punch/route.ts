@@ -145,12 +145,16 @@ export async function POST(request: NextRequest) {
       // Normalize date to start of day to ensure consistency with existing records
       const normalizedDate = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 0, 0, 0, 0)
       
+      const { randomBytes } = await import('crypto')
+      const attendanceId = randomBytes(12).toString('hex')
       record = await prisma.attendances.create({
         data: {
+          attendances_id: attendanceId,
           users_id,
           date: normalizedDate,
           timeIn: now,
           status,
+          updatedAt: new Date()
         },
       })
       
