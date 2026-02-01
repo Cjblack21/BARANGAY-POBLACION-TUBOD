@@ -18,10 +18,10 @@ export async function GET(request: NextRequest) {
     console.log('User ID:', userId)
 
     // Check if user exists
-    const user = await prisma.user.findUnique({
+    const user = await prisma.users.findUnique({
       where: { users_id: userId },
       include: {
-        personnelType: true
+        personnel_types: true
       }
     })
     console.log('User found:', user ? 'Yes' : 'No')
@@ -30,15 +30,15 @@ export async function GET(request: NextRequest) {
         name: user.name,
         email: user.email,
         role: user.role,
-        hasPersonnelType: !!user.personnelType
+        hasPersonnelType: !!user.personnel_types
       })
     }
 
     // Check all payroll entries
-    const allPayrolls = await prisma.payrollEntry.findMany({
+    const allPayrolls = await prisma.payroll_entries.findMany({
       take: 5,
       include: {
-        user: {
+        users: {
           select: {
             name: true,
             email: true
@@ -50,10 +50,10 @@ export async function GET(request: NextRequest) {
     console.log('Sample payroll entries:', allPayrolls)
 
     // Check user's payroll entries
-    const userPayrolls = await prisma.payrollEntry.findMany({
+    const userPayrolls = await prisma.payroll_entries.findMany({
       where: { users_id: userId },
       include: {
-        user: {
+        users: {
           select: {
             name: true,
             email: true
@@ -74,7 +74,7 @@ export async function GET(request: NextRequest) {
         name: user.name,
         email: user.email,
         role: user.role,
-        hasPersonnelType: !!user.personnelType
+        hasPersonnelType: !!user.personnel_types
       } : null,
       payrollStats: {
         totalPayrolls: allPayrolls.length,
