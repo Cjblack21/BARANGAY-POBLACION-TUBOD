@@ -6,7 +6,7 @@ export async function calculatePerSecondSalary(basicSalary: number): Promise<num
   
   try {
     // Get attendance settings to check duration
-    const settings = await prisma.attendanceSettings.findFirst()
+    const settings = await prisma.attendance_settings.findFirst()
     
     if (settings?.periodStart && settings?.periodEnd) {
       // Calculate working days in the period (exclude Sundays)
@@ -85,7 +85,7 @@ export async function calculateDailyEarnings(basicSalary: number): Promise<numbe
   
   try {
     // Get attendance settings to check duration
-    const settings = await prisma.attendanceSettings.findFirst()
+    const settings = await prisma.attendance_settings.findFirst()
     
     if (settings?.periodStart && settings?.periodEnd) {
       // Calculate working days in the period (exclude Sundays)
@@ -168,29 +168,37 @@ export async function createLateDeduction(users_id: string, deductionAmount: num
   
   try {
     // Get or create "Late Arrival" deduction type
-    let lateDeductionType = await prisma.deductionType.findFirst({
+    let lateDeductionType = await prisma.deduction_types.findFirst({
       where: { name: 'Late Arrival' }
     })
     
     if (!lateDeductionType) {
-      lateDeductionType = await prisma.deductionType.create({
+      const { randomBytes } = await import('crypto')
+      const deductionTypeId = randomBytes(12).toString('hex')
+      lateDeductionType = await prisma.deduction_types.create({
         data: {
+          deduction_types_id: deductionTypeId,
           name: 'Late Arrival',
           description: 'Automatic deduction for late arrival',
           amount: 0, // Amount will be calculated per incident
-          isActive: true
+          isActive: true,
+          updatedAt: new Date()
         }
       })
     }
     
     // Create deduction entry
-    await prisma.deduction.create({
+    const { randomBytes } = await import('crypto')
+    const deductionId = randomBytes(12).toString('hex')
+    await prisma.deductions.create({
       data: {
+        deductions_id: deductionId,
         users_id,
         deduction_types_id: lateDeductionType.deduction_types_id,
         amount: deductionAmount,
         appliedAt: date,
-        notes: `Late arrival: ${lateMinutes} minutes late (₱${deductionAmount.toFixed(2)} deduction)`
+        notes: `Late arrival: ${lateMinutes} minutes late (₱${deductionAmount.toFixed(2)} deduction)`,
+        updatedAt: new Date()
       }
     })
     
@@ -208,29 +216,37 @@ export async function createEarlyTimeoutDeduction(users_id: string, deductionAmo
   
   try {
     // Get or create "Early Time-Out" deduction type
-    let earlyTimeoutDeductionType = await prisma.deductionType.findFirst({
+    let earlyTimeoutDeductionType = await prisma.deduction_types.findFirst({
       where: { name: 'Early Time-Out' }
     })
     
     if (!earlyTimeoutDeductionType) {
-      earlyTimeoutDeductionType = await prisma.deductionType.create({
+      const { randomBytes } = await import('crypto')
+      const deductionTypeId = randomBytes(12).toString('hex')
+      earlyTimeoutDeductionType = await prisma.deduction_types.create({
         data: {
+          deduction_types_id: deductionTypeId,
           name: 'Early Time-Out',
           description: 'Automatic deduction for early time-out',
           amount: 0, // Amount will be calculated per incident
-          isActive: true
+          isActive: true,
+          updatedAt: new Date()
         }
       })
     }
     
     // Create deduction entry
-    await prisma.deduction.create({
+    const { randomBytes: randomBytes2 } = await import('crypto')
+    const deductionId2 = randomBytes2(12).toString('hex')
+    await prisma.deductions.create({
       data: {
+        deductions_id: deductionId2,
         users_id,
         deduction_types_id: earlyTimeoutDeductionType.deduction_types_id,
         amount: deductionAmount,
         appliedAt: date,
-        notes: `Early time-out: ${earlyMinutes} minutes early (₱${deductionAmount.toFixed(2)} deduction)`
+        notes: `Early time-out: ${earlyMinutes} minutes early (₱${deductionAmount.toFixed(2)} deduction)`,
+        updatedAt: new Date()
       }
     })
     
