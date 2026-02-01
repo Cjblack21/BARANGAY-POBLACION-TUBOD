@@ -16,7 +16,7 @@ export type AttendanceRecord = {
   date: Date | string
   timeIn: Date | string | null
   timeOut: Date | string | null
-  status: AttendanceStatus
+  status: 'PENDING' | 'PRESENT' | 'LATE' | 'ABSENT' | 'PARTIAL'
   user: {
     users_id: string
     name: string | null
