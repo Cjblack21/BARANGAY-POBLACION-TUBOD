@@ -4,7 +4,7 @@ import { prisma } from "@/lib/prisma"
 export async function GET() {
   try {
     // Optionally derive working days from attendance settings period; fallback to 22 and exclude Sundays
-    const attendanceSettings = await prisma.attendanceSettings.findFirst()
+    const attendanceSettings = await prisma.attendance_settings.findFirst()
 
     let workingDays = 22
     let periodStart: Date | null = null
@@ -28,7 +28,7 @@ export async function GET() {
       if (days > 0) workingDays = days
     }
 
-    const personnelTypes = await prisma.personnelType.findMany({
+    const personnelTypes = await prisma.personnel_types.findMany({
       where: {
         isActive: true
       },
