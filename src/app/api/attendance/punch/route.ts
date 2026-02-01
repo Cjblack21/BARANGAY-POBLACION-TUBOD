@@ -90,7 +90,7 @@ export async function POST(request: NextRequest) {
     let lateSeconds = 0
     let earlyTimeoutDeduction = 0
     let earlySeconds = 0
-    let status: attendances_status = attendances_status.PENDING
+    let status: 'PENDING' | 'PRESENT' | 'LATE' | 'ABSENT' | 'PARTIAL' = 'PENDING'
     
     if (!record) {
       // First punch (time-in) - determine status based on timing
@@ -125,7 +125,7 @@ export async function POST(request: NextRequest) {
           
           lateDeduction = lateDeductionAmount
           lateSeconds = Math.floor(lateSeconds)
-          status = lateSeconds > 0 ? attendances_status.LATE : attendances_status.PRESENT
+          status = lateSeconds > 0 ? 'LATE' : 'PRESENT'
           
           console.log(`🔍 DEBUG: Late deduction calculation for user ${users_id}:`)
           console.log(`🔍 DEBUG: Current time: ${now.toISOString()}`)
@@ -136,10 +136,10 @@ export async function POST(request: NextRequest) {
           console.log(`🔍 DEBUG: Late deduction amount: ${lateDeductionAmount}`)
           console.log(`🔍 DEBUG: Status: ${status}`)
         } else {
-          status = attendances_status.PRESENT
+          status = 'PRESENT'
         }
       } else {
-        status = attendances_status.PRESENT // Default to present if no late deduction logic
+        status = 'PRESENT' // Default to present if no late deduction logic
       }
       
       // Normalize date to start of day to ensure consistency with existing records
@@ -196,7 +196,7 @@ export async function POST(request: NextRequest) {
           
           lateDeduction = lateDeductionAmount
           lateSeconds = Math.floor(lateSeconds)
-          status = lateSeconds > 0 ? attendances_status.LATE : attendances_status.PRESENT
+          status = lateSeconds > 0 ? 'LATE' : 'PRESENT'
           
           console.log(`🔍 DEBUG: Late deduction calculation for user ${users_id}:`)
           console.log(`🔍 DEBUG: Current time: ${now.toISOString()}`)
@@ -207,10 +207,10 @@ export async function POST(request: NextRequest) {
           console.log(`🔍 DEBUG: Late deduction amount: ${lateDeductionAmount}`)
           console.log(`🔍 DEBUG: Status: ${status}`)
         } else {
-          status = attendances_status.PRESENT
+          status = 'PRESENT'
         }
       } else {
-        status = attendances_status.PRESENT // Default to present if no late deduction logic
+        status = 'PRESENT' // Default to present if no late deduction logic
       }
       
       record = await prisma.attendances.update({
