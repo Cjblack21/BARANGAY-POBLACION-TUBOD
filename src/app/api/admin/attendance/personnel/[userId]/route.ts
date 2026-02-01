@@ -18,10 +18,10 @@ export async function GET(
     const { userId } = await context.params
 
     // Get user with personnel type
-    const user = await prisma.user.findUnique({
+    const user = await prisma.users.findUnique({
       where: { users_id: userId },
       include: {
-        personnelType: {
+        personnel_types: {
           select: {
             basicSalary: true
           }
@@ -39,11 +39,11 @@ export async function GET(
       orderBy: { date: 'desc' }
     })
 
-    const basicSalary = user.personnelType?.basicSalary ? Number(user.personnelType.basicSalary) : 0
+    const basicSalary = user.personnel_types?.basicSalary ? Number(user.personnel_types.basicSalary) : 0
     const hourlyRate = basicSalary / (22 * 8) // 22 working days * 8 hours per day
     
     // Get attendance settings for proper time calculation
-    const attendanceSettings = await prisma.attendanceSettings.findFirst()
+    const attendanceSettings = await prisma.attendance_settings.findFirst()
     const timeInEnd = attendanceSettings?.timeInEnd || '09:00' // Default to 9:00 AM if no settings
 
     // Process attendance records
@@ -109,7 +109,7 @@ export async function GET(
           users_id: user.users_id,
           name: user.name,
           email: user.email,
-          personnelType: user.personnelType
+          personnel_types: user.personnel_types
         },
         workHours: Math.max(0, workHours),
         earnings,
