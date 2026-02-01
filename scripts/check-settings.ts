@@ -3,7 +3,7 @@ import { PrismaClient } from '@prisma/client'
 const prisma = new PrismaClient()
 
 async function main() {
-  const settings = await prisma.attendanceSettings.findFirst()
+  const settings = await prisma.attendance_settings.findFirst()
   
   console.log('\n⚙️ Current Attendance Settings:\n')
   console.log('Time In Window:')
