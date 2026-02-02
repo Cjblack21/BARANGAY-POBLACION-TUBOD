@@ -157,7 +157,7 @@ export async function POST(request: NextRequest) {
       where: {
         periodStart: periodStart,
         periodEnd: periodEnd,
-        status: { not: 'ARCHIVED' } // Include PENDING and RELEASED
+        status: { in: ['PENDING', 'RELEASED', 'ARCHIVED'] } // Include all statuses
       },
       include: {
         users: {
@@ -186,7 +186,7 @@ export async function POST(request: NextRequest) {
         where: {
           periodStart: { gte: new Date(periodStart.getTime() - 86400000), lte: new Date(periodStart.getTime() + 86400000) },
           periodEnd: { gte: new Date(periodEnd.getTime() - 86400000), lte: new Date(periodEnd.getTime() + 86400000) },
-          status: { not: 'ARCHIVED' } // Include PENDING and RELEASED
+          status: { in: ['PENDING', 'RELEASED', 'ARCHIVED'] } // Include all statuses
         },
         include: {
           users: {
