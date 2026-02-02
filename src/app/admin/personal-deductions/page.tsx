@@ -631,56 +631,47 @@ export default function PersonalDeductionsPage() {
 
             {/* Statistics Cards */}
             <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-                <Card className="relative overflow-hidden border-0 shadow-md hover:shadow-lg transition-shadow">
-                    <div className="absolute top-0 right-0 w-24 h-24 bg-red-500/10 rounded-full -mr-12 -mt-12" />
+                <Card className="cursor-pointer hover:shadow-xl transition-all duration-300 hover:scale-105 border-l-4 border-l-red-500">
                     <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                        <CardTitle className="text-sm font-medium text-muted-foreground">Active Deductions</CardTitle>
-                        <div className="p-2 bg-red-100 dark:bg-red-900/20 rounded-lg">
-                            <FileText className="h-4 w-4 text-red-600 dark:text-red-400" />
-                        </div>
+                        <CardTitle className="text-sm font-medium">Active Deductions</CardTitle>
+                        <FileText className="h-4 w-4 text-red-600" />
                     </CardHeader>
                     <CardContent>
-                        <div className="text-3xl font-bold text-red-600">{activeDeductionsCount}</div>
-                        <p className="text-xs text-muted-foreground mt-1">Currently active</p>
+                        <div className="text-2xl font-bold">{activeDeductionsCount}</div>
+                        <p className="text-xs text-muted-foreground">Currently active</p>
                     </CardContent>
                 </Card>
-                <Card className="relative overflow-hidden border-0 shadow-md hover:shadow-lg transition-shadow">
-                    <div className="absolute top-0 right-0 w-24 h-24 bg-orange-500/10 rounded-full -mr-12 -mt-12" />
+
+                <Card className="cursor-pointer hover:shadow-xl transition-all duration-300 hover:scale-105 border-l-4 border-l-orange-500">
                     <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                        <CardTitle className="text-sm font-medium text-muted-foreground">Total Amount</CardTitle>
-                        <div className="p-2 bg-orange-100 dark:bg-orange-900/20 rounded-lg">
-                            <Banknote className="h-4 w-4 text-orange-600 dark:text-orange-400" />
-                        </div>
+                        <CardTitle className="text-sm font-medium">Total Amount</CardTitle>
+                        <Banknote className="h-4 w-4 text-orange-600" />
                     </CardHeader>
                     <CardContent>
-                        <div className="text-3xl font-bold text-orange-600">₱{totalDeductionAmount.toLocaleString()}</div>
-                        <p className="text-xs text-muted-foreground mt-1">All time deductions</p>
+                        <div className="text-2xl font-bold">₱{totalDeductionAmount.toLocaleString('en-PH', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</div>
+                        <p className="text-xs text-muted-foreground">All time deductions</p>
                     </CardContent>
                 </Card>
-                <Card className="relative overflow-hidden border-0 shadow-md hover:shadow-lg transition-shadow">
-                    <div className="absolute top-0 right-0 w-24 h-24 bg-yellow-500/10 rounded-full -mr-12 -mt-12" />
+
+                <Card className="cursor-pointer hover:shadow-xl transition-all duration-300 hover:scale-105 border-l-4 border-l-yellow-500">
                     <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                        <CardTitle className="text-sm font-medium text-muted-foreground">Outstanding Balance</CardTitle>
-                        <div className="p-2 bg-yellow-100 dark:bg-yellow-900/20 rounded-lg">
-                            <TrendingUp className="h-4 w-4 text-yellow-600 dark:text-yellow-400" />
-                        </div>
+                        <CardTitle className="text-sm font-medium">Outstanding Balance</CardTitle>
+                        <TrendingUp className="h-4 w-4 text-yellow-600" />
                     </CardHeader>
                     <CardContent>
-                        <div className="text-3xl font-bold text-yellow-600">₱{totalDeductionOutstanding.toLocaleString()}</div>
-                        <p className="text-xs text-muted-foreground mt-1">Remaining to be paid</p>
+                        <div className="text-2xl font-bold">₱{totalDeductionOutstanding.toLocaleString('en-PH', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</div>
+                        <p className="text-xs text-muted-foreground">Remaining to be paid</p>
                     </CardContent>
                 </Card>
-                <Card className="relative overflow-hidden border-0 shadow-md hover:shadow-lg transition-shadow">
-                    <div className="absolute top-0 right-0 w-24 h-24 bg-pink-500/10 rounded-full -mr-12 -mt-12" />
+
+                <Card className="cursor-pointer hover:shadow-xl transition-all duration-300 hover:scale-105 border-l-4 border-l-pink-500">
                     <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                        <CardTitle className="text-sm font-medium text-muted-foreground">Per Payroll</CardTitle>
-                        <div className="p-2 bg-pink-100 dark:bg-pink-900/20 rounded-lg">
-                            <CreditCard className="h-4 w-4 text-pink-600 dark:text-pink-400" />
-                        </div>
+                        <CardTitle className="text-sm font-medium">Per Payroll</CardTitle>
+                        <CreditCard className="h-4 w-4 text-pink-600" />
                     </CardHeader>
                     <CardContent>
-                        <div className="text-3xl font-bold text-pink-600">₱{totalDeductionPerPayrollPayments.toLocaleString(undefined, { maximumFractionDigits: 2 })}</div>
-                        <p className="text-xs text-muted-foreground mt-1">Per-payroll collection</p>
+                        <div className="text-2xl font-bold">₱{totalDeductionPerPayrollPayments.toLocaleString('en-PH', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</div>
+                        <p className="text-xs text-muted-foreground">Per-payroll collection</p>
                     </CardContent>
                 </Card>
             </div>
