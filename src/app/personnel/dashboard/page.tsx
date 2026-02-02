@@ -176,17 +176,39 @@ export default function PersonnelDashboard() {
           className="border-l-4 border-l-blue-500 cursor-pointer hover:shadow-lg transition-all duration-300 hover:scale-105"
           onClick={() => router.push('/personnel/attendance')}
         >
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-1 px-4 pt-4">
-            <CardTitle className="text-xs font-medium">Attendance This Month</CardTitle>
-            <Calendar className="h-3.5 w-3.5 text-blue-600" />
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2 px-4 pt-4">
+            <CardTitle className="text-sm font-semibold">Attendance This Month</CardTitle>
+            <Calendar className="h-5 w-5 text-blue-600" />
           </CardHeader>
-          <CardContent className="px-4 pb-3">
-            <div className="text-xl font-bold">{data.monthlyAttendance.attendanceRate}%</div>
-            <div className="text-xs text-muted-foreground">
-              {data.monthlyAttendance.presentDays} present, {data.monthlyAttendance.absentDays} absent
-            </div>
-            <div className="text-xs text-muted-foreground">
-              {data.monthlyAttendance.lateDays} late days
+          <CardContent className="px-4 pb-4">
+            <div className="space-y-3">
+              <div className="flex items-center justify-between">
+                <span className="text-xs text-muted-foreground">Attendance Rate</span>
+                <span className="text-2xl font-bold text-blue-600">{data.monthlyAttendance.attendanceRate}%</span>
+              </div>
+              <div className="space-y-2">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <CheckCircle className="h-4 w-4 text-green-600" />
+                    <span className="text-xs">Present</span>
+                  </div>
+                  <span className="text-sm font-semibold">{data.monthlyAttendance.presentDays} days</span>
+                </div>
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <XCircle className="h-4 w-4 text-red-600" />
+                    <span className="text-xs">Absent</span>
+                  </div>
+                  <span className="text-sm font-semibold">{data.monthlyAttendance.absentDays} days</span>
+                </div>
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <AlertCircle className="h-4 w-4 text-yellow-600" />
+                    <span className="text-xs">Late</span>
+                  </div>
+                  <span className="text-sm font-semibold">{data.monthlyAttendance.lateDays} days</span>
+                </div>
+              </div>
             </div>
           </CardContent>
         </Card>
