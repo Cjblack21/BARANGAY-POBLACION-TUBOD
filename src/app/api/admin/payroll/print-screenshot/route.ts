@@ -524,6 +524,18 @@ export async function POST(request: NextRequest) {
               EARNINGS
             </div>
             
+            <!-- Honorarium (Basic Salary) -->
+            <div class="detail-row">
+              <span>Honorarium:</span>
+              <span style="color: #16a34a;">₱${(breakdown.biweeklyBasicSalary || 0).toLocaleString(undefined, { maximumFractionDigits: 2 })}</span>
+            </div>
+            
+            <!-- Monthly Basic Salary -->
+            <div class="detail-row" style="font-size: 8px; color: #666; padding-left: 12px;">
+              <span>Monthly Basic Salary:</span>
+              <span>₱${(breakdown.personnelBasicSalary || 0).toLocaleString(undefined, { maximumFractionDigits: 2 })}</span>
+            </div>
+            
             ${breakdown.overloadPayDetails && breakdown.overloadPayDetails.length > 0 ? `
               ${breakdown.overloadPayDetails.map((detail: any) => `
             <div class="detail-row">

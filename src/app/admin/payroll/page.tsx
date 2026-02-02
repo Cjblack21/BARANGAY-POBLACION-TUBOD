@@ -1815,6 +1815,14 @@ html, body { margin: 0 !important; padding: 0 !important; overflow: hidden !impo
             <Save className="h-4 w-4 mr-2" />
             {currentPeriod?.status === 'Released' ? 'Payroll Released' : !canRelease ? 'Release (Not Yet Period End)' : 'Release Payroll'}
           </Button>
+          <Button
+            onClick={() => router.push('/admin/add-pay')}
+            variant="outline"
+            disabled={loading}
+          >
+            <Banknote className="h-4 w-4 mr-2" />
+            Add Pay
+          </Button>
         </div>
       </div>
 
