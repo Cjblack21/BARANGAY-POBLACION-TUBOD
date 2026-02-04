@@ -4,13 +4,16 @@ import React from 'react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
-import { X, ChevronDown, ChevronUp, Archive, Printer } from 'lucide-react'
+import { X, ChevronDown, ChevronUp, Archive, Printer, Edit2, Save, XCircle } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 import { Clock, TrendingDown, TrendingUp, Calendar, AlertCircle, UserCheck } from 'lucide-react'
 import { formatDateForDisplay } from '@/lib/timezone'
 import { Progress } from '@/components/ui/progress'
 import { getCurrentDayAttendance } from '@/lib/actions/attendance'
+import { Input } from '@/components/ui/input'
+import { Label } from '@/components/ui/label'
+import { toast } from 'react-hot-toast'
 
 type AttendanceDetail = {
   date: string
@@ -95,6 +98,81 @@ export default function PayrollBreakdownDialog({
   const [liveAttendance, setLiveAttendance] = React.useState<any[]>([])
   const [todayAttendanceStatus, setTodayAttendanceStatus] = React.useState<string | null>(null)
   const printRef = React.useRef<HTMLDivElement | null>(null)
+  
+  // Edit mode state
+  const [isEditMode, setIsEditMode] = React.useState(false)
+  const [editForm, setEditForm] = React.useState({
+    basicSalary: 0,
+    overloadPay: 0,
+    deductions: 0
+  })
+  const [isSaving, setIsSaving] = React.useState(false)
+
+  // Initialize edit form when entry changes
+  React.useEffect(() => {
+    if (entry && isOpen) {
+      setEditForm({
+        basicSalary: Number(entry.breakdown?.basicSalary || 0),
+        overloadPay: Number(entry.breakdown?.overloadPay || 0),
+        deductions: Number(entry.breakdown?.otherDeductions || 0) + Number(entry.breakdown?.loanDeductions || 0)
+      })
+      setIsEditMode(false)
+    }
+  }, [entry, isOpen])
+
+  // Handle edit mode toggle
+  const handleEditToggle = () => {
+    if (isEditMode) {
+      // Cancel edit - reset form
+      setEditForm({
+        basicSalary: Number(entry?.breakdown?.basicSalary || 0),
+        overloadPay: Number(entry?.breakdown?.overloadPay || 0),
+        deductions: Number(entry?.breakdown?.otherDeductions || 0) + Number(entry?.breakdown?.loanDeductions || 0)
+      })
+    }
+    setIsEditMode(!isEditMode)
+  }
+
+  // Handle save edits
+  const handleSaveEdit = async () => {
+    if (!entry) return
+
+    try {
+      setIsSaving(true)
+      toast.loading('Saving changes...', { id: 'save-edit' })
+
+      const response = await fetch('/api/admin/payroll/edit-entry', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          entryId: (entry as any).payroll_entries_id || `PE-${entry.users_id}`,
+          updates: {
+            basicSalary: editForm.basicSalary,
+            overloadPay: editForm.overloadPay,
+            deductions: editForm.deductions
+          }
+        })
+      })
+
+      const data = await response.json()
+
+      if (!response.ok) {
+        throw new Error(data.error || 'Failed to save changes')
+      }
+
+      toast.success('Changes saved successfully!', { id: 'save-edit' })
+      setIsEditMode(false)
+      
+      // Reload the page data
+      window.location.reload()
+
+    } catch (error) {
+      console.error('Error saving edit:', error)
+      toast.error(error instanceof Error ? error.message : 'Failed to save changes', { id: 'save-edit' })
+    } finally {
+      setIsSaving(false)
+    }
+  }
 
   const handlePrint = () => {
     if (!entry) return
@@ -804,6 +882,24 @@ export default function PayrollBreakdownDialog({
                 <Badge variant="outline" className="text-sm px-4 py-2">
                   {entry.status}
                 </Badge>
+                {entry.status === 'Pending' && !isEditMode && (
+                  <Button variant="outline" size="sm" onClick={handleEditToggle} className="gap-2">
+                    <Edit2 className="h-4 w-4" />
+                    Edit
+                  </Button>
+                )}
+                {isEditMode && (
+                  <>
+                    <Button variant="default" size="sm" onClick={handleSaveEdit} disabled={isSaving} className="gap-2">
+                      <Save className="h-4 w-4" />
+                      {isSaving ? 'Saving...' : 'Save'}
+                    </Button>
+                    <Button variant="outline" size="sm" onClick={handleEditToggle} disabled={isSaving} className="gap-2">
+                      <XCircle className="h-4 w-4" />
+                      Cancel
+                    </Button>
+                  </>
+                )}
                 <Button variant="outline" size="sm" onClick={handlePrint} className="gap-2">
                   <Printer className="h-4 w-4" />
                   Print
@@ -836,10 +932,55 @@ export default function PayrollBreakdownDialog({
               <CardTitle className="text-base font-semibold">Salary Summary</CardTitle>
             </CardHeader>
             <CardContent className="space-y-2 pt-0">
-              <div className="flex justify-between items-center py-2 border-b">
-                <span className="text-xs font-medium">Monthly Basic Salary</span>
-                <span className="text-sm font-bold">{formatCurrency(storedBasicSalary)}</span>
-              </div>
+              {isEditMode ? (
+                <div className="space-y-3 p-3 bg-muted/30 rounded-lg">
+                  <div className="space-y-2">
+                    <Label htmlFor="edit-basic-salary" className="text-xs font-medium">Monthly Basic Salary</Label>
+                    <Input
+                      id="edit-basic-salary"
+                      type="number"
+                      value={editForm.basicSalary}
+                      onChange={(e) => setEditForm({ ...editForm, basicSalary: Number(e.target.value) })}
+                      className="text-sm"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="edit-overload-pay" className="text-xs font-medium">Additional Pay / Overload</Label>
+                    <Input
+                      id="edit-overload-pay"
+                      type="number"
+                      value={editForm.overloadPay}
+                      onChange={(e) => setEditForm({ ...editForm, overloadPay: Number(e.target.value) })}
+                      className="text-sm"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="edit-deductions" className="text-xs font-medium">Total Deductions</Label>
+                    <Input
+                      id="edit-deductions"
+                      type="number"
+                      value={editForm.deductions}
+                      onChange={(e) => setEditForm({ ...editForm, deductions: Number(e.target.value) })}
+                      className="text-sm"
+                    />
+                  </div>
+                  <div className="pt-2 border-t">
+                    <div className="flex justify-between items-center">
+                      <span className="text-xs font-medium">Calculated Net Pay</span>
+                      <span className="text-sm font-bold text-green-600">
+                        {formatCurrency(editForm.basicSalary + editForm.overloadPay - editForm.deductions)}
+                      </span>
+                    </div>
+                  </div>
+                </div>
+              ) : (
+                <>
+                  <div className="flex justify-between items-center py-2 border-b">
+                    <span className="text-xs font-medium">Monthly Basic Salary</span>
+                    <span className="text-sm font-bold">{formatCurrency(storedBasicSalary)}</span>
+                  </div>
+                </>
+              )}
               {(entry.breakdown?.overloadPayDetails && entry.breakdown.overloadPayDetails.length > 0) || overloadPay > 0 ? (
                 <>
                   <div className="pt-2">

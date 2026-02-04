@@ -775,6 +775,16 @@ export async function generatePayroll(customPeriodStart?: string, customPeriodEn
       }
     }
 
+    // Delete existing PENDING entries for this period to prevent duplicates
+    const deletedEntries = await prisma.payroll_entries.deleteMany({
+      where: {
+        periodStart: periodStart,
+        periodEnd: periodEnd,
+        status: 'PENDING'
+      }
+    })
+    console.log(`🗑️ Deleted ${deletedEntries.count} existing PENDING entries for this period to prevent duplicates`)
+
     let createdCount = 0
 
     // Always create NEW payroll entries for each user
