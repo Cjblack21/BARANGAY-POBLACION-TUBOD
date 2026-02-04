@@ -1,10 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
-import { PrismaClient } from '@prisma/client'
-
-// Initialize Prisma client
-const prisma = new PrismaClient()
+import { prisma } from '@/lib/prisma'
 
 export async function GET(request: NextRequest) {
   try {
@@ -18,20 +15,6 @@ export async function GET(request: NextRequest) {
     const userId = session.user.id
     const { searchParams } = new URL(request.url)
     const archived = searchParams.get('archived') === 'true'
-
-    // Test database connection first
-    try {
-      await prisma.$connect()
-    } catch (connectionError) {
-      console.error('Database connection failed:', connectionError)
-      return NextResponse.json(
-        {
-          error: 'Database connection failed',
-          details: 'Please ensure MySQL is running and DATABASE_URL is configured'
-        },
-        { status: 500 }
-      )
-    }
 
     // Fetch loans
     const loans = await prisma.loans.findMany({
@@ -99,8 +82,6 @@ export async function GET(request: NextRequest) {
       },
       { status: 500 }
     )
-  } finally {
-    await prisma.$disconnect()
   }
 }
 

@@ -306,7 +306,7 @@ export default function PersonnelProfile() {
             <CardContent>
               <div className="flex items-center gap-6">
                 <Avatar className="h-24 w-24">
-                  <AvatarImage src={data.user.avatar} alt={data.user.name} />
+                  <AvatarImage src={data.user.avatar ? `${data.user.avatar}?t=${Date.now()}` : undefined} alt={data.user.name} />
                   <AvatarFallback className="text-2xl">
                     {data.user.name.split(' ').map(n => n[0]).join('').toUpperCase()}
                   </AvatarFallback>
