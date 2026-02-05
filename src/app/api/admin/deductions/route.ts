@@ -102,14 +102,41 @@ export async function POST(req: NextRequest) {
         where: { users_id: { in: targetEmployeeIds } },
         select: {
           users_id: true,
+          name: true,
           personnel_types: {
             select: { basicSalary: true }
           }
         }
       })
 
-      return targetEmployeeIds.map((eid) => {
+      // Get existing loans and deductions for validation
+      const existingLoans = await prisma.loans.findMany({
+        where: {
+          users_id: { in: targetEmployeeIds },
+          status: 'ACTIVE',
+          archivedAt: null
+        }
+      })
+
+      const existingDeductions = await prisma.deductions.findMany({
+        where: {
+          users_id: { in: targetEmployeeIds },
+          archivedAt: null
+        }
+      })
+
+      // Validate each user before creating deductions
+      const validationErrors: string[] = []
+
+      const createPromises = targetEmployeeIds.map((eid) => {
         const user = users.find(u => u.users_id === eid)
+
+        if (!user || !user.personnel_types) {
+          validationErrors.push(`User ${eid} has no salary information`)
+          return null
+        }
+
+        const monthlySalary = Number(user.personnel_types.basicSalary)
 
         // Calculate deduction amount based on type
         let deductionAmount = deductionType.amount
@@ -118,6 +145,40 @@ export async function POST(req: NextRequest) {
           // Calculate percentage of basic salary
           const salary = user.personnel_types.basicSalary
           deductionAmount = salary.mul(deductionType.percentageValue).div(100)
+        }
+
+        const newDeductionAmount = Number(deductionAmount)
+
+        // Calculate existing obligations for this user
+        const userLoans = existingLoans.filter(l => l.users_id === eid)
+        const existingLoanPayments = userLoans.reduce((sum, loan) => {
+          const monthlyPayment = (Number(loan.amount) * Number(loan.monthlyPaymentPercent)) / 100
+          return sum + monthlyPayment
+        }, 0)
+
+        const userDeductions = existingDeductions.filter(d => d.users_id === eid)
+        const totalExistingDeductions = userDeductions.reduce((sum, deduction) => {
+          return sum + Number(deduction.amount)
+        }, 0)
+
+        // Calculate total obligations including new deduction
+        const totalMonthlyObligations = existingLoanPayments + totalExistingDeductions + newDeductionAmount
+
+        // Validate: total obligations cannot exceed 80% of monthly salary (must keep at least 20% net pay)
+        const maxAllowedDeductions = monthlySalary * 0.8 // 80% max
+        const minimumNetPay = monthlySalary * 0.2 // 20% min
+        
+        if (totalMonthlyObligations > maxAllowedDeductions) {
+          const available = maxAllowedDeductions - (existingLoanPayments + totalExistingDeductions)
+          const projectedNetPay = monthlySalary - totalMonthlyObligations
+          
+          validationErrors.push(
+            `${user.name || eid}: Cannot add deduction of ₱${newDeductionAmount.toFixed(2)}. ` +
+            `Total monthly obligations (₱${totalMonthlyObligations.toFixed(2)}) would exceed the maximum allowed (₱${maxAllowedDeductions.toFixed(2)}). ` +
+            `Staff must keep at least 20% of salary (₱${minimumNetPay.toFixed(2)}) as net pay. ` +
+            `Available: ₱${Math.max(0, available).toFixed(2)}`
+          )
+          return null
         }
 
         return prisma.deductions.create({
@@ -131,6 +192,14 @@ export async function POST(req: NextRequest) {
           },
         })
       })
+
+      // If there are validation errors, throw them
+      if (validationErrors.length > 0) {
+        throw new Error(`Validation failed:\n${validationErrors.join('\n')}`)
+      }
+
+      // Filter out null values (shouldn't happen if validation passed)
+      return createPromises.filter((p): p is ReturnType<typeof prisma.deductions.create> => p !== null)
     }
 
     const tx = 'entries' in data

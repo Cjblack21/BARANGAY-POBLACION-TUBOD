@@ -11,7 +11,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, Di
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, DropdownMenuSeparator } from '@/components/ui/dropdown-menu'
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip'
-import { Calendar, Clock, Banknote, FileText, Archive, Printer, Download, Settings, Save, Eye, CheckCircle2, Trash2, CheckSquare, Square, MoreVertical, Search, X, AlertCircle, Users, TrendingUp, ClipboardMinus, CalendarRange, Activity } from 'lucide-react'
+import { Calendar, Clock, Banknote, FileText, Archive, Printer, Download, Settings, Save, Eye, CheckCircle2, Trash2, CheckSquare, Square, MoreVertical, Search, X, AlertCircle, Users, TrendingUp, ClipboardMinus, CalendarRange, Activity, Edit2 } from 'lucide-react'
 import { toast } from 'react-hot-toast'
 import { getPayrollSummary, releasePayrollWithAudit, generatePayslips } from '@/lib/actions/payroll'
 import {
@@ -104,6 +104,7 @@ export default function PayrollPage() {
   const [activeTab, setActiveTab] = useState('current')
   const [hasGeneratedForSettings, setHasGeneratedForSettings] = useState(false)
   const [breakdownDialogOpen, setBreakdownDialogOpen] = useState(false)
+  const [openInEditMode, setOpenInEditMode] = useState(false)
   const [liveDeductions, setLiveDeductions] = useState<any[]>([])
   const [deductionTypes, setDeductionTypes] = useState<any[]>([])
   const [personnelTypesMap, setPersonnelTypesMap] = useState<Map<string, any>>(new Map())
@@ -1815,14 +1816,6 @@ html, body { margin: 0 !important; padding: 0 !important; overflow: hidden !impo
             <Save className="h-4 w-4 mr-2" />
             {currentPeriod?.status === 'Released' ? 'Payroll Released' : !canRelease ? 'Release (Not Yet Period End)' : 'Release Payroll'}
           </Button>
-          <Button
-            onClick={() => router.push('/admin/add-pay')}
-            variant="outline"
-            disabled={loading}
-          >
-            <Banknote className="h-4 w-4 mr-2" />
-            Add Pay
-          </Button>
         </div>
       </div>
 
@@ -2178,18 +2171,35 @@ html, body { margin: 0 !important; padding: 0 !important; overflow: hidden !impo
                                   </div>
                                 </TableCell>
                                 <TableCell className="py-4 text-center px-6">
-                                  <Button
-                                    variant="ghost"
-                                    size="sm"
-                                    className="font-medium"
-                                    onClick={() => {
-                                      setSelectedEntry(entry)
-                                      setBreakdownDialogOpen(true)
-                                    }}
-                                  >
-                                    <Eye className="h-4 w-4 mr-2" />
-                                    Details
-                                  </Button>
+                                  <div className="flex items-center justify-center gap-2">
+                                    <Button
+                                      variant="ghost"
+                                      size="sm"
+                                      className="font-medium"
+                                      onClick={() => {
+                                        setSelectedEntry(entry)
+                                        setOpenInEditMode(false)
+                                        setBreakdownDialogOpen(true)
+                                      }}
+                                    >
+                                      <Eye className="h-4 w-4 mr-2" />
+                                      Details
+                                    </Button>
+                                    <Button
+                                      variant="outline"
+                                      size="sm"
+                                      className="font-medium"
+                                      onClick={() => {
+                                        setSelectedEntry(entry)
+                                        setOpenInEditMode(true)
+                                        setBreakdownDialogOpen(true)
+                                      }}
+                                      disabled={entry.status !== 'Pending'}
+                                    >
+                                      <Edit2 className="h-4 w-4 mr-2" />
+                                      Edit
+                                    </Button>
+                                  </div>
                                 </TableCell>
                               </TableRow>
                             )
@@ -3059,7 +3069,11 @@ html, body { margin: 0 !important; padding: 0 !important; overflow: hidden !impo
         entry={selectedEntry}
         currentPeriod={currentPeriod}
         isOpen={breakdownDialogOpen}
-        onClose={() => setBreakdownDialogOpen(false)}
+        onClose={() => {
+          setBreakdownDialogOpen(false)
+          setOpenInEditMode(false)
+        }}
+        openInEditMode={openInEditMode}
         showArchiveButton={true}
         onArchive={async (userId: string) => {
           if (!currentPeriod || !selectedEntry) return

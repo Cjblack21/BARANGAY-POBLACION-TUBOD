@@ -81,6 +81,7 @@ interface PayrollBreakdownDialogProps {
   onClose: () => void
   onArchive?: (userId: string) => void // Optional archive handler for admin
   showArchiveButton?: boolean // Show archive button (admin only)
+  openInEditMode?: boolean // Open dialog directly in edit mode
 }
 
 export default function PayrollBreakdownDialog({
@@ -89,7 +90,8 @@ export default function PayrollBreakdownDialog({
   isOpen,
   onClose,
   onArchive,
-  showArchiveButton = false
+  showArchiveButton = false,
+  openInEditMode = false
 }: PayrollBreakdownDialogProps) {
   const [attendanceSettings, setAttendanceSettings] = React.useState<any>(null)
   const [expandedItems, setExpandedItems] = React.useState<Set<number>>(new Set())
@@ -116,9 +118,10 @@ export default function PayrollBreakdownDialog({
         overloadPay: Number(entry.breakdown?.overloadPay || 0),
         deductions: Number(entry.breakdown?.otherDeductions || 0) + Number(entry.breakdown?.loanDeductions || 0)
       })
-      setIsEditMode(false)
+      // Set edit mode based on openInEditMode prop
+      setIsEditMode(openInEditMode && entry.status === 'Pending')
     }
-  }, [entry, isOpen])
+  }, [entry, isOpen, openInEditMode])
 
   // Handle edit mode toggle
   const handleEditToggle = () => {
@@ -882,12 +885,14 @@ export default function PayrollBreakdownDialog({
                 <Badge variant="outline" className="text-sm px-4 py-2">
                   {entry.status}
                 </Badge>
-                {entry.status === 'Pending' && !isEditMode && (
+                {/* Only show Edit button if not already in edit mode and status is Pending */}
+                {entry.status === 'Pending' && !isEditMode && !openInEditMode && (
                   <Button variant="outline" size="sm" onClick={handleEditToggle} className="gap-2">
                     <Edit2 className="h-4 w-4" />
                     Edit
                   </Button>
                 )}
+                {/* Show Save/Cancel when in edit mode */}
                 {isEditMode && (
                   <>
                     <Button variant="default" size="sm" onClick={handleSaveEdit} disabled={isSaving} className="gap-2">
@@ -954,16 +959,63 @@ export default function PayrollBreakdownDialog({
                       className="text-sm"
                     />
                   </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="edit-deductions" className="text-xs font-medium">Total Deductions</Label>
-                    <Input
-                      id="edit-deductions"
-                      type="number"
-                      value={editForm.deductions}
-                      onChange={(e) => setEditForm({ ...editForm, deductions: Number(e.target.value) })}
-                      className="text-sm"
-                    />
+                  
+                  {/* Detailed Deductions Breakdown */}
+                  <div className="space-y-2 pt-2 border-t">
+                    <Label className="text-xs font-medium">Deductions Breakdown</Label>
+                    <div className="space-y-2 max-h-60 overflow-y-auto">
+                      {/* Attendance Deductions */}
+                      {attendanceDeductionsAmount > 0 && (
+                        <div className="flex items-center justify-between p-2 bg-red-50 dark:bg-red-950/20 rounded border border-red-200 dark:border-red-800">
+                          <span className="text-xs text-red-700 dark:text-red-400">Attendance Deductions</span>
+                          <span className="text-xs font-medium text-red-700 dark:text-red-400">{formatCurrency(attendanceDeductionsAmount)}</span>
+                        </div>
+                      )}
+                      
+                      {/* Mandatory Deductions (SSS, PhilHealth, etc.) */}
+                      {mandatoryDeductions.map((deduction: any, idx: number) => (
+                        <div key={`mandatory-${idx}`} className="flex items-center justify-between p-2 bg-blue-50 dark:bg-blue-950/20 rounded border border-blue-200 dark:border-blue-800">
+                          <span className="text-xs text-blue-700 dark:text-blue-400">{deduction.type}</span>
+                          <span className="text-xs font-medium text-blue-700 dark:text-blue-400">{formatCurrency(deduction.amount)}</span>
+                        </div>
+                      ))}
+                      
+                      {/* Loan Payments */}
+                      {actualLoans.map((loan: any, idx: number) => (
+                        <div key={`loan-${idx}`} className="flex items-center justify-between p-2 bg-yellow-50 dark:bg-yellow-950/20 rounded border border-yellow-200 dark:border-yellow-800">
+                          <span className="text-xs text-yellow-700 dark:text-yellow-400">{loan.type}</span>
+                          <span className="text-xs font-medium text-yellow-700 dark:text-yellow-400">{formatCurrency(loan.amount)}</span>
+                        </div>
+                      ))}
+                      
+                      {/* Other Deductions */}
+                      {otherDeductionsOnly.map((deduction: any, idx: number) => (
+                        <div key={`other-${idx}`} className="flex items-center justify-between p-2 bg-gray-50 dark:bg-gray-900/20 rounded border border-gray-200 dark:border-gray-700">
+                          <span className="text-xs text-gray-700 dark:text-gray-400">{deduction.type}</span>
+                          <span className="text-xs font-medium text-gray-700 dark:text-gray-400">{formatCurrency(deduction.amount)}</span>
+                        </div>
+                      ))}
+                    </div>
+                    
+                    {/* Total Deductions Override */}
+                    <div className="pt-2 border-t">
+                      <Label htmlFor="edit-deductions" className="text-xs font-medium text-orange-600 dark:text-orange-400">
+                        Override Total Deductions (Optional)
+                      </Label>
+                      <Input
+                        id="edit-deductions"
+                        type="number"
+                        value={editForm.deductions}
+                        onChange={(e) => setEditForm({ ...editForm, deductions: Number(e.target.value) })}
+                        className="text-sm mt-1"
+                        placeholder={`Current: ${formatCurrency(totalDeductions)}`}
+                      />
+                      <p className="text-xs text-muted-foreground mt-1">
+                        Leave as calculated or enter custom amount
+                      </p>
+                    </div>
                   </div>
+                  
                   <div className="pt-2 border-t">
                     <div className="flex justify-between items-center">
                       <span className="text-xs font-medium">Calculated Net Pay</span>
