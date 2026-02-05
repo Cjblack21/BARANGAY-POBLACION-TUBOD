@@ -987,7 +987,7 @@ html, body { margin: 0 !important; padding: 0 !important; overflow: hidden !impo
       const rawHtml = await response.text()
       const htmlContent = injectPreviewStyles(sanitizeForPreview(rawHtml))
       console.log('✅ Received HTML content, length:', htmlContent.length)
-      
+
       // Extract staff count from HTML by counting payslip sections
       // Try multiple patterns to handle different HTML formats
       let staffCount = 0
@@ -997,7 +997,7 @@ html, body { margin: 0 !important; padding: 0 !important; overflow: hidden !impo
         /class=\\"payslip\\"/g,
         /<div[^>]*payslip[^>]*>/g
       ]
-      
+
       for (const pattern of patterns) {
         const matches = htmlContent.match(pattern)
         if (matches && matches.length > 0) {
@@ -1006,16 +1006,16 @@ html, body { margin: 0 !important; padding: 0 !important; overflow: hidden !impo
           break
         }
       }
-      
+
       if (staffCount === 0) {
         console.warn('⚠️ Could not detect staff count from HTML, using fallback')
         // Fallback: try to count by looking for staff names or IDs
         const staffIdMatches = htmlContent.match(/Staff ID:/g)
         staffCount = staffIdMatches ? staffIdMatches.length : 0
       }
-      
+
       console.log('📊 Final staff count:', staffCount)
-      
+
       setPreviewHtml(htmlContent)
       setPreviewStaffCount(staffCount)
       setShowPreviewModal(true)
@@ -2027,41 +2027,47 @@ html, body { margin: 0 !important; padding: 0 !important; overflow: hidden !impo
 
                   {/* Total Payroll Summary */}
                   <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mt-4">
-                    <div className="bg-blue-50 dark:bg-blue-950/20 rounded-lg p-4 border border-blue-200 dark:border-blue-800">
-                      <div className="text-sm font-medium text-blue-600 dark:text-blue-400 mb-1">Total Gross Pay</div>
-                      <div className="text-2xl font-bold text-blue-700 dark:text-blue-300">
-                        ₱{filteredEntries.reduce((sum, entry) => {
-                          const basicSalary = Number(entry.breakdown?.basicSalary || 0)
-                          const overloadPay = Number(entry.breakdown?.overloadPay || 0)
-                          return sum + basicSalary + overloadPay
-                        }, 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-                      </div>
-                    </div>
+                    <Card className="border-l-4 border-l-blue-500">
+                      <CardContent className="p-4">
+                        <div className="text-sm font-medium text-muted-foreground mb-1">Total Gross Pay</div>
+                        <div className="text-2xl font-bold text-foreground">
+                          ₱{filteredEntries.reduce((sum, entry) => {
+                            const basicSalary = Number(entry.breakdown?.basicSalary || 0)
+                            const overloadPay = Number(entry.breakdown?.overloadPay || 0)
+                            return sum + basicSalary + overloadPay
+                          }, 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                        </div>
+                      </CardContent>
+                    </Card>
 
-                    <div className="bg-red-50 dark:bg-red-950/20 rounded-lg p-4 border border-red-200 dark:border-red-800">
-                      <div className="text-sm font-medium text-red-600 dark:text-red-400 mb-1">Total Deductions</div>
-                      <div className="text-2xl font-bold text-red-700 dark:text-red-300">
-                        ₱{filteredEntries.reduce((sum, entry) => {
-                          const basicSalary = Number(entry.breakdown?.basicSalary || 0)
-                          const overloadPay = Number(entry.breakdown?.overloadPay || 0)
-                          const { totalDeductions, attendanceDeductionAmount, otherDeductionsAmount, loanPayments } = calculateUserPayroll(entry.users_id, basicSalary, overloadPay)
-                          console.log(`🎯 SUMMARY CARD - ${entry.name}: Attendance=₱${attendanceDeductionAmount}, Other=₱${otherDeductionsAmount}, Loans=₱${loanPayments}, Total=₱${totalDeductions}`)
-                          return sum + totalDeductions
-                        }, 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-                      </div>
-                    </div>
+                    <Card className="border-l-4 border-l-red-500">
+                      <CardContent className="p-4">
+                        <div className="text-sm font-medium text-muted-foreground mb-1">Total Deductions</div>
+                        <div className="text-2xl font-bold text-foreground">
+                          ₱{filteredEntries.reduce((sum, entry) => {
+                            const basicSalary = Number(entry.breakdown?.basicSalary || 0)
+                            const overloadPay = Number(entry.breakdown?.overloadPay || 0)
+                            const { totalDeductions, attendanceDeductionAmount, otherDeductionsAmount, loanPayments } = calculateUserPayroll(entry.users_id, basicSalary, overloadPay)
+                            console.log(`🎯 SUMMARY CARD - ${entry.name}: Attendance=₱${attendanceDeductionAmount}, Other=₱${otherDeductionsAmount}, Loans=₱${loanPayments}, Total=₱${totalDeductions}`)
+                            return sum + totalDeductions
+                          }, 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                        </div>
+                      </CardContent>
+                    </Card>
 
-                    <div className="bg-green-50 dark:bg-green-950/20 rounded-lg p-4 border border-green-200 dark:border-green-800">
-                      <div className="text-sm font-medium text-green-600 dark:text-green-400 mb-1">Total Net Pay</div>
-                      <div className="text-2xl font-bold text-green-700 dark:text-green-300">
-                        ₱{filteredEntries.reduce((sum, entry) => {
-                          const basicSalary = Number(entry.breakdown?.basicSalary || 0)
-                          const overloadPay = Number(entry.breakdown?.overloadPay || 0)
-                          const { netPay } = calculateUserPayroll(entry.users_id, basicSalary, overloadPay)
-                          return sum + netPay
-                        }, 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-                      </div>
-                    </div>
+                    <Card className="border-l-4 border-l-green-500">
+                      <CardContent className="p-4">
+                        <div className="text-sm font-medium text-muted-foreground mb-1">Total Net Pay</div>
+                        <div className="text-2xl font-bold text-foreground">
+                          ₱{filteredEntries.reduce((sum, entry) => {
+                            const basicSalary = Number(entry.breakdown?.basicSalary || 0)
+                            const overloadPay = Number(entry.breakdown?.overloadPay || 0)
+                            const { netPay } = calculateUserPayroll(entry.users_id, basicSalary, overloadPay)
+                            return sum + netPay
+                          }, 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                        </div>
+                      </CardContent>
+                    </Card>
                   </div>
                 </CardHeader>
                 <CardContent className="p-0">
@@ -3482,13 +3488,13 @@ html, body { margin: 0 !important; padding: 0 !important; overflow: hidden !impo
                   if (printWindow) {
                     printWindow.document.write(previewHtml)
                     printWindow.document.close()
-                    
+
                     // Wait for content to load then trigger print
                     setTimeout(() => {
                       printWindow.focus()
                       printWindow.print()
                     }, 500)
-                    
+
                     setShowPreviewModal(false)
                     toast.success('Opening print dialog...')
                   } else {
@@ -3595,7 +3601,7 @@ html, body { margin: 0 !important; padding: 0 !important; overflow: hidden !impo
                         const grossPay = Number(person.basicSalary || 0) + Number(person.overtime || 0)
                         const deductions = Number(person.deductions || 0)
                         const displayNetPay = grossPay - deductions
-                        
+
                         return (
                           <TableRow key={person.payroll_entries_id}>
                             <TableCell className="font-mono text-xs text-muted-foreground">{person.users_id || 'N/A'}</TableCell>
@@ -3906,113 +3912,113 @@ html, body { margin: 0 !important; padding: 0 !important; overflow: hidden !impo
 
               {/* Bottom Section - Attendance Deductions Table */}
               {attendanceDeductions.length > 0 && (
-              <div className="bg-gradient-to-br from-orange-50 to-amber-50 dark:from-orange-950/30 dark:to-amber-950/30 border-2 border-orange-200 dark:border-orange-800 rounded-lg p-5 shadow-sm flex flex-col">
-                <div className="flex items-start gap-3 mb-3">
-                  <div className="p-2 bg-orange-600 rounded-lg">
-                    <Users className="h-5 w-5 text-white" />
+                <div className="bg-gradient-to-br from-orange-50 to-amber-50 dark:from-orange-950/30 dark:to-amber-950/30 border-2 border-orange-200 dark:border-orange-800 rounded-lg p-5 shadow-sm flex flex-col">
+                  <div className="flex items-start gap-3 mb-3">
+                    <div className="p-2 bg-orange-600 rounded-lg">
+                      <Users className="h-5 w-5 text-white" />
+                    </div>
+                    <div className="flex-1">
+                      <h4 className="font-bold text-lg text-orange-900 dark:text-orange-100">
+                        Staff with Attendance Deductions
+                      </h4>
+                      <p className="text-sm text-orange-700 dark:text-orange-300 mt-1">
+                        {new Set(attendanceDeductions.map(d => d.users_id)).size} staff have active attendance deductions • <span className="font-bold">₱1.00 per minute deduction</span>
+                      </p>
+                    </div>
                   </div>
-                  <div className="flex-1">
-                    <h4 className="font-bold text-lg text-orange-900 dark:text-orange-100">
-                      Staff with Attendance Deductions
-                    </h4>
-                    <p className="text-sm text-orange-700 dark:text-orange-300 mt-1">
-                      {new Set(attendanceDeductions.map(d => d.users_id)).size} staff have active attendance deductions • <span className="font-bold">₱1.00 per minute deduction</span>
-                    </p>
-                  </div>
-                </div>
-                <div className="flex-1 overflow-auto max-h-[calc(90vh-280px)]">
-                  <table className="w-full">
-                    <thead className="sticky top-0 bg-orange-50 dark:bg-orange-950/30">
-                      <tr className="border-b-2 border-orange-300 dark:border-orange-700">
-                        <th className="text-left py-3 px-4 font-bold text-lg text-orange-900 dark:text-orange-100">Staff Name</th>
-                        <th className="text-center py-3 px-3 font-bold text-lg text-orange-900 dark:text-orange-100 whitespace-nowrap">Late Time</th>
-                        <th className="text-center py-3 px-3 font-bold text-lg text-orange-900 dark:text-orange-100 whitespace-nowrap">Absent Days</th>
-                        <th className="text-right py-3 px-4 font-bold text-lg text-orange-900 dark:text-orange-100">Deduction</th>
-                      </tr>
-                    </thead>
-                    <tbody className="divide-y divide-orange-200 dark:divide-orange-800">
-                      {Array.from(new Set(attendanceDeductions.map(d => d.users_id))).map(userId => {
-                        const userDeductions = attendanceDeductions.filter(d => d.users_id === userId)
-                        const totalAmount = userDeductions.reduce((sum, d) => sum + d.amount, 0)
-                        const staffName = userDeductions[0]?.personnelName || 'Unknown'
+                  <div className="flex-1 overflow-auto max-h-[calc(90vh-280px)]">
+                    <table className="w-full">
+                      <thead className="sticky top-0 bg-orange-50 dark:bg-orange-950/30">
+                        <tr className="border-b-2 border-orange-300 dark:border-orange-700">
+                          <th className="text-left py-3 px-4 font-bold text-lg text-orange-900 dark:text-orange-100">Staff Name</th>
+                          <th className="text-center py-3 px-3 font-bold text-lg text-orange-900 dark:text-orange-100 whitespace-nowrap">Late Time</th>
+                          <th className="text-center py-3 px-3 font-bold text-lg text-orange-900 dark:text-orange-100 whitespace-nowrap">Absent Days</th>
+                          <th className="text-right py-3 px-4 font-bold text-lg text-orange-900 dark:text-orange-100">Deduction</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-orange-200 dark:divide-orange-800">
+                        {Array.from(new Set(attendanceDeductions.map(d => d.users_id))).map(userId => {
+                          const userDeductions = attendanceDeductions.filter(d => d.users_id === userId)
+                          const totalAmount = userDeductions.reduce((sum, d) => sum + d.amount, 0)
+                          const staffName = userDeductions[0]?.personnelName || 'Unknown'
 
-                        // Parse notes to extract late and absent details
-                        const parseNotes = (notes: string) => {
-                          const lateMatch = notes.match(/Late:\s*(\d+)h?\s*(\d+)?m?/i) || notes.match(/Late:\s*(\d+)\s*min/i)
-                          const absentMatch = notes.match(/Absent:\s*(\d+)\s*days?/i)
-                          
-                          let lateHours = 0
-                          let lateMinutes = 0
-                          let absentDays = 0
-                          
-                          if (lateMatch) {
-                            if (lateMatch[2]) {
-                              lateHours = parseInt(lateMatch[1]) || 0
-                              lateMinutes = parseInt(lateMatch[2]) || 0
-                            } else {
-                              const totalMinutes = parseInt(lateMatch[1]) || 0
-                              lateHours = Math.floor(totalMinutes / 60)
-                              lateMinutes = totalMinutes % 60
+                          // Parse notes to extract late and absent details
+                          const parseNotes = (notes: string) => {
+                            const lateMatch = notes.match(/Late:\s*(\d+)h?\s*(\d+)?m?/i) || notes.match(/Late:\s*(\d+)\s*min/i)
+                            const absentMatch = notes.match(/Absent:\s*(\d+)\s*days?/i)
+
+                            let lateHours = 0
+                            let lateMinutes = 0
+                            let absentDays = 0
+
+                            if (lateMatch) {
+                              if (lateMatch[2]) {
+                                lateHours = parseInt(lateMatch[1]) || 0
+                                lateMinutes = parseInt(lateMatch[2]) || 0
+                              } else {
+                                const totalMinutes = parseInt(lateMatch[1]) || 0
+                                lateHours = Math.floor(totalMinutes / 60)
+                                lateMinutes = totalMinutes % 60
+                              }
                             }
+
+                            if (absentMatch) {
+                              absentDays = parseInt(absentMatch[1]) || 0
+                            }
+
+                            return { lateHours, lateMinutes, absentDays }
                           }
-                          
-                          if (absentMatch) {
-                            absentDays = parseInt(absentMatch[1]) || 0
-                          }
-                          
-                          return { lateHours, lateMinutes, absentDays }
-                        }
 
-                        // Calculate total late and absent
-                        let totalLateHours = 0
-                        let totalLateMinutes = 0
-                        let totalAbsentDays = 0
-                        
-                        userDeductions.forEach(d => {
-                          const parsed = parseNotes(d.notes || '')
-                          totalLateHours += parsed.lateHours
-                          totalLateMinutes += parsed.lateMinutes
-                          totalAbsentDays += parsed.absentDays
-                        })
+                          // Calculate total late and absent
+                          let totalLateHours = 0
+                          let totalLateMinutes = 0
+                          let totalAbsentDays = 0
 
-                        totalLateHours += Math.floor(totalLateMinutes / 60)
-                        totalLateMinutes = totalLateMinutes % 60
+                          userDeductions.forEach(d => {
+                            const parsed = parseNotes(d.notes || '')
+                            totalLateHours += parsed.lateHours
+                            totalLateMinutes += parsed.lateMinutes
+                            totalAbsentDays += parsed.absentDays
+                          })
 
-                        return (
-                          <tr key={userId} className="hover:bg-orange-100 dark:hover:bg-orange-900/20 transition-colors border-b border-orange-100 dark:border-orange-900">
-                            <td className="py-4 px-4 font-semibold text-lg text-gray-900 dark:text-gray-100">{staffName}</td>
-                            <td className="py-4 px-3 text-center text-lg text-orange-700 dark:text-orange-300">
-                              {(totalLateHours > 0 || totalLateMinutes > 0) ? (
-                                <span className="font-semibold">
-                                  {totalLateHours > 0 && `${totalLateHours}h `}
-                                  {totalLateMinutes > 0 && `${totalLateMinutes}m`}
-                                </span>
-                              ) : (
-                                <span className="text-muted-foreground">-</span>
-                              )}
-                            </td>
-                            <td className="py-4 px-3 text-center text-lg text-red-700 dark:text-red-300">
-                              {totalAbsentDays > 0 ? (
-                                <span className="font-semibold">{totalAbsentDays} {totalAbsentDays === 1 ? 'day' : 'days'}</span>
-                              ) : (
-                                <span className="text-muted-foreground">-</span>
-                              )}
-                            </td>
-                            <td className="py-4 px-4 text-right font-bold text-xl text-red-600">-₱{totalAmount.toFixed(2)}</td>
-                          </tr>
-                        )
-                      })}
-                    </tbody>
-                    <tfoot className="sticky bottom-0 bg-orange-50 dark:bg-orange-950/30">
-                      <tr className="border-t-2 border-orange-300 dark:border-orange-700">
-                        <td colSpan={3} className="py-4 px-4 text-right font-bold text-lg text-orange-900 dark:text-orange-100">Total Attendance Deductions:</td>
-                        <td className="py-4 px-4 text-right font-bold text-2xl text-red-600">-₱{attendanceDeductions.reduce((sum, d) => sum + d.amount, 0).toFixed(2)}</td>
-                      </tr>
-                    </tfoot>
-                  </table>
+                          totalLateHours += Math.floor(totalLateMinutes / 60)
+                          totalLateMinutes = totalLateMinutes % 60
+
+                          return (
+                            <tr key={userId} className="hover:bg-orange-100 dark:hover:bg-orange-900/20 transition-colors border-b border-orange-100 dark:border-orange-900">
+                              <td className="py-4 px-4 font-semibold text-lg text-gray-900 dark:text-gray-100">{staffName}</td>
+                              <td className="py-4 px-3 text-center text-lg text-orange-700 dark:text-orange-300">
+                                {(totalLateHours > 0 || totalLateMinutes > 0) ? (
+                                  <span className="font-semibold">
+                                    {totalLateHours > 0 && `${totalLateHours}h `}
+                                    {totalLateMinutes > 0 && `${totalLateMinutes}m`}
+                                  </span>
+                                ) : (
+                                  <span className="text-muted-foreground">-</span>
+                                )}
+                              </td>
+                              <td className="py-4 px-3 text-center text-lg text-red-700 dark:text-red-300">
+                                {totalAbsentDays > 0 ? (
+                                  <span className="font-semibold">{totalAbsentDays} {totalAbsentDays === 1 ? 'day' : 'days'}</span>
+                                ) : (
+                                  <span className="text-muted-foreground">-</span>
+                                )}
+                              </td>
+                              <td className="py-4 px-4 text-right font-bold text-xl text-red-600">-₱{totalAmount.toFixed(2)}</td>
+                            </tr>
+                          )
+                        })}
+                      </tbody>
+                      <tfoot className="sticky bottom-0 bg-orange-50 dark:bg-orange-950/30">
+                        <tr className="border-t-2 border-orange-300 dark:border-orange-700">
+                          <td colSpan={3} className="py-4 px-4 text-right font-bold text-lg text-orange-900 dark:text-orange-100">Total Attendance Deductions:</td>
+                          <td className="py-4 px-4 text-right font-bold text-2xl text-red-600">-₱{attendanceDeductions.reduce((sum, d) => sum + d.amount, 0).toFixed(2)}</td>
+                        </tr>
+                      </tfoot>
+                    </table>
+                  </div>
                 </div>
-              </div>
-            )}
+              )}
             </div>
           </div>
 

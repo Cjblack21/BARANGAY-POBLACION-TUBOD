@@ -17,7 +17,7 @@ export const metadata: Metadata = {
   title: "POBLACION - PMS",
   description: "Payroll Management System for Tubod Barangay Poblacion",
   icons: {
-    icon: '/brgy-logo.png',
+    icon: '/brgy-logo.png?v=' + Date.now(),
   },
 };
 

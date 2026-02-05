@@ -29,6 +29,7 @@ import {
   PlusCircle
 } from "lucide-react"
 import { format } from "date-fns"
+import { toast } from "react-hot-toast"
 
 type LoanItem = {
   loans_id: string
@@ -73,6 +74,15 @@ export default function LoansPage() {
   const [isCustomTerm, setIsCustomTerm] = useState(false)
   const [customPercent, setCustomPercent] = useState('')
   const [isCustomPercent, setIsCustomPercent] = useState(false)
+
+  // Confirmation modal states
+  const [approveConfirmOpen, setApproveConfirmOpen] = useState(false)
+  const [archiveConfirmOpen, setArchiveConfirmOpen] = useState(false)
+  const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false)
+  const [bulkDeleteConfirmOpen, setBulkDeleteConfirmOpen] = useState(false)
+  const [selectedLoanForApprove, setSelectedLoanForApprove] = useState<LoanItem | null>(null)
+  const [selectedLoanForArchive, setSelectedLoanForArchive] = useState<LoanItem | null>(null)
+  const [selectedLoanForDelete, setSelectedLoanForDelete] = useState<LoanItem | null>(null)
 
   // Auto-calculate monthly payment percentage when amount or term changes
   // Auto-calculate monthly payment percentage when amount or term changes
@@ -120,12 +130,16 @@ export default function LoansPage() {
     }
   }
 
-  async function approveLoan(loan: LoanItem) {
-    try {
-      const ok = window.confirm(`Approve loan request for ${loan.userName || loan.userEmail}?`)
-      if (!ok) return
+  function openApproveDialog(loan: LoanItem) {
+    setSelectedLoanForApprove(loan)
+    setApproveConfirmOpen(true)
+  }
 
-      const res = await fetch(`/api/admin/loans/${loan.loans_id}/approve`, {
+  async function confirmApproveLoan() {
+    if (!selectedLoanForApprove) return
+
+    try {
+      const res = await fetch(`/api/admin/loans/${selectedLoanForApprove.loans_id}/approve`, {
         method: 'POST'
       })
 
@@ -134,11 +148,12 @@ export default function LoansPage() {
         throw new Error(data.error || 'Failed to approve loan')
       }
 
-      alert('Loan approved successfully!')
+      toast.success('Loan approved successfully!')
+      setApproveConfirmOpen(false)
       await loadLoans()
     } catch (e) {
       console.error('Approval failed:', e)
-      alert(e instanceof Error ? e.message : 'Failed to approve loan')
+      toast.error(e instanceof Error ? e.message : 'Failed to approve loan')
     }
   }
 
@@ -163,25 +178,33 @@ export default function LoansPage() {
         throw new Error(data.error || 'Failed to reject loan')
       }
 
-      alert('Loan rejected successfully!')
+      toast.success('Loan rejected successfully!')
       setRejectDialogOpen(false)
       await loadLoans()
     } catch (e) {
       console.error('Rejection failed:', e)
-      alert(e instanceof Error ? e.message : 'Failed to reject loan')
+      toast.error(e instanceof Error ? e.message : 'Failed to reject loan')
     }
   }
 
-  async function archiveLoan(loan: LoanItem) {
+  function openArchiveDialog(loan: LoanItem) {
+    setSelectedLoanForArchive(loan)
+    setArchiveConfirmOpen(true)
+  }
+
+  async function confirmArchiveLoan() {
+    if (!selectedLoanForArchive) return
+
     try {
-      const ok = window.confirm(`Archive this loan for ${loan.userName || loan.userEmail}?`)
-      if (!ok) return
-      const res = await fetch(`/api/admin/loans/${loan.loans_id}/archive`, { method: 'POST' })
+      const res = await fetch(`/api/admin/loans/${selectedLoanForArchive.loans_id}/archive`, { method: 'POST' })
       if (!res.ok) throw new Error('Failed to archive loan')
+      toast.success('Loan archived successfully!')
+      setArchiveConfirmOpen(false)
       await loadLoans()
       await loadArchivedLoans()
     } catch (e) {
       console.error('Archive failed:', e)
+      toast.error('Failed to archive loan')
     }
   }
 
@@ -251,16 +274,24 @@ export default function LoansPage() {
     }
   }
 
-  async function deleteLoan(loan: LoanItem) {
+  function openDeleteDialog(loan: LoanItem) {
+    setSelectedLoanForDelete(loan)
+    setDeleteConfirmOpen(true)
+  }
+
+  async function confirmDeleteLoan() {
+    if (!selectedLoanForDelete) return
+
     try {
-      const ok = window.confirm('Delete this loan? This action cannot be undone.')
-      if (!ok) return
-      const res = await fetch(`/api/admin/loans/${loan.loans_id}`, { method: 'DELETE' })
+      const res = await fetch(`/api/admin/loans/${selectedLoanForDelete.loans_id}`, { method: 'DELETE' })
       if (!res.ok) throw new Error('Failed to delete loan')
+      toast.success('Loan deleted successfully!')
+      setDeleteConfirmOpen(false)
       await loadLoans()
       await loadArchivedLoans()
     } catch (e) {
       console.error('Delete failed:', e)
+      toast.error('Failed to delete loan')
     }
   }
 
@@ -301,29 +332,36 @@ export default function LoansPage() {
     })
   }, [archivedItems, search])
 
-  async function bulkDelete() {
+  function openBulkDeleteDialog() {
     if (selectedIds.length === 0) return
-    const ok = window.confirm(`Delete ${selectedIds.length} selected item(s)? This action cannot be undone.`)
-    if (!ok) return
+    setBulkDeleteConfirmOpen(true)
+  }
+
+  async function confirmBulkDelete() {
+    if (selectedIds.length === 0) return
+
     setIsDeleting(true)
     try {
       const deletePromises = selectedIds.map(id =>
         fetch(`/api/admin/loans/${id}`, { method: 'DELETE' })
       )
       await Promise.all(deletePromises)
+      toast.success(`Successfully deleted ${selectedIds.length} loan(s)!`)
       setSelectedIds([])
+      setBulkDeleteConfirmOpen(false)
       await loadLoans()
       await loadArchivedLoans()
     } catch (e) {
       console.error('Bulk delete failed:', e)
+      toast.error('Failed to delete some loans')
     } finally {
       setIsDeleting(false)
     }
   }
 
   function toggleSelectAll() {
-    const currentList = activeTab === 'active' ? filtered : filteredArchived
-    if (selectedIds.length === currentList.length) {
+    const currentList = activeTab === 'archived' ? filteredArchived : filtered
+    if (selectedIds.length === currentList.length && currentList.length > 0) {
       setSelectedIds([])
     } else {
       setSelectedIds(currentList.map(item => item.loans_id))
@@ -410,281 +448,281 @@ export default function LoansPage() {
                 setUserSearch("")
               }
             }}>
-            <DialogTrigger asChild>
-              <Button className="bg-blue-600 hover:bg-blue-700 text-white gap-2">
-                <Plus className="h-4 w-4" />
-                <span className="hidden sm:inline">Add Loan</span>
-                <span className="sm:hidden">Add</span>
-              </Button>
-            </DialogTrigger>
-            <DialogContent className="w-full sm:max-w-6xl max-h-[90vh] overflow-y-auto" style={{ width: '95vw', maxWidth: '1200px' }}>
-              <DialogHeader>
-                <DialogTitle className="flex items-center gap-2 text-2xl">
-                  <Banknote className="h-6 w-6 text-blue-600" />
-                  Add New Loan
-                </DialogTitle>
-              </DialogHeader>
+              <DialogTrigger asChild>
+                <Button className="bg-blue-600 hover:bg-blue-700 text-white gap-2">
+                  <Plus className="h-4 w-4" />
+                  <span className="hidden sm:inline">Add Loan</span>
+                  <span className="sm:hidden">Add</span>
+                </Button>
+              </DialogTrigger>
+              <DialogContent className="w-full sm:max-w-6xl max-h-[90vh] overflow-y-auto" style={{ width: '95vw', maxWidth: '1200px' }}>
+                <DialogHeader>
+                  <DialogTitle className="flex items-center gap-2 text-2xl">
+                    <Banknote className="h-6 w-6 text-blue-600" />
+                    Add New Loan
+                  </DialogTitle>
+                </DialogHeader>
 
-              <div className="mt-4 grid grid-cols-1 md:grid-cols-2 gap-6">
-                {/* Left Column - Form Inputs */}
-                <div className="space-y-5">
-                  <div className="space-y-4">
-                    <h3 className="font-semibold text-lg flex items-center gap-2">
-                      <FileText className="h-5 w-5 text-blue-600" />
-                      Loan Details
-                    </h3>
+                <div className="mt-4 grid grid-cols-1 md:grid-cols-2 gap-6">
+                  {/* Left Column - Form Inputs */}
+                  <div className="space-y-5">
+                    <div className="space-y-4">
+                      <h3 className="font-semibold text-lg flex items-center gap-2">
+                        <FileText className="h-5 w-5 text-blue-600" />
+                        Loan Details
+                      </h3>
 
-                    <div className="space-y-2">
-                      <label className="text-base flex items-center gap-2 font-medium">
-                        <User className="h-4 w-4" />
-                        Select Staff
-                      </label>
                       <div className="space-y-2">
-                        <div className="relative">
-                          <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                          <Input
-                            placeholder="Search staff..."
-                            value={userSearch}
-                            onChange={(e) => setUserSearch(e.target.value)}
-                            className="w-full pl-10"
-                          />
-                        </div>
-                        <div className="border rounded-md max-h-[150px] overflow-y-auto">
-                          {users
-                            .filter(u => {
-                              const q = userSearch.toLowerCase()
-                              return (u.name || '').toLowerCase().includes(q) || u.email.toLowerCase().includes(q)
-                            })
-                            .map(u => (
-                              <div
-                                key={u.users_id}
-                                onClick={() => setForm(f => ({ ...f, users_id: u.users_id }))}
-                                className={`p-3 cursor-pointer hover:bg-muted transition-colors border-b last:border-b-0 ${form.users_id === u.users_id ? 'bg-blue-50' : ''
-                                  }`}
-                              >
-                                <div className="flex items-center justify-between">
-                                  <div>
-                                    <p className="font-medium text-foreground">{u.name || u.email}</p>
-                                    <p className="text-sm text-muted-foreground">{u.email}</p>
+                        <label className="text-base flex items-center gap-2 font-medium">
+                          <User className="h-4 w-4" />
+                          Select Staff
+                        </label>
+                        <div className="space-y-2">
+                          <div className="relative">
+                            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                            <Input
+                              placeholder="Search staff..."
+                              value={userSearch}
+                              onChange={(e) => setUserSearch(e.target.value)}
+                              className="w-full pl-10"
+                            />
+                          </div>
+                          <div className="border rounded-md max-h-[150px] overflow-y-auto">
+                            {users
+                              .filter(u => {
+                                const q = userSearch.toLowerCase()
+                                return (u.name || '').toLowerCase().includes(q) || u.email.toLowerCase().includes(q)
+                              })
+                              .map(u => (
+                                <div
+                                  key={u.users_id}
+                                  onClick={() => setForm(f => ({ ...f, users_id: u.users_id }))}
+                                  className={`p-3 cursor-pointer hover:bg-muted transition-colors border-b last:border-b-0 ${form.users_id === u.users_id ? 'bg-blue-50' : ''
+                                    }`}
+                                >
+                                  <div className="flex items-center justify-between">
+                                    <div>
+                                      <p className="font-medium text-foreground">{u.name || u.email}</p>
+                                      <p className="text-sm text-muted-foreground">{u.email}</p>
+                                    </div>
+                                    {form.users_id === u.users_id && (
+                                      <CheckCircle className="h-5 w-5 text-blue-600" />
+                                    )}
                                   </div>
-                                  {form.users_id === u.users_id && (
-                                    <CheckCircle className="h-5 w-5 text-blue-600" />
-                                  )}
                                 </div>
-                              </div>
-                            ))}
+                              ))}
+                          </div>
                         </div>
                       </div>
-                    </div>
 
-                    <div className="space-y-2">
-                      <label className="text-base flex items-center gap-2 font-medium">
-                        <span className="font-bold">₱</span>
-                        Loan Amount
-                      </label>
-                      <Input
-                        type="number"
-                        min="1"
-                        step="0.01"
-                        value={form.amount}
-                        onChange={(e) => setForm(f => ({ ...f, amount: e.target.value }))}
-                        placeholder="e.g. 5000"
-                        className="h-11 text-base"
-                      />
-                    </div>
-
-                    <div className="space-y-2">
-                      <label className="text-base flex items-center gap-2 font-medium">
-                        <FileText className="h-4 w-4" />
-                        Purpose
-                      </label>
-                      <Input
-                        value={form.purpose}
-                        onChange={(e) => setForm(f => ({ ...f, purpose: e.target.value }))}
-                        placeholder="e.g. Emergency, Medical"
-                        className="h-11 text-base"
-                      />
-                    </div>
-                  </div>
-
-                  <Separator />
-
-                  <div className="space-y-4">
-                    <h3 className="font-semibold text-lg flex items-center gap-2">
-                      <Calendar className="h-5 w-5 text-blue-600" />
-                      Payment Terms
-                    </h3>
-
-                    <div className="space-y-2">
-                      <label className="text-base font-medium">Term (Months)</label>
-                      <div className="grid grid-cols-3 gap-2 mb-2">
-                        {[6, 12, 18, 24].map(months => (
-                          <Button
-                            key={months}
-                            type="button"
-                            variant={(!isCustomTerm && Number(form.termMonths) === months) ? "default" : "outline"}
-                            onClick={() => {
-                              setIsCustomTerm(false)
-                              setCustomTerm('')
-                              setForm(f => ({ ...f, termMonths: months.toString() }))
-                            }}
-                            className={(!isCustomTerm && Number(form.termMonths) === months) ? "bg-blue-600 hover:bg-blue-700" : ""}
-                          >
-                            {months} Months
-                          </Button>
-                        ))}
-                        <Button
-                          type="button"
-                          variant={isCustomTerm ? "default" : "outline"}
-                          onClick={() => setIsCustomTerm(true)}
-                          className={isCustomTerm ? "bg-blue-600 hover:bg-blue-700" : ""}
-                        >
-                          Custom
-                        </Button>
-                      </div>
-                      {isCustomTerm && (
+                      <div className="space-y-2">
+                        <label className="text-base flex items-center gap-2 font-medium">
+                          <span className="font-bold">₱</span>
+                          Loan Amount
+                        </label>
                         <Input
                           type="number"
                           min="1"
-                          value={customTerm}
-                          onChange={(e) => {
-                            setCustomTerm(e.target.value)
-                            setForm(f => ({ ...f, termMonths: e.target.value }))
-                          }}
-                          placeholder="Enter custom months"
+                          step="0.01"
+                          value={form.amount}
+                          onChange={(e) => setForm(f => ({ ...f, amount: e.target.value }))}
+                          placeholder="e.g. 5000"
                           className="h-11 text-base"
                         />
-                      )}
-                    </div>
+                      </div>
 
-                    <div className="space-y-2">
-                      <label className="text-base font-medium">Monthly Payment Percentage</label>
-                      <div className="relative">
+                      <div className="space-y-2">
+                        <label className="text-base flex items-center gap-2 font-medium">
+                          <FileText className="h-4 w-4" />
+                          Purpose
+                        </label>
                         <Input
-                          value={form.monthlyPaymentPercent ? `${form.monthlyPaymentPercent}% (Auto-calculated)` : ''}
-                          readOnly={!isCustomPercent}
-                          className={`h-11 text-base ${!isCustomPercent ? 'bg-muted cursor-not-allowed' : ''}`}
-                          placeholder="Auto-calculated"
+                          value={form.purpose}
+                          onChange={(e) => setForm(f => ({ ...f, purpose: e.target.value }))}
+                          placeholder="e.g. Emergency, Medical"
+                          className="h-11 text-base"
                         />
                       </div>
-                      <Button
-                        type="button"
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => setIsCustomPercent(!isCustomPercent)}
-                        className="text-xs text-blue-600 hover:text-blue-700 p-0 h-auto font-normal"
-                      >
-                        {isCustomPercent ? 'Switch to Auto-calculation' : 'Switch to Custom Percentage'}
-                      </Button>
-                      {isCustomPercent && (
-                        <Input
-                          type="number"
-                          value={customPercent}
-                          onChange={(e) => {
-                            setCustomPercent(e.target.value)
-                            setForm(f => ({ ...f, monthlyPaymentPercent: e.target.value }))
-                          }}
-                          placeholder="Enter custom percent"
-                          className="h-11 text-base mt-2"
-                        />
-                      )}
                     </div>
+
+                    <Separator />
+
+                    <div className="space-y-4">
+                      <h3 className="font-semibold text-lg flex items-center gap-2">
+                        <Calendar className="h-5 w-5 text-blue-600" />
+                        Payment Terms
+                      </h3>
+
+                      <div className="space-y-2">
+                        <label className="text-base font-medium">Term (Months)</label>
+                        <div className="grid grid-cols-3 gap-2 mb-2">
+                          {[6, 12, 18, 24].map(months => (
+                            <Button
+                              key={months}
+                              type="button"
+                              variant={(!isCustomTerm && Number(form.termMonths) === months) ? "default" : "outline"}
+                              onClick={() => {
+                                setIsCustomTerm(false)
+                                setCustomTerm('')
+                                setForm(f => ({ ...f, termMonths: months.toString() }))
+                              }}
+                              className={(!isCustomTerm && Number(form.termMonths) === months) ? "bg-blue-600 hover:bg-blue-700" : ""}
+                            >
+                              {months} Months
+                            </Button>
+                          ))}
+                          <Button
+                            type="button"
+                            variant={isCustomTerm ? "default" : "outline"}
+                            onClick={() => setIsCustomTerm(true)}
+                            className={isCustomTerm ? "bg-blue-600 hover:bg-blue-700" : ""}
+                          >
+                            Custom
+                          </Button>
+                        </div>
+                        {isCustomTerm && (
+                          <Input
+                            type="number"
+                            min="1"
+                            value={customTerm}
+                            onChange={(e) => {
+                              setCustomTerm(e.target.value)
+                              setForm(f => ({ ...f, termMonths: e.target.value }))
+                            }}
+                            placeholder="Enter custom months"
+                            className="h-11 text-base"
+                          />
+                        )}
+                      </div>
+
+                      <div className="space-y-2">
+                        <label className="text-base font-medium">Monthly Payment Percentage</label>
+                        <div className="relative">
+                          <Input
+                            value={form.monthlyPaymentPercent ? `${form.monthlyPaymentPercent}% (Auto-calculated)` : ''}
+                            readOnly={!isCustomPercent}
+                            className={`h-11 text-base ${!isCustomPercent ? 'bg-muted cursor-not-allowed' : ''}`}
+                            placeholder="Auto-calculated"
+                          />
+                        </div>
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => setIsCustomPercent(!isCustomPercent)}
+                          className="text-xs text-blue-600 hover:text-blue-700 p-0 h-auto font-normal"
+                        >
+                          {isCustomPercent ? 'Switch to Auto-calculation' : 'Switch to Custom Percentage'}
+                        </Button>
+                        {isCustomPercent && (
+                          <Input
+                            type="number"
+                            value={customPercent}
+                            onChange={(e) => {
+                              setCustomPercent(e.target.value)
+                              setForm(f => ({ ...f, monthlyPaymentPercent: e.target.value }))
+                            }}
+                            placeholder="Enter custom percent"
+                            className="h-11 text-base mt-2"
+                          />
+                        )}
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Right Column - Payment Summary */}
+                  <div className="md:border-l md:pl-6">
+                    <Card className="border-2 border-blue-200 bg-gradient-to-br from-blue-50 to-white h-full min-h-[400px]">
+                      <CardHeader className="pb-3">
+                        <CardTitle className="flex items-center gap-2 text-xl">
+                          <TrendingUp className="h-5 w-5 text-blue-600" />
+                          Payment Summary
+                        </CardTitle>
+                      </CardHeader>
+                      <CardContent className="space-y-4">
+                        {(form.amount && form.monthlyPaymentPercent && form.termMonths) ? (
+                          <div className="space-y-3">
+                            <div className="flex items-center justify-between p-3 bg-white rounded-lg border">
+                              <div className="flex items-center gap-2">
+                                <Banknote className="h-4 w-4 text-blue-600" />
+                                <span className="text-sm font-medium text-muted-foreground">Loan Amount</span>
+                              </div>
+                              <span className="text-lg font-bold text-blue-600">
+                                ₱{Number(form.amount).toLocaleString('en-PH', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                              </span>
+                            </div>
+
+                            <div className="flex items-center justify-between p-3 bg-white rounded-lg border">
+                              <div className="flex items-center gap-2">
+                                <Calendar className="h-4 w-4 text-purple-600" />
+                                <span className="text-sm font-medium text-muted-foreground">Term</span>
+                              </div>
+                              <span className="text-lg font-bold text-purple-600">
+                                {form.termMonths} months
+                              </span>
+                            </div>
+
+                            <Separator />
+
+                            <div className="flex items-center justify-between p-3 bg-green-50 rounded-lg border border-green-200">
+                              <div className="flex items-center gap-2">
+                                <CreditCard className="h-4 w-4 text-green-600" />
+                                <span className="text-sm font-medium text-green-700">Monthly Payment</span>
+                              </div>
+                              <span className="text-lg font-bold text-green-700">
+                                ₱{((Number(form.amount) * Number(form.monthlyPaymentPercent)) / 100).toLocaleString('en-PH', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                              </span>
+                            </div>
+
+                            <div className="flex items-center justify-between p-3 bg-orange-50 rounded-lg border border-orange-200">
+                              <div className="flex items-center gap-2">
+                                <CreditCard className="h-4 w-4 text-orange-600" />
+                                <span className="text-sm font-medium text-orange-700">Per Payroll</span>
+                              </div>
+                              <span className="text-lg font-bold text-orange-700">
+                                ₱{((Number(form.amount) * Number(form.monthlyPaymentPercent)) / 100).toLocaleString('en-PH', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                              </span>
+                            </div>
+
+                            <Separator />
+
+                            <div className="flex items-center justify-between p-3 bg-blue-100 rounded-lg border border-blue-300">
+                              <div className="flex items-center gap-2">
+                                <TrendingUp className="h-4 w-4 text-blue-700" />
+                                <span className="text-sm font-medium text-blue-700">Total Repayment</span>
+                              </div>
+                              <span className="text-lg font-bold text-blue-700">
+                                ₱{(Number(form.amount) * (Number(form.monthlyPaymentPercent) / 100) * Number(form.termMonths)).toLocaleString('en-PH', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                              </span>
+                            </div>
+                          </div>
+                        ) : (
+                          <div className="text-center py-8">
+                            <Banknote className="h-12 w-12 text-muted-foreground mx-auto mb-3 opacity-50" />
+                            <p className="text-sm text-muted-foreground">
+                              Enter details to see calculation
+                            </p>
+                          </div>
+                        )}
+                      </CardContent>
+                    </Card>
                   </div>
                 </div>
 
-                {/* Right Column - Payment Summary */}
-                <div className="md:border-l md:pl-6">
-                  <Card className="border-2 border-blue-200 bg-gradient-to-br from-blue-50 to-white h-full min-h-[400px]">
-                    <CardHeader className="pb-3">
-                      <CardTitle className="flex items-center gap-2 text-xl">
-                        <TrendingUp className="h-5 w-5 text-blue-600" />
-                        Payment Summary
-                      </CardTitle>
-                    </CardHeader>
-                    <CardContent className="space-y-4">
-                      {(form.amount && form.monthlyPaymentPercent && form.termMonths) ? (
-                        <div className="space-y-3">
-                          <div className="flex items-center justify-between p-3 bg-white rounded-lg border">
-                            <div className="flex items-center gap-2">
-                              <Banknote className="h-4 w-4 text-blue-600" />
-                              <span className="text-sm font-medium text-muted-foreground">Loan Amount</span>
-                            </div>
-                            <span className="text-lg font-bold text-blue-600">
-                              ₱{Number(form.amount).toLocaleString('en-PH', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-                            </span>
-                          </div>
-
-                          <div className="flex items-center justify-between p-3 bg-white rounded-lg border">
-                            <div className="flex items-center gap-2">
-                              <Calendar className="h-4 w-4 text-purple-600" />
-                              <span className="text-sm font-medium text-muted-foreground">Term</span>
-                            </div>
-                            <span className="text-lg font-bold text-purple-600">
-                              {form.termMonths} months
-                            </span>
-                          </div>
-
-                          <Separator />
-
-                          <div className="flex items-center justify-between p-3 bg-green-50 rounded-lg border border-green-200">
-                            <div className="flex items-center gap-2">
-                              <CreditCard className="h-4 w-4 text-green-600" />
-                              <span className="text-sm font-medium text-green-700">Monthly Payment</span>
-                            </div>
-                            <span className="text-lg font-bold text-green-700">
-                              ₱{((Number(form.amount) * Number(form.monthlyPaymentPercent)) / 100).toLocaleString('en-PH', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-                            </span>
-                          </div>
-
-                          <div className="flex items-center justify-between p-3 bg-orange-50 rounded-lg border border-orange-200">
-                            <div className="flex items-center gap-2">
-                              <CreditCard className="h-4 w-4 text-orange-600" />
-                              <span className="text-sm font-medium text-orange-700">Per Payroll</span>
-                            </div>
-                            <span className="text-lg font-bold text-orange-700">
-                              ₱{((Number(form.amount) * Number(form.monthlyPaymentPercent)) / 100).toLocaleString('en-PH', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-                            </span>
-                          </div>
-
-                          <Separator />
-
-                          <div className="flex items-center justify-between p-3 bg-blue-100 rounded-lg border border-blue-300">
-                            <div className="flex items-center gap-2">
-                              <TrendingUp className="h-4 w-4 text-blue-700" />
-                              <span className="text-sm font-medium text-blue-700">Total Repayment</span>
-                            </div>
-                            <span className="text-lg font-bold text-blue-700">
-                              ₱{(Number(form.amount) * (Number(form.monthlyPaymentPercent) / 100) * Number(form.termMonths)).toLocaleString('en-PH', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-                            </span>
-                          </div>
-                        </div>
-                      ) : (
-                        <div className="text-center py-8">
-                          <Banknote className="h-12 w-12 text-muted-foreground mx-auto mb-3 opacity-50" />
-                          <p className="text-sm text-muted-foreground">
-                            Enter details to see calculation
-                          </p>
-                        </div>
-                      )}
-                    </CardContent>
-                  </Card>
+                <div className="flex justify-end gap-3 mt-6 pt-6 border-t">
+                  <Button variant="outline" onClick={() => setOpen(false)} className="h-11 px-6">
+                    Cancel
+                  </Button>
+                  <Button
+                    disabled={saving || !form.users_id || !form.amount || !form.termMonths}
+                    onClick={submitLoan}
+                    className="bg-blue-600 hover:bg-blue-700 h-11 px-6"
+                  >
+                    {saving ? 'Creating...' : 'Create Loan'}
+                  </Button>
                 </div>
-              </div>
-
-              <div className="flex justify-end gap-3 mt-6 pt-6 border-t">
-                <Button variant="outline" onClick={() => setOpen(false)} className="h-11 px-6">
-                  Cancel
-                </Button>
-                <Button
-                  disabled={saving || !form.users_id || !form.amount || !form.termMonths}
-                  onClick={submitLoan}
-                  className="bg-blue-600 hover:bg-blue-700 h-11 px-6"
-                >
-                  {saving ? 'Creating...' : 'Create Loan'}
-                </Button>
-              </div>
-            </DialogContent>
-          </Dialog>
+              </DialogContent>
+            </Dialog>
           </div>
         </div>
       </div>
@@ -814,7 +852,7 @@ export default function LoansPage() {
                 <Button
                   variant="destructive"
                   size="sm"
-                  onClick={bulkDelete}
+                  onClick={openBulkDeleteDialog}
                   disabled={isDeleting}
                   className="gap-2"
                 >
@@ -904,7 +942,7 @@ export default function LoansPage() {
                             <Button size="sm" variant="outline" className="h-8 text-xs" onClick={() => viewLoanDetails(item)}>
                               <Eye className="h-3 w-3 mr-1" /> Details
                             </Button>
-                            <Button size="sm" variant="destructive" className="h-8 text-xs" onClick={() => deleteLoan(item)}>
+                            <Button size="sm" variant="destructive" className="h-8 text-xs" onClick={() => openDeleteDialog(item)}>
                               <Trash2 className="h-3 w-3 mr-1" /> Delete
                             </Button>
                           </div>
@@ -958,7 +996,7 @@ export default function LoansPage() {
                             <Button size="sm" variant="outline" className="h-9 text-sm" onClick={() => viewLoanDetails(item)}>
                               <Eye className="h-4 w-4 mr-1" /> View Details
                             </Button>
-                            <Button size="sm" className="bg-green-600 hover:bg-green-700 text-white h-9 text-sm" onClick={() => approveLoan(item)}>
+                            <Button size="sm" className="bg-green-600 hover:bg-green-700 text-white h-9 text-sm" onClick={() => openApproveDialog(item)}>
                               <CheckCircle className="h-4 w-4 mr-1" /> Approve
                             </Button>
                             <Button size="sm" variant="destructive" className="h-9 text-sm" onClick={() => openRejectDialog(item)}>
@@ -972,7 +1010,7 @@ export default function LoansPage() {
                             <Button size="sm" variant="outline" className="h-9 text-sm" onClick={() => viewLoanDetails(item)}>
                               <Eye className="h-4 w-4 mr-1" /> View Details
                             </Button>
-                            <Button size="sm" variant="destructive" className="h-9 text-sm" onClick={() => deleteLoan(item)}>
+                            <Button size="sm" variant="destructive" className="h-9 text-sm" onClick={() => openDeleteDialog(item)}>
                               <Trash2 className="h-4 w-4 mr-1" /> Delete
                             </Button>
                           </div>
@@ -983,7 +1021,7 @@ export default function LoansPage() {
                             <Button size="sm" variant="outline" className="h-9 text-sm" onClick={() => viewLoanDetails(item)}>
                               <Eye className="h-4 w-4 mr-1" /> View Details
                             </Button>
-                            <Button size="sm" variant="destructive" className="h-9 text-sm" onClick={() => deleteLoan(item)}>
+                            <Button size="sm" variant="destructive" className="h-9 text-sm" onClick={() => openDeleteDialog(item)}>
                               <Trash2 className="h-4 w-4 mr-1" /> Delete
                             </Button>
                           </div>
@@ -1047,12 +1085,12 @@ export default function LoansPage() {
                                 <DropdownMenuItem onClick={() => startEdit(item)}>
                                   <FileText className="h-4 w-4 mr-2" /> Edit
                                 </DropdownMenuItem>
-                                <DropdownMenuItem onClick={() => archiveLoan(item)}>
+                                <DropdownMenuItem onClick={() => openArchiveDialog(item)}>
                                   <Archive className="h-4 w-4 mr-2" /> Archive
                                 </DropdownMenuItem>
                               </>
                             )}
-                            <DropdownMenuItem onClick={() => deleteLoan(item)} className="text-red-600">
+                            <DropdownMenuItem onClick={() => openDeleteDialog(item)} className="text-red-600">
                               <Trash2 className="h-4 w-4 mr-2" /> Delete
                             </DropdownMenuItem>
                           </DropdownMenuContent>
@@ -1213,7 +1251,7 @@ export default function LoansPage() {
                     className="bg-green-600 hover:bg-green-700"
                     onClick={() => {
                       setDetailsOpen(false)
-                      approveLoan(selectedLoan)
+                      openApproveDialog(selectedLoan)
                     }}
                   >
                     <CheckCircle className="h-4 w-4 mr-2" />
@@ -1223,6 +1261,144 @@ export default function LoansPage() {
               )}
             </div>
           )}
+        </DialogContent>
+      </Dialog>
+
+      {/* Approve Confirmation Dialog */}
+      <Dialog open={approveConfirmOpen} onOpenChange={setApproveConfirmOpen}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <CheckCircle className="h-5 w-5 text-green-600" />
+              Approve Loan Request
+            </DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            {selectedLoanForApprove && (
+              <div className="space-y-2">
+                <p className="text-sm text-muted-foreground">
+                  Are you sure you want to approve this loan request?
+                </p>
+                <div className="bg-muted/50 rounded-lg p-3 space-y-1">
+                  <p className="text-sm"><span className="font-medium">Borrower:</span> {selectedLoanForApprove.userName || selectedLoanForApprove.userEmail}</p>
+                  <p className="text-sm"><span className="font-medium">Amount:</span> ₱{selectedLoanForApprove.amount.toLocaleString()}</p>
+                  <p className="text-sm"><span className="font-medium">Purpose:</span> {selectedLoanForApprove.purpose}</p>
+                </div>
+              </div>
+            )}
+            <div className="flex justify-end gap-2">
+              <Button variant="outline" onClick={() => setApproveConfirmOpen(false)}>
+                Cancel
+              </Button>
+              <Button className="bg-green-600 hover:bg-green-700" onClick={confirmApproveLoan}>
+                <CheckCircle className="h-4 w-4 mr-2" />
+                Approve Loan
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Archive Confirmation Dialog */}
+      <Dialog open={archiveConfirmOpen} onOpenChange={setArchiveConfirmOpen}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Archive className="h-5 w-5 text-blue-600" />
+              Archive Loan
+            </DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            {selectedLoanForArchive && (
+              <div className="space-y-2">
+                <p className="text-sm text-muted-foreground">
+                  Are you sure you want to archive this loan?
+                </p>
+                <div className="bg-muted/50 rounded-lg p-3 space-y-1">
+                  <p className="text-sm"><span className="font-medium">Borrower:</span> {selectedLoanForArchive.userName || selectedLoanForArchive.userEmail}</p>
+                  <p className="text-sm"><span className="font-medium">Amount:</span> ₱{selectedLoanForArchive.amount.toLocaleString()}</p>
+                  <p className="text-sm"><span className="font-medium">Balance:</span> ₱{selectedLoanForArchive.balance.toLocaleString()}</p>
+                </div>
+              </div>
+            )}
+            <div className="flex justify-end gap-2">
+              <Button variant="outline" onClick={() => setArchiveConfirmOpen(false)}>
+                Cancel
+              </Button>
+              <Button className="bg-blue-600 hover:bg-blue-700" onClick={confirmArchiveLoan}>
+                <Archive className="h-4 w-4 mr-2" />
+                Archive Loan
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Delete Confirmation Dialog */}
+      <Dialog open={deleteConfirmOpen} onOpenChange={setDeleteConfirmOpen}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2 text-red-600">
+              <Trash2 className="h-5 w-5" />
+              Delete Loan
+            </DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            {selectedLoanForDelete && (
+              <div className="space-y-2">
+                <p className="text-sm text-muted-foreground">
+                  Are you sure you want to delete this loan? This action cannot be undone.
+                </p>
+                <div className="bg-red-50 dark:bg-red-950/20 rounded-lg p-3 space-y-1 border border-red-200 dark:border-red-800">
+                  <p className="text-sm"><span className="font-medium">Borrower:</span> {selectedLoanForDelete.userName || selectedLoanForDelete.userEmail}</p>
+                  <p className="text-sm"><span className="font-medium">Amount:</span> ₱{selectedLoanForDelete.amount.toLocaleString()}</p>
+                  <p className="text-sm"><span className="font-medium">Status:</span> {selectedLoanForDelete.status}</p>
+                </div>
+              </div>
+            )}
+            <div className="flex justify-end gap-2">
+              <Button variant="outline" onClick={() => setDeleteConfirmOpen(false)}>
+                Cancel
+              </Button>
+              <Button variant="destructive" onClick={confirmDeleteLoan}>
+                <Trash2 className="h-4 w-4 mr-2" />
+                Delete Loan
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Bulk Delete Confirmation Dialog */}
+      <Dialog open={bulkDeleteConfirmOpen} onOpenChange={setBulkDeleteConfirmOpen}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2 text-red-600">
+              <Trash2 className="h-5 w-5" />
+              Delete Multiple Loans
+            </DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div className="space-y-2">
+              <p className="text-sm text-muted-foreground">
+                Are you sure you want to delete <span className="font-bold text-foreground">{selectedIds.length}</span> selected loan(s)? This action cannot be undone.
+              </p>
+              <div className="bg-red-50 dark:bg-red-950/20 rounded-lg p-3 border border-red-200 dark:border-red-800">
+                <p className="text-sm font-medium text-red-700 dark:text-red-400">
+                  ⚠️ Warning: This will permanently delete all selected loans.
+                </p>
+              </div>
+            </div>
+            <div className="flex justify-end gap-2">
+              <Button variant="outline" onClick={() => setBulkDeleteConfirmOpen(false)}>
+                Cancel
+              </Button>
+              <Button variant="destructive" onClick={confirmBulkDelete} disabled={isDeleting}>
+                <Trash2 className="h-4 w-4 mr-2" />
+                {isDeleting ? 'Deleting...' : `Delete ${selectedIds.length} Loan(s)`}
+              </Button>
+            </div>
+          </div>
         </DialogContent>
       </Dialog>
     </div >

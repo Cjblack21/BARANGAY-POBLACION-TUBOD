@@ -79,7 +79,7 @@ export function LoginForm({
             </p>
             <Button
               onClick={() => setShowForgotPasswordModal(false)}
-              className="w-full bg-gradient-to-r from-[#00A3B1] to-[#00818c] hover:opacity-90 text-white"
+              className="w-full bg-amber-500 hover:bg-amber-600 text-white shadow-lg"
             >
               Close
             </Button>
@@ -92,82 +92,82 @@ export function LoginForm({
         onSubmit={handleSubmit(onSubmit)}
         {...props}
       >
-      {/* Email or ID Number */}
-      <div className="space-y-2">
-        <Label htmlFor="email" className="text-base font-medium text-slate-700 dark:text-slate-300">
-          Email or ID Number
-        </Label>
-        <Input
-          id="email"
-          type="text"
-          placeholder="email@example.com or ID number"
-          {...register("email")}
-          disabled={isLoading}
-          className="h-12 bg-slate-100 dark:bg-white/10 border-slate-300 dark:border-white/20 text-slate-900 dark:text-white placeholder:text-slate-500 dark:placeholder:text-white/40 focus-visible:ring-[#00A3B1] focus-visible:border-[#00A3B1]"
-        />
-        {errors.email && (
-          <p className="text-sm text-destructive">{errors.email.message}</p>
-        )}
-      </div>
-
-      {/* Password */}
-      <div className="space-y-2">
-        <Label htmlFor="password" className="text-base font-medium text-slate-700 dark:text-slate-300">
-          Password
-        </Label>
-        <div className="relative">
+        {/* Email or ID Number */}
+        <div className="space-y-2">
+          <Label htmlFor="email" className="text-base font-medium text-slate-700 dark:text-slate-300">
+            Email or ID Number
+          </Label>
           <Input
-            id="password"
-            type={showPassword ? "text" : "password"}
-            placeholder="Enter your password"
-            {...register("password")}
+            id="email"
+            type="text"
+            placeholder="email@example.com or ID number"
+            {...register("email")}
             disabled={isLoading}
-            className="h-12 bg-slate-100 dark:bg-white/10 border-slate-300 dark:border-white/20 text-slate-900 dark:text-white placeholder:text-slate-500 dark:placeholder:text-white/40 focus-visible:ring-[#00A3B1] focus-visible:border-[#00A3B1] pr-10"
+            className="h-14 text-base bg-slate-100 dark:bg-white/10 border-slate-300 dark:border-white/20 text-slate-900 dark:text-white placeholder:text-slate-500 dark:placeholder:text-white/40 focus-visible:ring-amber-500 focus-visible:border-amber-500"
           />
+          {errors.email && (
+            <p className="text-sm text-destructive">{errors.email.message}</p>
+          )}
+        </div>
+
+        {/* Password */}
+        <div className="space-y-2">
+          <Label htmlFor="password" className="text-base font-medium text-slate-700 dark:text-slate-300">
+            Password
+          </Label>
+          <div className="relative">
+            <Input
+              id="password"
+              type={showPassword ? "text" : "password"}
+              placeholder="Enter your password"
+              {...register("password")}
+              disabled={isLoading}
+              className="h-14 text-base bg-slate-100 dark:bg-white/10 border-slate-300 dark:border-white/20 text-slate-900 dark:text-white placeholder:text-slate-500 dark:placeholder:text-white/40 focus-visible:ring-amber-500 focus-visible:border-amber-500 pr-10"
+            />
+            <button
+              type="button"
+              onClick={() => setShowPassword(!showPassword)}
+              className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-500 dark:text-slate-500 transition-colors hover:text-slate-700 dark:hover:text-slate-300"
+              disabled={isLoading}
+            >
+              {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+            </button>
+          </div>
+          {errors.password && (
+            <p className="text-sm text-destructive">{errors.password.message}</p>
+          )}
+        </div>
+
+        {/* Remember Me & Forgot Password */}
+        <div className="flex items-center justify-between text-sm">
+          <label className="flex items-center gap-2 text-slate-600 dark:text-slate-400 cursor-pointer">
+            <input type="checkbox" className="rounded border-white/30 bg-white/10 text-amber-500 focus:ring-amber-500" />
+            <span>Remember Me</span>
+          </label>
           <button
             type="button"
-            onClick={() => setShowPassword(!showPassword)}
-            className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-500 dark:text-slate-500 transition-colors hover:text-slate-700 dark:hover:text-slate-300"
-            disabled={isLoading}
+            onClick={() => setShowForgotPasswordModal(true)}
+            className="text-amber-600 hover:text-amber-700 dark:text-amber-400 dark:hover:text-amber-300 transition-colors font-medium"
           >
-            {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+            Forgot password?
           </button>
         </div>
-        {errors.password && (
-          <p className="text-sm text-destructive">{errors.password.message}</p>
-        )}
-      </div>
 
-      {/* Remember Me & Forgot Password */}
-      <div className="flex items-center justify-between text-sm">
-        <label className="flex items-center gap-2 text-slate-600 dark:text-slate-400 cursor-pointer">
-          <input type="checkbox" className="rounded border-white/30 bg-white/10 text-[#00A3B1] focus:ring-[#00A3B1]" />
-          <span>Remember Me</span>
-        </label>
-        <button
-          type="button"
-          onClick={() => setShowForgotPasswordModal(true)}
-          className="text-[#00A1AE] hover:text-[#00818c] dark:text-white dark:hover:text-[#00A3B1] transition-colors"
+        {/* Sign In Button */}
+        <Button
+          type="submit"
+          className="w-full h-14 bg-amber-500 hover:bg-amber-600 text-white text-lg font-bold transition-all rounded-lg shadow-lg hover:shadow-xl"
+          disabled={isLoading}
         >
-          Forgot password?
-        </button>
-      </div>
-
-      {/* Sign In Button */}
-      <Button
-        type="submit"
-        className="w-full h-12 bg-gradient-to-r from-[#00A3B1] to-[#00818c] hover:opacity-90 text-white text-base font-semibold transition-all rounded-lg shadow-lg"
-        disabled={isLoading}
-      >
-        {isLoading ? (
-          <>
-            <Loader2 className="mr-2 h-5 w-5 animate-spin" />
-            Signing in...
-          </>
-        ) : (
-          "Sign in"
-        )}
-      </Button>
+          {isLoading ? (
+            <>
+              <Loader2 className="mr-2 h-5 w-5 animate-spin" />
+              Signing in...
+            </>
+          ) : (
+            "Sign in"
+          )}
+        </Button>
       </form>
     </>
   )

@@ -68,18 +68,18 @@ export default function Home() {
       {/* Left Side - Login Form */}
       <div className="flex-1 bg-slate-50 dark:bg-[#0a1628] flex items-center justify-center px-4 py-12 transition-colors duration-500">
         <div className="w-full max-w-lg">
-          <div className="flex flex-col items-center space-y-6">
+          <div className="flex flex-col items-center">
             {/* Logo */}
-            <div className="flex justify-center">
-              <img src="/brgy-logo.png" alt="Barangay Logo" className="w-52 h-52 object-contain transform translate-y-12" />
+            <div className="flex justify-center mt-8">
+              <img src="/BRGY PICTURE LOG TUBOD.png" alt="Barangay Logo" className="w-72 h-72 object-contain" />
             </div>
 
             {/* Title */}
-            <div className="text-center space-y-2">
-              <h1 className="text-3xl font-bold text-slate-900 dark:text-white">
-                TUBOD BARANGAY POBLACION PMS
+            <div className="text-center -mt-4">
+              <h1 className="text-3xl font-bold text-slate-900 dark:text-white mb-1">
+                POBLACION PMS
               </h1>
-              <p className="text-sm text-slate-600 dark:text-slate-400">
+              <p className="text-sm text-slate-600 dark:text-slate-400 mb-4">
                 Sign in to continue to your account
               </p>
             </div>
@@ -98,41 +98,41 @@ export default function Home() {
       </div>
 
       {/* Right Side - Illustration */}
-      <div className="hidden lg:flex flex-1 bg-gradient-to-br from-[#00A3B1] via-[#41BD87] to-[#82D65A] items-center justify-center p-12 relative overflow-hidden">
-        {/* Background Pattern */}
-        <div className="absolute inset-0 opacity-10">
-          <svg className="w-full h-full" xmlns="http://www.w3.org/2000/svg">
-            <defs>
-              <pattern id="grid" width="40" height="40" patternUnits="userSpaceOnUse">
-                <circle cx="20" cy="20" r="1.5" fill="white" opacity="0.3" />
-              </pattern>
-            </defs>
-            <rect width="100%" height="100%" fill="url(#grid)" />
-          </svg>
+      <div className="hidden lg:flex flex-1 bg-amber-500 items-center justify-center p-12 relative overflow-hidden">
+        {/* Decorative Circles */}
+        <div className="absolute inset-0 overflow-hidden">
+          <div className="absolute top-20 right-20 w-96 h-96 bg-white/10 rounded-full blur-3xl"></div>
+          <div className="absolute bottom-20 left-20 w-80 h-80 bg-white/10 rounded-full blur-3xl"></div>
+          <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[600px] bg-white/5 rounded-full blur-3xl"></div>
         </div>
 
         {/* Content */}
-        <div className="relative z-10 w-full max-w-2xl text-center space-y-12">
+        <div className="relative z-10 w-full max-w-2xl text-center space-y-8">
           {/* Animated Gears */}
-          <div className="relative h-64 flex items-center justify-center">
+          <div className="relative h-64 flex items-center justify-center mb-12">
             {/* Large Gear - Center */}
-            <Settings className="absolute w-48 h-48 text-white animate-spin-slow" style={{ animationDuration: '10s' }} />
+            <Settings className="absolute w-48 h-48 text-white animate-spin-slow drop-shadow-2xl" style={{ animationDuration: '10s' }} />
 
             {/* Medium Gear - Top Right */}
-            <Settings className="absolute w-32 h-32 text-white/90 top-4 right-20 animate-spin-slow" style={{ animationDuration: '7s', animationDirection: 'reverse' }} />
+            <Settings className="absolute w-32 h-32 text-white/90 top-4 right-20 animate-spin-slow drop-shadow-xl" style={{ animationDuration: '7s', animationDirection: 'reverse' }} />
 
             {/* Small Gear - Bottom Left */}
-            <Settings className="absolute w-24 h-24 text-white/85 bottom-8 left-16 animate-spin-slow" style={{ animationDuration: '6s' }} />
+            <Settings className="absolute w-24 h-24 text-white/85 bottom-8 left-16 animate-spin-slow drop-shadow-xl" style={{ animationDuration: '6s' }} />
           </div>
 
           {/* Text Content */}
           <div className="space-y-6">
-            <h2 className="text-5xl font-bold text-white leading-tight">
-              TUBOD BARANGAY POBLACION PMS
+            <h2 className="text-6xl font-bold text-white leading-tight drop-shadow-lg">
+              BARANGAY POBLACION
             </h2>
-            <p className="text-xl text-white/90 max-w-lg mx-auto">
-              Streamline your payroll process with our comprehensive management system
+            <p className="text-3xl font-semibold text-white/95 drop-shadow-md">
+              Tubod, Lanao del Norte
             </p>
+            <div className="pt-4 border-t-2 border-white/30 mt-8">
+              <p className="text-2xl text-white/90 font-medium drop-shadow-md">
+                Payroll Management System
+              </p>
+            </div>
           </div>
         </div>
       </div>

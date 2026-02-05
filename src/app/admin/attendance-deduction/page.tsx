@@ -182,7 +182,7 @@ export default function AttendanceDeductionPage() {
     try {
       setLoadingDetails(true)
       setShowDetailsModal(true)
-      
+
       const response = await fetch(`/api/admin/attendance-deductions/details?userId=${userId}`)
       if (response.ok) {
         const data = await response.json()
@@ -305,43 +305,40 @@ export default function AttendanceDeductionPage() {
         <CardContent>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
             {/* Total Personnel with Deductions */}
-            <div className="bg-gradient-to-br from-blue-50 to-blue-100 dark:from-blue-950/30 dark:to-blue-900/20 p-4 rounded-lg border border-blue-200 dark:border-blue-800">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm font-medium text-blue-600 dark:text-blue-400">Staff with Deductions</p>
-                  <p className="text-2xl font-bold text-blue-900 dark:text-blue-100 mt-1">
-                    {new Set(deductions.map(d => d.users_id)).size}
-                  </p>
-                </div>
-                <Users className="h-8 w-8 text-blue-600 dark:text-blue-400 opacity-50" />
-              </div>
-            </div>
+            <Card className="cursor-default hover:shadow-lg transition-all duration-300 border-l-4 border-l-blue-500">
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                <CardTitle className="text-sm font-medium">Staff with Deductions</CardTitle>
+                <Users className="h-4 w-4 text-blue-600" />
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold">{new Set(deductions.map(d => d.users_id)).size}</div>
+                <p className="text-xs text-muted-foreground mt-1">Active staff members</p>
+              </CardContent>
+            </Card>
 
             {/* Total Deductions */}
-            <div className="bg-gradient-to-br from-orange-50 to-orange-100 dark:from-orange-950/30 dark:to-orange-900/20 p-4 rounded-lg border border-orange-200 dark:border-orange-800">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm font-medium text-orange-600 dark:text-orange-400">Total Deductions</p>
-                  <p className="text-2xl font-bold text-orange-900 dark:text-orange-100 mt-1">
-                    {deductions.length}
-                  </p>
-                </div>
-                <ClipboardMinus className="h-8 w-8 text-orange-600 dark:text-orange-400 opacity-50" />
-              </div>
-            </div>
+            <Card className="cursor-default hover:shadow-lg transition-all duration-300 border-l-4 border-l-orange-500">
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                <CardTitle className="text-sm font-medium">Total Deductions</CardTitle>
+                <ClipboardMinus className="h-4 w-4 text-orange-600" />
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold">{deductions.length}</div>
+                <p className="text-xs text-muted-foreground mt-1">Current period</p>
+              </CardContent>
+            </Card>
 
             {/* Total Amount */}
-            <div className="bg-gradient-to-br from-red-50 to-red-100 dark:from-red-950/30 dark:to-red-900/20 p-4 rounded-lg border border-red-200 dark:border-red-800">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm font-medium text-red-600 dark:text-red-400">Total Amount</p>
-                  <p className="text-2xl font-bold text-red-900 dark:text-red-100 mt-1">
-                    ₱{deductions.reduce((sum, d) => sum + d.amount, 0).toLocaleString('en-US', { minimumFractionDigits: 2 })}
-                  </p>
-                </div>
-                <AlertCircle className="h-8 w-8 text-red-600 dark:text-red-400 opacity-50" />
-              </div>
-            </div>
+            <Card className="cursor-default hover:shadow-lg transition-all duration-300 border-l-4 border-l-red-500">
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                <CardTitle className="text-sm font-medium">Total Amount</CardTitle>
+                <AlertCircle className="h-4 w-4 text-red-600" />
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold">₱{deductions.reduce((sum, d) => sum + d.amount, 0).toLocaleString('en-US', { minimumFractionDigits: 2 })}</div>
+                <p className="text-xs text-muted-foreground mt-1">Total deductions</p>
+              </CardContent>
+            </Card>
           </div>
 
           {/* Current Attendance Deductions */}
@@ -706,9 +703,11 @@ export default function AttendanceDeductionPage() {
             {/* Deduction Input Section */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
               {/* Late Time Card */}
-              <div className="border rounded-lg p-5 bg-muted/20">
+              <div className="border rounded-lg p-5 bg-card hover:shadow-md transition-shadow">
                 <div className="flex items-center gap-2 mb-4">
-                  <AlertCircle className="h-5 w-5 text-orange-600" />
+                  <div className="p-2 bg-orange-100 dark:bg-orange-900/20 rounded-lg">
+                    <AlertCircle className="h-5 w-5 text-orange-600" />
+                  </div>
                   <h3 className="font-semibold text-base">Late Time</h3>
                 </div>
                 <div className="grid grid-cols-2 gap-3 mb-4">
@@ -722,7 +721,7 @@ export default function AttendanceDeductionPage() {
                       min="0"
                       max="23"
                       placeholder="0"
-                      className="mt-1 h-12 text-base border-2 border-gray-300 dark:border-gray-600"
+                      className="mt-1 h-12 text-base"
                     />
                   </div>
                   <div>
@@ -735,11 +734,11 @@ export default function AttendanceDeductionPage() {
                       min="0"
                       max="59"
                       placeholder="0"
-                      className="mt-1 h-12 text-base border-2 border-gray-300 dark:border-gray-600"
+                      className="mt-1 h-12 text-base"
                     />
                   </div>
                 </div>
-                <div className="bg-background rounded border p-3">
+                <div className="bg-muted/50 rounded-lg border p-3">
                   <div className="flex justify-between items-center text-sm">
                     <span className="text-muted-foreground">Total</span>
                     <span className="font-semibold">{(Number(lateHours) * 60) + Number(lateMinutes)} min</span>
@@ -754,9 +753,11 @@ export default function AttendanceDeductionPage() {
               </div>
 
               {/* Absent Days Card */}
-              <div className="border rounded-lg p-5 bg-muted/20">
+              <div className="border rounded-lg p-5 bg-card hover:shadow-md transition-shadow">
                 <div className="flex items-center gap-2 mb-4">
-                  <AlertCircle className="h-5 w-5 text-red-600" />
+                  <div className="p-2 bg-red-100 dark:bg-red-900/20 rounded-lg">
+                    <AlertCircle className="h-5 w-5 text-red-600" />
+                  </div>
                   <h3 className="font-semibold text-base">Absent Days</h3>
                 </div>
                 <div className="mb-4">
@@ -769,10 +770,10 @@ export default function AttendanceDeductionPage() {
                     min="0"
                     step="1"
                     placeholder="0"
-                    className="mt-1 h-12 text-base border-2 border-gray-300 dark:border-gray-600"
+                    className="mt-1 h-12 text-base"
                   />
                 </div>
-                <div className="bg-background rounded border p-3">
+                <div className="bg-muted/50 rounded-lg border p-3">
                   <div className="flex justify-between items-center text-sm">
                     <span className="text-muted-foreground">Total</span>
                     <span className="font-semibold">{Number(absentDays) * 480} min</span>
@@ -806,11 +807,11 @@ export default function AttendanceDeductionPage() {
                 <h3 className="font-semibold text-base">Deduction Summary</h3>
               </div>
               <div className="grid grid-cols-2 gap-4 mb-4">
-                <div className="bg-background rounded border p-4">
+                <div className="bg-background rounded border p-3">
                   <p className="text-xs text-muted-foreground">Late Time</p>
                   <p className="font-semibold text-base mt-1">{(Number(lateHours) * 60) + Number(lateMinutes)} minutes</p>
                 </div>
-                <div className="bg-background rounded border p-3 text-sm">
+                <div className="bg-background rounded border p-3">
                   <p className="text-xs text-muted-foreground">Absent Days</p>
                   <p className="font-semibold text-base mt-1">{Number(absentDays) * 480} minutes</p>
                 </div>
