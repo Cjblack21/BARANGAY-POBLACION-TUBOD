@@ -56,11 +56,11 @@ export function PersonnelSidebar({ user, ...props }: PersonnelSidebarProps) {
         <SidebarMenu>
           <SidebarMenuItem>
             <div className="flex items-center gap-2 px-2 pt-7 pb-2 group-data-[collapsible=icon]:justify-center">
-              <div className="flex aspect-square size-12 items-center justify-center rounded-lg">
+              <div className="flex aspect-square size-16 items-center justify-center rounded-lg">
                 <img
                   src="/BRGY PICTURE LOG TUBOD.png"
                   alt="Barangay Logo"
-                  className="h-12 w-12 object-contain"
+                  className="h-16 w-16 object-contain"
                 />
               </div>
               <div className="group-data-[collapsible=icon]:hidden flex flex-col gap-0.5 leading-none">
