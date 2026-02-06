@@ -92,7 +92,7 @@ export function AppSidebar({ user, ...props }: AppSidebarProps) {
             <div className="flex items-center gap-2 px-2 pt-7 pb-2 group-data-[collapsible=icon]:justify-center">
               <div className="flex aspect-square size-20 items-center justify-center rounded-lg">
                 <img
-                  src="/brgy-logo-square.png"
+                  src="/BRGY PICTURE LOG TUBOD.png"
                   alt="Barangay Logo"
                   className="h-20 w-20 object-contain"
                 />
