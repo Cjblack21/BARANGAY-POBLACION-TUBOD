@@ -161,6 +161,7 @@ export default function PayrollPage() {
   const [attendanceDeductions, setAttendanceDeductions] = useState<any[]>([])
   const [liveLoans, setLiveLoans] = useState<any[]>([])
   const [liveOverloadPays, setLiveOverloadPays] = useState<any[]>([])
+  const [liveDataLoaded, setLiveDataLoaded] = useState(false)
 
   // Generate payroll confirmation modal state
   const [showGenerateConfirmModal, setShowGenerateConfirmModal] = useState(false)
@@ -240,24 +241,16 @@ html, body { margin: 0 !important; padding: 0 !important; overflow: hidden !impo
   // Calculate user deductions and net pay
   const calculateUserPayroll = (userId: string, basicSalary: number, overloadPay: number) => {
     // Safety checks to ensure arrays exist
-    const safeAttendanceDeductions = Array.isArray(attendanceDeductions) ? attendanceDeductions : []
     const safeLiveDeductions = Array.isArray(liveDeductions) ? liveDeductions : []
     const safeLiveLoans = Array.isArray(liveLoans) ? liveLoans : []
 
-    const userAttendanceDeductions = safeAttendanceDeductions.filter((ad: any) => ad.users_id === userId && !ad.archivedAt)
-    const attendanceDeductionAmount = userAttendanceDeductions.reduce((sum, ad) => sum + Number(ad.amount || 0), 0)
+    // ⚠️ ATTENDANCE DEDUCTION AUTO-CALCULATION DISABLED
+    // Attendance deductions are NO LONGER automatically calculated from live attendance data
+    // They must be manually added through the deductions system
+    const attendanceDeductionAmount = 0
 
-    // Exclude attendance-related deductions from liveDeductions to avoid double-counting
-    // Attendance deductions are already counted in attendanceDeductionAmount above
-    const userDeductions = safeLiveDeductions.filter((d: any) => {
-      if (d.users_id !== userId || d.archivedAt) return false
-      const deductionName = d.deduction_types?.name?.toLowerCase() || ''
-      const isAttendanceDeduction = deductionName.includes('attendance') ||
-        deductionName.includes('late') ||
-        deductionName.includes('absent') ||
-        deductionName.includes('early')
-      return !isAttendanceDeduction
-    })
+    // Get all other deductions (including manually added attendance deductions if any)
+    const userDeductions = safeLiveDeductions.filter((d: any) => d.users_id === userId && !d.archivedAt)
     const otherDeductionsAmount = userDeductions.reduce((sum, d) => sum + Number(d.amount || 0), 0)
 
     const userLoans = safeLiveLoans.filter((l: any) => l.users_id === userId && l.status === 'ACTIVE')
@@ -267,7 +260,7 @@ html, body { margin: 0 !important; padding: 0 !important; overflow: hidden !impo
     }, 0)
 
     console.log(`🔍 calculateUserPayroll for ${userId}:`)
-    console.log(`  📊 Attendance Deductions (${userAttendanceDeductions.length}):`, userAttendanceDeductions.map((ad: any) => `${ad.type || 'Unknown'}: ₱${ad.amount}`))
+    console.log(`  📊 Attendance Auto-Calc: DISABLED (always ₱0)`)
     console.log(`  📊 Live Deductions (${userDeductions.length}):`, userDeductions.map((d: any) => `${d.deduction_types?.name || 'Unknown'}: ₱${d.amount}`))
     console.log(`  📊 Live Loans (${userLoans.length}):`, userLoans.map((l: any) => `₱${l.amount} @ ${l.monthlyPaymentPercent}%`))
 
@@ -316,18 +309,16 @@ html, body { margin: 0 !important; padding: 0 !important; overflow: hidden !impo
   // Consolidated function to load all live data
   const loadLiveData = async () => {
     try {
-      const [attendanceRes, loansRes, deductionsRes, overloadRes] = await Promise.all([
-        fetch('/api/admin/attendance-deductions'),
+      // Attendance deductions API call removed - auto-calculation is disabled
+      const [loansRes, deductionsRes, overloadRes] = await Promise.all([
         fetch('/api/admin/loans'),
         fetch('/api/admin/deductions'),
         fetch('/api/admin/overload-pay')
       ])
 
-      if (attendanceRes.ok) {
-        const data = await attendanceRes.json()
-        // Handle both array and object responses
-        setAttendanceDeductions(Array.isArray(data) ? data : (data.deductions || data.data || []))
-      }
+      // Attendance deductions no longer loaded - auto-calc disabled
+      setAttendanceDeductions([])
+      
       if (loansRes.ok) {
         const data = await loansRes.json()
         setLiveLoans(Array.isArray(data) ? data : (data.items || data.loans || data.data || []))
@@ -340,6 +331,7 @@ html, body { margin: 0 !important; padding: 0 !important; overflow: hidden !impo
         const data = await overloadRes.json()
         setLiveOverloadPays(Array.isArray(data) ? data : (data.overloadPays || data.data || []))
       }
+      setLiveDataLoaded(true)
     } catch (error) {
       console.error('Error loading live data:', error)
       // Set empty arrays on error to prevent filter errors
@@ -347,6 +339,7 @@ html, body { margin: 0 !important; padding: 0 !important; overflow: hidden !impo
       setLiveLoans([])
       setLiveDeductions([])
       setLiveOverloadPays([])
+      setLiveDataLoaded(true) // Still set as loaded even on error
     }
   }
 
@@ -2026,49 +2019,81 @@ html, body { margin: 0 !important; padding: 0 !important; overflow: hidden !impo
                   <CardTitle className="text-xl font-bold">Payroll Summary</CardTitle>
 
                   {/* Total Payroll Summary */}
-                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mt-4">
-                    <Card className="border-l-4 border-l-blue-500">
-                      <CardContent className="p-4">
-                        <div className="text-sm font-medium text-muted-foreground mb-1">Total Gross Pay</div>
-                        <div className="text-2xl font-bold text-foreground">
-                          ₱{filteredEntries.reduce((sum, entry) => {
-                            const basicSalary = Number(entry.breakdown?.basicSalary || 0)
-                            const overloadPay = Number(entry.breakdown?.overloadPay || 0)
-                            return sum + basicSalary + overloadPay
-                          }, 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-                        </div>
-                      </CardContent>
-                    </Card>
+                  {!liveDataLoaded ? (
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mt-4">
+                      <Card className="border-l-4 border-l-blue-500">
+                        <CardContent className="p-4">
+                          <div className="text-sm font-medium text-muted-foreground mb-1">Total Gross Pay</div>
+                          <div className="flex items-center gap-2">
+                            <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-primary"></div>
+                            <span className="text-sm text-muted-foreground">Loading...</span>
+                          </div>
+                        </CardContent>
+                      </Card>
+                      <Card className="border-l-4 border-l-red-500">
+                        <CardContent className="p-4">
+                          <div className="text-sm font-medium text-muted-foreground mb-1">Total Deductions</div>
+                          <div className="flex items-center gap-2">
+                            <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-primary"></div>
+                            <span className="text-sm text-muted-foreground">Loading...</span>
+                          </div>
+                        </CardContent>
+                      </Card>
+                      <Card className="border-l-4 border-l-green-500">
+                        <CardContent className="p-4">
+                          <div className="text-sm font-medium text-muted-foreground mb-1">Total Net Pay</div>
+                          <div className="flex items-center gap-2">
+                            <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-primary"></div>
+                            <span className="text-sm text-muted-foreground">Loading...</span>
+                          </div>
+                        </CardContent>
+                      </Card>
+                    </div>
+                  ) : (
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mt-4">
+                      <Card className="border-l-4 border-l-blue-500">
+                        <CardContent className="p-4">
+                          <div className="text-sm font-medium text-muted-foreground mb-1">Total Gross Pay</div>
+                          <div className="text-2xl font-bold text-foreground">
+                            ₱{filteredEntries.reduce((sum, entry) => {
+                              const basicSalary = Number(entry.breakdown?.basicSalary || 0)
+                              const overloadPay = Number(entry.breakdown?.overloadPay || 0)
+                              return sum + basicSalary + overloadPay
+                            }, 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                          </div>
+                        </CardContent>
+                      </Card>
 
-                    <Card className="border-l-4 border-l-red-500">
-                      <CardContent className="p-4">
-                        <div className="text-sm font-medium text-muted-foreground mb-1">Total Deductions</div>
-                        <div className="text-2xl font-bold text-foreground">
-                          ₱{filteredEntries.reduce((sum, entry) => {
-                            const basicSalary = Number(entry.breakdown?.basicSalary || 0)
-                            const overloadPay = Number(entry.breakdown?.overloadPay || 0)
-                            const { totalDeductions, attendanceDeductionAmount, otherDeductionsAmount, loanPayments } = calculateUserPayroll(entry.users_id, basicSalary, overloadPay)
-                            console.log(`🎯 SUMMARY CARD - ${entry.name}: Attendance=₱${attendanceDeductionAmount}, Other=₱${otherDeductionsAmount}, Loans=₱${loanPayments}, Total=₱${totalDeductions}`)
-                            return sum + totalDeductions
-                          }, 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-                        </div>
-                      </CardContent>
-                    </Card>
+                      <Card className="border-l-4 border-l-red-500">
+                        <CardContent className="p-4">
+                          <div className="text-sm font-medium text-muted-foreground mb-1">Total Deductions</div>
+                          <div className="text-2xl font-bold text-foreground">
+                            ₱{filteredEntries.reduce((sum, entry) => {
+                              const basicSalary = Number(entry.breakdown?.basicSalary || 0)
+                              const overloadPay = Number(entry.breakdown?.overloadPay || 0)
+                              const { totalDeductions, attendanceDeductionAmount, otherDeductionsAmount, loanPayments } = calculateUserPayroll(entry.users_id, basicSalary, overloadPay)
+                              console.log(`🎯 SUMMARY CARD - ${entry.name}: Attendance=₱${attendanceDeductionAmount}, Other=₱${otherDeductionsAmount}, Loans=₱${loanPayments}, Total=₱${totalDeductions}`)
+                              return sum + totalDeductions
+                            }, 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                          </div>
+                        </CardContent>
+                      </Card>
 
-                    <Card className="border-l-4 border-l-green-500">
-                      <CardContent className="p-4">
-                        <div className="text-sm font-medium text-muted-foreground mb-1">Total Net Pay</div>
-                        <div className="text-2xl font-bold text-foreground">
-                          ₱{filteredEntries.reduce((sum, entry) => {
-                            const basicSalary = Number(entry.breakdown?.basicSalary || 0)
-                            const overloadPay = Number(entry.breakdown?.overloadPay || 0)
-                            const { netPay } = calculateUserPayroll(entry.users_id, basicSalary, overloadPay)
-                            return sum + netPay
-                          }, 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-                        </div>
-                      </CardContent>
-                    </Card>
-                  </div>
+                      <Card className="border-l-4 border-l-green-500">
+                        <CardContent className="p-4">
+                          <div className="text-sm font-medium text-muted-foreground mb-1">Total Net Pay</div>
+                          <div className="text-2xl font-bold text-foreground">
+                            ₱{filteredEntries.reduce((sum, entry) => {
+                              const basicSalary = Number(entry.breakdown?.basicSalary || 0)
+                              const overloadPay = Number(entry.breakdown?.overloadPay || 0)
+                              const { netPay } = calculateUserPayroll(entry.users_id, basicSalary, overloadPay)
+                              return sum + netPay
+                            }, 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                          </div>
+                        </CardContent>
+                      </Card>
+                    </div>
+                  )}
                 </CardHeader>
                 <CardContent className="p-0">
                   <div className="overflow-x-auto">

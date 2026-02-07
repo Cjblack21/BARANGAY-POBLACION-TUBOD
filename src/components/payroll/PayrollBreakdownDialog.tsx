@@ -100,7 +100,7 @@ export default function PayrollBreakdownDialog({
   const [liveAttendance, setLiveAttendance] = React.useState<any[]>([])
   const [todayAttendanceStatus, setTodayAttendanceStatus] = React.useState<string | null>(null)
   const printRef = React.useRef<HTMLDivElement | null>(null)
-  
+
   // Edit mode state
   const [isEditMode, setIsEditMode] = React.useState(false)
   const [editForm, setEditForm] = React.useState({
@@ -165,7 +165,7 @@ export default function PayrollBreakdownDialog({
 
       toast.success('Changes saved successfully!', { id: 'save-edit' })
       setIsEditMode(false)
-      
+
       // Reload the page data
       window.location.reload()
 
@@ -959,7 +959,7 @@ export default function PayrollBreakdownDialog({
                       className="text-sm"
                     />
                   </div>
-                  
+
                   {/* Detailed Deductions Breakdown */}
                   <div className="space-y-2 pt-2 border-t">
                     <Label className="text-xs font-medium">Deductions Breakdown</Label>
@@ -971,7 +971,7 @@ export default function PayrollBreakdownDialog({
                           <span className="text-xs font-medium text-red-700 dark:text-red-400">{formatCurrency(attendanceDeductionsAmount)}</span>
                         </div>
                       )}
-                      
+
                       {/* Mandatory Deductions (SSS, PhilHealth, etc.) */}
                       {mandatoryDeductions.map((deduction: any, idx: number) => (
                         <div key={`mandatory-${idx}`} className="flex items-center justify-between p-2 bg-blue-50 dark:bg-blue-950/20 rounded border border-blue-200 dark:border-blue-800">
@@ -979,7 +979,7 @@ export default function PayrollBreakdownDialog({
                           <span className="text-xs font-medium text-blue-700 dark:text-blue-400">{formatCurrency(deduction.amount)}</span>
                         </div>
                       ))}
-                      
+
                       {/* Loan Payments */}
                       {actualLoans.map((loan: any, idx: number) => (
                         <div key={`loan-${idx}`} className="flex items-center justify-between p-2 bg-yellow-50 dark:bg-yellow-950/20 rounded border border-yellow-200 dark:border-yellow-800">
@@ -987,7 +987,7 @@ export default function PayrollBreakdownDialog({
                           <span className="text-xs font-medium text-yellow-700 dark:text-yellow-400">{formatCurrency(loan.amount)}</span>
                         </div>
                       ))}
-                      
+
                       {/* Other Deductions */}
                       {otherDeductionsOnly.map((deduction: any, idx: number) => (
                         <div key={`other-${idx}`} className="flex items-center justify-between p-2 bg-gray-50 dark:bg-gray-900/20 rounded border border-gray-200 dark:border-gray-700">
@@ -996,7 +996,7 @@ export default function PayrollBreakdownDialog({
                         </div>
                       ))}
                     </div>
-                    
+
                     {/* Total Deductions Override */}
                     <div className="pt-2 border-t">
                       <Label htmlFor="edit-deductions" className="text-xs font-medium text-orange-600 dark:text-orange-400">
@@ -1015,7 +1015,7 @@ export default function PayrollBreakdownDialog({
                       </p>
                     </div>
                   </div>
-                  
+
                   <div className="pt-2 border-t">
                     <div className="flex justify-between items-center">
                       <span className="text-xs font-medium">Calculated Net Pay</span>
@@ -1071,13 +1071,13 @@ export default function PayrollBreakdownDialog({
                   <div className="pt-2">
                     <span className="text-xs font-semibold text-red-700 dark:text-red-400 uppercase tracking-wide">Deductions:</span>
                   </div>
-                  {/* Attendance Deductions */}
-                  {(attendanceDeductionsAmount + todayAbsenceDeduction) > 0 && (
+                  {/* Attendance Deductions - HIDDEN BY USER REQUEST */}
+                  {/* {(attendanceDeductionsAmount + todayAbsenceDeduction) > 0 && (
                     <div className="flex justify-between items-center py-2 border-b pl-3">
-                      <span className="text-xs font-medium text-red-600">• Attendance</span>
+                      <span className="text-xs font-medium text-red-600">• Attendance Deduction</span>
                       <span className="text-sm font-bold text-red-600">-{formatCurrency(attendanceDeductionsAmount + todayAbsenceDeduction)}</span>
                     </div>
-                  )}
+                  )} */}
                   {/* Mandatory Deductions (SSS, PhilHealth, Pag-IBIG, BIR) */}
                   {mandatoryDeductions.map((deduction, idx) => (
                     <div key={idx} className="flex justify-between items-center py-2 border-b pl-3">
