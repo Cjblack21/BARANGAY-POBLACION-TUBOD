@@ -14,7 +14,7 @@ async function checkAllUsersNov03() {
   console.log(`\n📅 Checking attendance for Nov 03, 2025\n`)
   
   for (const user of users) {
-    const attendance = await prisma.attendance.findFirst({
+    const attendance = await prisma.attendances.findFirst({
       where: {
         users_id: user.users_id,
         date: { gte: targetDate, lte: endDate }

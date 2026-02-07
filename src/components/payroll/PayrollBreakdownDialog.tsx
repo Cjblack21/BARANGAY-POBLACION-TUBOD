@@ -713,39 +713,11 @@ export default function PayrollBreakdownDialog({
   console.log('🎯 Total Loan Payments:', totalLoanPayments)
   console.log('🎯 Total Deduction Payments:', totalDeductionPayments)
 
-  // Recalculate attendance deductions from live data FIRST
-  const perSecondRate = 0.031566
-  let recalculatedAttendanceDeductions = 0
-  attendanceDetails.forEach(detail => {
-    if (detail.timeIn) {
-      // Has time-in, calculate late and early deductions
-      const timeIn = new Date(detail.timeIn)
-      const recordDate = new Date(detail.date)
-      const [hours, minutes] = (attendanceSettings?.timeInEnd || '08:02').split(':').map(Number)
-      const expectedTimeIn = new Date(recordDate)
-      expectedTimeIn.setHours(hours, minutes + 1, 0, 0)
-
-      const lateSeconds = Math.max(0, (timeIn.getTime() - expectedTimeIn.getTime()) / 1000)
-      const lateDeduction = (lateSeconds) * perSecondRate
-
-      let earlyDeduction = 0
-      if (detail.timeOut && attendanceSettings?.timeOutStart) {
-        const timeOut = new Date(detail.timeOut)
-        const [outHours, outMinutes] = attendanceSettings.timeOutStart.split(':').map(Number)
-        const expectedTimeOut = new Date(recordDate)
-        expectedTimeOut.setHours(outHours, outMinutes, 0, 0)
-        const earlySeconds = Math.max(0, (expectedTimeOut.getTime() - timeOut.getTime()) / 1000)
-        earlyDeduction = (earlySeconds) * perSecondRate
-      }
-
-      recalculatedAttendanceDeductions += lateDeduction + earlyDeduction
-    } else if (detail.status === 'ABSENT') {
-      // No time-in, use full deduction
-      recalculatedAttendanceDeductions += detail.deduction || 0
-    }
-  })
-
-  const attendanceDeductionsAmount = recalculatedAttendanceDeductions > 0 ? recalculatedAttendanceDeductions : Number(entry.breakdown?.attendanceDeductions || 0)
+  // ⚠️ ATTENDANCE DEDUCTION AUTO-CALCULATION DISABLED
+  // Live attendance calculation has been completely removed
+  // Attendance deductions must be manually added through the deductions system
+  const recalculatedAttendanceDeductions = 0
+  const attendanceDeductionsAmount = 0
 
   // Calculate total deductions from all deduction sources (with null checks)
   // Use recalculated attendance deductions instead of cached value

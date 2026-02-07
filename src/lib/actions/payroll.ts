@@ -1256,18 +1256,15 @@ export async function releasePayrollWithAudit(
           }
         }
 
-        // Separate attendance and non-attendance deductions
-        const attendanceRelatedTypes = ['Late Arrival', 'Early Time-Out', 'Absence Deduction', 'Partial Attendance', 'Absent', 'Late', 'Tardiness', 'Attendance']
-        const attendanceDeductions = allCurrentDeductions.filter(d => 
-          attendanceRelatedTypes.some(type => d.deduction_types.name.includes(type))
-        )
-        const personalDeductions = allCurrentDeductions.filter(d => 
-          !attendanceRelatedTypes.some(type => d.deduction_types.name.includes(type))
-        )
+        // ⚠️ ATTENDANCE DEDUCTION AUTO-CALCULATION DISABLED
+        // All deductions are treated as personal/manual deductions
+        // No automatic attendance-based deductions are included
+        const attendanceDeductions: any[] = []
+        const personalDeductions = allCurrentDeductions
 
-        const totalAttendanceDeductions = attendanceDeductions.reduce((sum, d) => sum + Number(d.amount), 0)
+        const totalAttendanceDeductions = 0
         const totalPersonalDeductions = personalDeductions.reduce((sum, d) => sum + Number(d.amount), 0)
-        const totalAllDeductions = totalAttendanceDeductions + totalPersonalDeductions
+        const totalAllDeductions = totalPersonalDeductions
 
         // Get loans
         const activeLoans = await tx.loans.findMany({
