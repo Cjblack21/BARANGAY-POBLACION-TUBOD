@@ -192,7 +192,7 @@ export default function PayrollBreakdownDialog({
       ? `${formatDateForDisplay(new Date(currentPeriod.periodStart))} - ${formatDateForDisplay(new Date(currentPeriod.periodEnd))}`
       : 'N/A'
 
-    const logoUrl = '/brgy-logo.png'
+    const logoUrl = window.location.origin + '/brgy-logo-transparent.png'
 
     const additionalPayDetails = (entry.breakdown?.overloadPayDetails || [])
       .map((d: any) => ({

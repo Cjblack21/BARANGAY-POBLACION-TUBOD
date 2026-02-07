@@ -757,7 +757,7 @@ export default function PersonnelPayrollPage() {
                 {/* Header with Logo */}
                 <div className="text-center border-b-2 border-gray-300 dark:border-gray-700 pb-4">
                   <div className="flex justify-center mb-3">
-                    <img src="/brgy-logo.png" alt="Barangay Logo" className="h-28 w-28 rounded-full object-cover" />
+                    <img src="/brgy-logo-transparent.png" alt="Barangay Logo" className="h-28 w-28 rounded-full object-cover" />
                   </div>
                   <h3 className="font-bold text-base">TUBOD BARANGAY POBLACION</h3>
                   <p className="text-xs text-muted-foreground">Tubod, Lanao del Norte</p>

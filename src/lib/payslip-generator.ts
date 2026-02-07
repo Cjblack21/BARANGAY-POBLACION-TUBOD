@@ -85,7 +85,7 @@ export function generatePayslipHTML(
         <div style="text-align: ${headerSettings.headerAlignment}; margin-bottom: 4px; border-bottom: 1px solid #000; padding-bottom: 2px;">
           ${headerSettings.showLogo ? `
             <div style="margin-bottom: 2px;">
-              <img src="${headerSettings.logoUrl}" alt="Logo" style="height: 24px; width: auto;" onerror="this.src='/brgy-logo.png'">
+              <img src="${headerSettings.logoUrl}" alt="Logo" style="height: 24px; width: auto;" onerror="this.src='/brgy-logo-transparent.png'">
             </div>
           ` : ''}
           <div style="font-weight: bold; font-size: 10px; margin-bottom: 1px; line-height: 1.1;">

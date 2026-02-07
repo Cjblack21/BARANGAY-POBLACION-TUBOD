@@ -97,7 +97,7 @@ export async function POST(request: NextRequest) {
           schoolName: "TUBOD BARANGAY POBLACION",
           schoolAddress: "Tubod, Lanao del Norte",
           systemName: "POBLACION - PMS",
-          logoUrl: "/brgy-logo.png",
+          logoUrl: "/brgy-logo-transparent.png",
           showLogo: true,
           headerAlignment: 'center',
           fontSize: 'medium',
@@ -477,7 +477,7 @@ export async function POST(request: NextRequest) {
           <div class="payslip-header">
             <div class="logo-container">
               ${headerSettings?.showLogo ? `
-                <img src="${headerSettings.logoUrl}" alt="Logo" class="logo" onerror="this.src='/brgy-logo.png'">
+                <img src="${headerSettings.logoUrl}" alt="Logo" class="logo" onerror="this.src='/brgy-logo-transparent.png'">
               ` : ''}
             </div>
             <div class="school-name">${headerSettings?.schoolName || 'PAYSLIP'}</div>

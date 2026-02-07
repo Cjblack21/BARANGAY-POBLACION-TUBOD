@@ -36,7 +36,7 @@ export default function ArchivedPayrollDetailsDialog({
 
     const periodStart = formatDateForDisplay(new Date(period.periodStart))
     const periodEnd = formatDateForDisplay(new Date(period.periodEnd))
-    const logoUrl = '/brgy-logo.png'
+    const logoUrl = '/brgy-logo-transparent.png'
 
     // Use live data if available
     const overloadPayDetails = liveData?.overloadPayDetails || []
