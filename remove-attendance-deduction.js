@@ -10,8 +10,7 @@ async function removeAttendanceDeduction() {
         const attendanceDeduction = await prisma.deduction_types.findFirst({
             where: {
                 name: {
-                    contains: 'Attendance',
-                    mode: 'insensitive'
+                    contains: 'Attendance'
                 }
             }
         });
