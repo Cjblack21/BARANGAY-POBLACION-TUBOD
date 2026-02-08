@@ -91,7 +91,7 @@ export default function Home() {
 
             {/* Footer */}
             <p className="text-center text-xs text-slate-500 dark:text-slate-500 mt-6">
-              © 2026 brgy poblacion pms. All rights reserved.
+              © 2026 BRGY POBLACION PMS. All rights reserved.
             </p>
           </div>
         </div>

@@ -100,7 +100,7 @@ export function LoginForm({
           <Input
             id="email"
             type="text"
-            placeholder="email@example.com or ID number"
+            placeholder="email@gmail.com or ID number"
             {...register("email")}
             disabled={isLoading}
             className="h-14 text-base bg-slate-100 dark:bg-white/10 border-slate-300 dark:border-white/20 text-slate-900 dark:text-white placeholder:text-slate-500 dark:placeholder:text-white/40 focus-visible:ring-amber-500 focus-visible:border-amber-500"
