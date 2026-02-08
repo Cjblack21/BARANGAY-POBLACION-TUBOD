@@ -90,7 +90,7 @@ export default function Home() {
             </div>
 
             {/* Footer */}
-            <p className="text-center text-xs text-slate-500 dark:text-slate-500">
+            <p className="text-center text-xs text-slate-500 dark:text-slate-500 -mt-6">
               © 2026 PMS. All rights reserved.
             </p>
           </div>
