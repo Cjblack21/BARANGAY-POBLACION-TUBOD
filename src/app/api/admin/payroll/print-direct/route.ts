@@ -230,7 +230,7 @@ export async function POST(request: NextRequest) {
           <div style="text-align: center; margin-bottom: 4px; border-bottom: 1px solid #000; padding-bottom: 2px;">
             ${headerSettings?.showLogo ? `
               <div style="margin-bottom: 2px;">
-                <img src="${headerSettings.logoUrl}" alt="Logo" style="height: 24px; width: auto;" onerror="this.src='/brgy-logo-transparent.png'">
+                <img src="http://localhost:3000/BRGY PICTURE LOG TUBOD.png" alt="Logo" style="height: 24px; width: auto;">
               </div>
             ` : ''}
             <div style="font-weight: bold; font-size: 11px; margin-bottom: 2px;">

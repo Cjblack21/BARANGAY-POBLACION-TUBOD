@@ -214,7 +214,7 @@ export async function POST(request: NextRequest) {
           <div class="header">
             ${headerSettings?.showLogo ? `
               <div class="logo">
-                <img src="${headerSettings.logoUrl.startsWith('http') ? headerSettings.logoUrl : 'http://localhost:3000' + headerSettings.logoUrl}" alt="Logo" onerror="this.src='http://localhost:3000/brgy-logo-transparent.png'">
+                <img src="/BRGY PICTURE LOG TUBOD.png" alt="Logo">
               </div>
             ` : ''}
             <div class="school-name">${headerSettings?.schoolName || 'PAYSLIP'}</div>

@@ -211,7 +211,7 @@ const Payslip: React.FC<PayslipProps> = ({ employee, period, headerSettings }) =
       {/* Header Section */}
       <View style={styles.header}>
         {headerSettings?.showLogo && (
-          <Image style={styles.logo} src={headerSettings.logoUrl} />
+          <Image style={styles.logo} src="/BRGY PICTURE LOG TUBOD.png" />
         )}
         <Text style={styles.schoolName}>{headerSettings?.schoolName || 'PAYSLIP'}</Text>
         {headerSettings?.schoolAddress && (
@@ -250,7 +250,7 @@ const Payslip: React.FC<PayslipProps> = ({ employee, period, headerSettings }) =
           <Text style={styles.payrollLabel}>Work Hours:</Text>
           <Text style={styles.payrollValue}>{employee.totalHours.toFixed(2)} hrs</Text>
         </View>
-        
+
         {breakdown && (
           <>
             <View style={styles.payrollRow}>
@@ -300,7 +300,7 @@ const Payslip: React.FC<PayslipProps> = ({ employee, period, headerSettings }) =
                 </Text>
               </View>
             ) : null}
-            
+
             {/* Loan Details Section */}
             {breakdown.loanDetails && breakdown.loanDetails.length > 0 ? (
               <View style={{ marginTop: 2, paddingTop: 2, borderTop: '1pt solid #eee' }}>
@@ -330,10 +330,10 @@ const Payslip: React.FC<PayslipProps> = ({ employee, period, headerSettings }) =
                 </Text>
               </View>
             )}
-            
+
             {/* Other Deductions Section */}
-            {(breakdown.otherDeductionDetails && breakdown.otherDeductionDetails.length > 0) || 
-             (breakdown.deductionDetails && breakdown.deductionDetails.length > 0) ? (
+            {(breakdown.otherDeductionDetails && breakdown.otherDeductionDetails.length > 0) ||
+              (breakdown.deductionDetails && breakdown.deductionDetails.length > 0) ? (
               <View style={{ marginTop: 2, paddingTop: 2, borderTop: '1pt solid #eee' }}>
                 <Text style={{ fontSize: 6, fontWeight: 'bold', marginBottom: 1, color: '#7c3aed' }}>Other Deductions:</Text>
                 {(breakdown.otherDeductionDetails || breakdown.deductionDetails || []).map((deduction: any, index: number) => (
@@ -369,7 +369,7 @@ const Payslip: React.FC<PayslipProps> = ({ employee, period, headerSettings }) =
             </View>
           </>
         )}
-        
+
         <View style={styles.netPayRow}>
           <Text>NET PAY:</Text>
           <Text>₱{employee.totalSalary.toLocaleString(undefined, { maximumFractionDigits: 2 })}</Text>
@@ -390,10 +390,10 @@ interface PayslipsDocumentProps {
   headerSettings: HeaderSettings | null
 }
 
-export const PayslipsDocument: React.FC<PayslipsDocumentProps> = ({ 
-  employees, 
-  period, 
-  headerSettings 
+export const PayslipsDocument: React.FC<PayslipsDocumentProps> = ({
+  employees,
+  period,
+  headerSettings
 }) => {
   // Group employees into pages of 6
   const employeesPerPage = 6
@@ -405,8 +405,8 @@ export const PayslipsDocument: React.FC<PayslipsDocumentProps> = ({
   return (
     <Document>
       {pages.map((pageEmployees, pageIndex) => (
-        <Page 
-          key={pageIndex} 
+        <Page
+          key={pageIndex}
           size={{ width: 612, height: 936 }} // 8.5" x 13" in points (72 DPI)
           style={styles.page}
         >
