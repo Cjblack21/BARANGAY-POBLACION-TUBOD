@@ -8,7 +8,7 @@ export async function GET(request: NextRequest) {
   try {
     console.log('🔍 Admin breakdown API called for personnel')
     const session = await getServerSession(authOptions)
-    
+
     if (!session?.user) {
       console.error('❌ No session found')
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
@@ -24,123 +24,97 @@ export async function GET(request: NextRequest) {
       })
       userId = user?.users_id
     }
-    
+
     if (!userId) {
       console.error('❌ User ID not found')
       return NextResponse.json({ error: 'User ID not found' }, { status: 401 })
     }
 
     console.log('✅ User ID:', userId)
-    console.log('🔍 Fetching payroll data directly from API...')
-    
-    // Call the admin payroll summary API directly (bypasses admin role check by using API route)
-    const summaryResponse = await fetch(`${process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000'}/api/admin/payroll/summary`, {
-      headers: {
-        // Include session cookie to maintain authentication
-        cookie: request.headers.get('cookie') || ''
-      }
-    })
-    
-    if (!summaryResponse.ok) {
-      console.error('❌ Failed to fetch payroll summary from API:', summaryResponse.status)
-      // Fallback: fetch directly from database
-      console.log('📦 Fetching from database directly...')
-      
-      const userWithPayroll = await prisma.users.findUnique({
-        where: { users_id: userId },
-        include: {
-          personnel_types: {
-            select: {
-              name: true,
-              basicSalary: true
-            }
+    console.log('🔍 Fetching payroll data directly from database...')
+
+    // Fetch directly from database instead of making HTTP call
+    const userWithPayroll = await prisma.users.findUnique({
+      where: { users_id: userId },
+      include: {
+        personnel_types: {
+          select: {
+            name: true,
+            basicSalary: true
           }
         }
-      })
-      
-      if (!userWithPayroll) {
-        return NextResponse.json({ error: 'User not found' }, { status: 404 })
       }
-      
-      // Fetch mandatory deductions
-      const mandatoryDeductionTypes = await prisma.deduction_types.findMany({
-        where: { isMandatory: true, isActive: true }
-      })
-      
-      // Get current period deductions
-      const now = new Date()
-      const year = now.getFullYear()
-      const firstMonday = new Date(year, 0, 1)
-      const dayOfWeek = firstMonday.getDay()
-      const daysToAdd = dayOfWeek === 0 ? 1 : 8 - dayOfWeek
-      firstMonday.setDate(firstMonday.getDate() + daysToAdd)
-      const daysSinceFirstMonday = Math.floor((now.getTime() - firstMonday.getTime()) / (1000 * 60 * 60 * 24))
-      const biweeklyPeriod = Math.floor(daysSinceFirstMonday / 14)
-      const periodStart = new Date(firstMonday)
-      periodStart.setDate(periodStart.getDate() + (biweeklyPeriod * 14))
-      const periodEnd = new Date(periodStart)
-      periodEnd.setDate(periodEnd.getDate() + 13)
-      periodEnd.setHours(23, 59, 59, 999)
-      
-      const deductions = await prisma.deductions.findMany({
-        where: {
-          users_id: userId,
-          appliedAt: { gte: periodStart, lte: periodEnd }
-        },
-        include: {
-          deduction_types: true
-        }
-      })
-      
-      // Build deduction details with isMandatory flag
-      const mandatoryTypeNames = new Set(mandatoryDeductionTypes.map(dt => dt.name))
-      
-      const deductionDetails = [
-        ...mandatoryDeductionTypes.map(dt => ({
-          type: dt.name,
-          amount: Number(dt.amount),
-          description: dt.description || 'Mandatory deduction',
-          isMandatory: true
-        })),
-        ...deductions
-          .filter(d => !mandatoryTypeNames.has(d.deduction_types.name)) // Avoid duplicates
-          .map(d => ({
-            type: d.deduction_types.name,
-            amount: Number(d.amount),
-            description: d.deduction_types.description || '-',
-            isMandatory: d.deduction_types.isMandatory || false
-          }))
-      ]
-      
-      return NextResponse.json({
-        userId: userWithPayroll.users_id,
-        name: userWithPayroll.name,
-        email: userWithPayroll.email,
-        personnelType: userWithPayroll.personnel_types?.name || 'N/A',
-        basicSalary: Number(userWithPayroll.personnel_types?.basicSalary || 0),
+    })
+
+    if (!userWithPayroll) {
+      return NextResponse.json({ error: 'User not found' }, { status: 404 })
+    }
+
+    // Fetch mandatory deductions
+    const mandatoryDeductionTypes = await prisma.deduction_types.findMany({
+      where: { isMandatory: true, isActive: true }
+    })
+
+    // Get current period deductions
+    const now = new Date()
+    const year = now.getFullYear()
+    const firstMonday = new Date(year, 0, 1)
+    const dayOfWeek = firstMonday.getDay()
+    const daysToAdd = dayOfWeek === 0 ? 1 : 8 - dayOfWeek
+    firstMonday.setDate(firstMonday.getDate() + daysToAdd)
+    const daysSinceFirstMonday = Math.floor((now.getTime() - firstMonday.getTime()) / (1000 * 60 * 60 * 24))
+    const biweeklyPeriod = Math.floor(daysSinceFirstMonday / 14)
+    const payrollPeriodStart = new Date(firstMonday)
+    payrollPeriodStart.setDate(payrollPeriodStart.getDate() + (biweeklyPeriod * 14))
+    const payrollPeriodEnd = new Date(payrollPeriodStart)
+    payrollPeriodEnd.setDate(payrollPeriodEnd.getDate() + 13)
+    payrollPeriodEnd.setHours(23, 59, 59, 999)
+
+    const deductions = await prisma.deductions.findMany({
+      where: {
+        users_id: userId,
+        appliedAt: { gte: payrollPeriodStart, lte: payrollPeriodEnd }
+      },
+      include: {
+        deduction_types: true
+      }
+    })
+
+    // Build deduction details with isMandatory flag
+    const mandatoryTypeNames = new Set(mandatoryDeductionTypes.map(dt => dt.name))
+
+    const deductionDetails = [
+      ...mandatoryDeductionTypes.map(dt => ({
+        type: dt.name,
+        amount: Number(dt.amount),
+        description: dt.description || 'Mandatory deduction',
+        isMandatory: true
+      })),
+      ...deductions
+        .filter(d => !mandatoryTypeNames.has(d.deduction_types.name)) // Avoid duplicates
+        .map(d => ({
+          type: d.deduction_types.name,
+          amount: Number(d.amount),
+          description: d.deduction_types.description || '-',
+          isMandatory: d.deduction_types.isMandatory || false
+        }))
+    ]
+
+    // Continue with the rest of the logic using userWithPayroll
+    const userEntry = {
+      users_id: userWithPayroll.users_id,
+      name: userWithPayroll.name,
+      email: userWithPayroll.email,
+      breakdown: {
         biweeklyBasicSalary: Number(userWithPayroll.personnel_types?.basicSalary || 0) / 2,
         attendanceDeductions: 0,
         loanPayments: 0,
-        databaseDeductions: deductions.reduce((sum, d) => sum + Number(d.amount), 0),
-        totalWorkHours: 0,
-        netSalary: 0,
-        status: 'Pending',
-        attendanceRecords: [],
-        loanDetails: [],
+        nonAttendanceDeductions: deductions.reduce((sum, d) => sum + Number(d.amount), 0),
         deductionDetails
-      })
-    }
-    
-    const summaryData = await summaryResponse.json()
-    
-    console.log('✅ Payroll summary received, entries:', summaryData.rows?.length)
-    
-    // Find this user's entry
-    const userEntry = summaryData.rows?.find((entry: any) => entry.users_id === userId)
-    
-    if (!userEntry) {
-      console.error('❌ No payroll entry found for user:', userId)
-      return NextResponse.json({ error: 'No payroll entry found for this user' }, { status: 404 })
+      },
+      totalHours: 0,
+      totalSalary: 0,
+      released: false
     }
 
     console.log('📊 Admin breakdown for personnel:', {
@@ -156,29 +130,29 @@ export async function GET(request: NextRequest) {
       console.error('❌ Attendance settings not configured')
       return NextResponse.json({ error: 'Attendance settings not configured' }, { status: 500 })
     }
-    
+
     const periodStart = new Date(attendanceSettings.periodStart)
     const periodEnd = new Date(attendanceSettings.periodEnd)
     periodEnd.setHours(23, 59, 59, 999)
-    
+
     // Only fetch attendance up to today, not future dates
     const today = new Date()
     today.setHours(23, 59, 59, 999)
     const attendanceEndDate = periodEnd > today ? today : periodEnd
-    
+
     // Fetch actual attendance records
     const attendanceRecords = await prisma.attendances.findMany({
       where: { users_id: userId, date: { gte: periodStart, lte: attendanceEndDate } },
       orderBy: { date: 'asc' }
     })
-    
+
     // Get user's basic salary for deduction calculations
-    const user = await prisma.users.findUnique({ 
-      where: { users_id: userId }, 
-      select: { personnel_types: { select: { basicSalary: true } } } 
+    const user = await prisma.users.findUnique({
+      where: { users_id: userId },
+      select: { personnel_types: { select: { basicSalary: true } } }
     })
     const basicSalary = user?.personnel_types?.basicSalary ? Number(user.personnel_types.basicSalary) : 0
-    
+
     // Calculate working days in period (same logic as personnel payroll route)
     const timeInEnd = attendanceSettings.timeInEnd || '09:30'
     let workingDaysInPeriod = 0
@@ -193,7 +167,7 @@ export async function GET(request: NextRequest) {
       }
       if (workingDaysInPeriod === 0) workingDaysInPeriod = 22
     }
-    
+
     // Get current time and today's date range for cutoff check
     const nowPH = getNowInPhilippines()
     const { start: startOfToday, end: endOfToday } = getTodayRangeInPhilippines()
@@ -202,15 +176,15 @@ export async function GET(request: NextRequest) {
     const nowMM = nowPH.getMinutes().toString().padStart(2, '0')
     const nowHHmm = `${nowHH}:${nowMM}`
     const isBeforeCutoff = nowHHmm <= timeOutEnd
-    
+
     // Calculate deductions for each attendance record
     const formattedAttendanceRecords = attendanceRecords.map(rec => {
       let deduction = 0
-      
+
       // Check if this record is for today
       const recordDate = new Date(rec.date)
       const isToday = recordDate >= startOfToday && recordDate <= endOfToday
-      
+
       if (rec.status === 'LATE' && rec.timeIn) {
         const timeIn = new Date(rec.timeIn)
         const expected = new Date(rec.date)
@@ -243,13 +217,13 @@ export async function GET(request: NextRequest) {
         const hourlyRate = (basicSalary / workingDaysInPeriod) / 8
         deduction = hoursShort * hourlyRate
       }
-      
+
       // Calculate work hours
       let workHours = 0
       if (rec.timeIn && rec.timeOut) {
         workHours = (new Date(rec.timeOut).getTime() - new Date(rec.timeIn).getTime()) / (1000 * 60 * 60)
       }
-      
+
       return {
         date: rec.date,
         status: rec.status,
@@ -259,7 +233,7 @@ export async function GET(request: NextRequest) {
         deductions: deduction
       }
     })
-    
+
     // Fetch loan details
     const loans = await prisma.loans.findMany({
       where: {
@@ -267,10 +241,10 @@ export async function GET(request: NextRequest) {
         status: 'ACTIVE'
       }
     })
-    
+
     const periodDays = Math.floor((periodEnd.getTime() - periodStart.getTime()) / (1000 * 60 * 60 * 24)) + 1
     const factor = periodDays <= 16 ? 0.5 : 1.0
-    
+
     const loanDetails = loans.map(loan => {
       const monthlyPayment = (Number(loan.amount) * Number(loan.monthlyPaymentPercent)) / 100
       const payment = monthlyPayment * factor
@@ -307,7 +281,7 @@ export async function GET(request: NextRequest) {
       message: error instanceof Error ? error.message : 'Unknown',
       stack: error instanceof Error ? error.stack : undefined
     })
-    return NextResponse.json({ 
+    return NextResponse.json({
       error: 'Failed to fetch breakdown',
       details: error instanceof Error ? error.message : 'Unknown error'
     }, { status: 500 })
