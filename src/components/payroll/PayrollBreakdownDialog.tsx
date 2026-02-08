@@ -233,7 +233,7 @@ export default function PayrollBreakdownDialog({
             * { box-sizing: border-box; }
             body { font-family: Arial, Helvetica, sans-serif; color: #111827; padding: 24px; }
             .header { display:flex; align-items:center; gap:14px; padding-bottom: 12px; border-bottom: 2px solid #e5e7eb; }
-            .logo { width: 120px; height: 120px; object-fit: contain; }
+            .logo { width: 90px; height: 90px; object-fit: contain; }
             .title { font-size: 18px; font-weight: 800; margin: 0; }
             .subtitle { font-size: 12px; color: #6b7280; margin-top: 4px; }
             .meta { margin-top: 10px; font-size: 12px; color: #374151; }
@@ -244,11 +244,13 @@ export default function PayrollBreakdownDialog({
             .td { font-size: 12px; border-bottom: 1px solid #f3f4f6; padding: 10px 8px; vertical-align: top; }
             .right { text-align: right; }
             tfoot td { border-top: 2px solid #e5e7eb; font-weight: 800; }
-            .sign { margin-top: 22px; display:flex; justify-content: space-between; gap: 24px; }
-            .sigbox { width: 40%; text-align: center; }
-            .signame { font-size: 14px; font-weight: 700; margin-top: 42px; }
+            .sign { margin-top: 40px; display:flex; justify-content: space-between; gap: 24px; }
+            .sigbox { width: 45%; }
+            .sig-label-top { font-size: 12px; color: #374151; margin-bottom: 25px; }
+            .signame { font-size: 14px; font-weight: 700; text-align: center; }
             .line { border-top: 1px solid #9ca3af; margin-top: 4px; }
-            .siglabel { font-size: 12px; color: #6b7280; margin-top: 4px; }
+            .siglabel { font-size: 12px; color: #6b7280; margin-top: 4px; text-align: center; }
+            .sig-date { font-size: 12px; color: #374151; margin-top: 15px; }
             @media print { body { padding: 0; } }
           </style>
         </head>
@@ -259,7 +261,7 @@ export default function PayrollBreakdownDialog({
               <div class="title">Payroll Details</div>
               <div class="subtitle">Barangay Payroll Management System</div>
               <div class="meta"><b>${entry.name}</b>${entry.personnelType ? ` • ${entry.personnelType}` : ''}${entry.department ? ` • ${entry.department}` : ''}</div>
-              <div class="meta">Period: <b>${periodLabel}</b> &nbsp; | &nbsp; Personnel ID: <b>${entry.users_id}</b></div>
+              <div class="meta">Period: <b>${periodLabel}</b> &nbsp; | &nbsp; Staff ID: <b>${entry.users_id}</b></div>
             </div>
           </div>
 
@@ -310,16 +312,18 @@ export default function PayrollBreakdownDialog({
 
           <div class="sign">
             <div class="sigbox">
+              <div class="sig-label-top">Prepared by:</div>
               <div class="signame">EMMA L. MACTAO</div>
               <div class="line"></div>
               <div class="siglabel">Brgy Treasurer</div>
-              <div class="siglabel">Prepared by</div>
+              <div class="sig-date">Date: ________________________</div>
             </div>
             <div class="sigbox">
+              <div class="sig-label-top">Approved by:</div>
               <div class="signame">ARSENIO Q. SIMANGAN</div>
               <div class="line"></div>
               <div class="siglabel">Punong Barangay</div>
-              <div class="siglabel">Approved by</div>
+              <div class="sig-date">Date: ________________________</div>
             </div>
           </div>
         </body>

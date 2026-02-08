@@ -135,7 +135,7 @@ export default function ArchivedPayrollDetailsDialog({
             * { box-sizing: border-box; }
             body { font-family: Arial, Helvetica, sans-serif; color: #111827; padding: 32px; font-size: 16px; }
             .header { display:flex; align-items:center; gap:18px; padding-bottom: 16px; border-bottom: 3px solid #e5e7eb; }
-            .logo { width: 120px; height: 120px; object-fit: contain; }
+            .logo { width: 90px; height: 90px; object-fit: contain; }
             .title { font-size: 24px; font-weight: 800; margin: 0; }
             .subtitle { font-size: 16px; color: #6b7280; margin-top: 6px; }
             .meta { margin-top: 12px; font-size: 16px; color: #374151; }
@@ -144,11 +144,13 @@ export default function ArchivedPayrollDetailsDialog({
             table { width: 100%; border-collapse: collapse; }
             .td { font-size: 16px; border-bottom: 1px solid #f3f4f6; padding: 12px 10px; vertical-align: top; }
             .right { text-align: right; }
-            .sign { margin-top: 32px; display:flex; justify-content: space-between; gap: 20px; }
-            .sigbox { width: 30%; text-align: center; }
-            .signame { font-size: 18px; font-weight: 700; margin-top: 50px; }
+            .sign { margin-top: 40px; display:flex; justify-content: space-between; gap: 20px; }
+            .sigbox { width: 30%; }
+            .sig-label-top { font-size: 14px; color: #374151; margin-bottom: 30px; }
+            .signame { font-size: 18px; font-weight: 700; text-align: center; }
             .line { border-top: 2px solid #9ca3af; margin-top: 6px; }
-            .siglabel { font-size: 14px; color: #6b7280; margin-top: 6px; }
+            .siglabel { font-size: 14px; color: #6b7280; margin-top: 6px; text-align: center; }
+            .sig-date { font-size: 14px; color: #374151; margin-top: 20px; }
             @media print { body { padding: 0; } }
           </style>
         </head>
@@ -208,23 +210,25 @@ export default function ArchivedPayrollDetailsDialog({
 
           <div class="sign">
             <div class="sigbox">
+              <div class="sig-label-top">Prepared by:</div>
               <div class="signame">EMMA L. MACTAO</div>
               <div class="line"></div>
               <div class="siglabel">Brgy Treasurer</div>
-              <div class="siglabel">Prepared by</div>
+              <div class="sig-date">Date: _________________</div>
             </div>
             <div class="sigbox">
+              <div class="sig-label-top">Approved by:</div>
               <div class="signame">ARSENIO Q. SIMANGAN</div>
               <div class="line"></div>
               <div class="siglabel">Punong Barangay</div>
-              <div class="siglabel">Approved by</div>
+              <div class="sig-date">Date: _________________</div>
             </div>
             <div class="sigbox">
+              <div class="sig-label-top">Received by:</div>
               <div class="signame">${entry.user?.name || 'N/A'}</div>
               <div class="line"></div>
               <div class="siglabel">Staff Signature</div>
-              <div class="siglabel">Received by</div>
-              <div class="siglabel" style="margin-top: 12px;">Date: _________________</div>
+              <div class="sig-date">Date: _________________</div>
             </div>
           </div>
         </body>
