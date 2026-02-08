@@ -10,7 +10,7 @@ export async function GET() {
   try {
     // Get attendance settings to check if it's time to release
     const settings = await prisma.attendance_settings.findFirst()
-    
+
     if (!settings?.periodStart || !settings?.periodEnd || !settings?.timeOutEnd) {
       return NextResponse.json({
         success: false,
@@ -22,11 +22,11 @@ export async function GET() {
     const periodEnd = new Date(settings.periodEnd)
     const [hours, minutes] = settings.timeOutEnd.split(':').map(Number)
     periodEnd.setHours(hours, minutes, 0, 0)
-    
+
     // Get current time in Philippines timezone
     const now = new Date()
     const phTime = new Date(now.toLocaleString('en-US', { timeZone: 'Asia/Manila' }))
-    
+
     // Check if it's time to release
     if (phTime < periodEnd) {
       return NextResponse.json({
@@ -56,8 +56,8 @@ export async function GET() {
 
     console.log(`🚀 Auto-releasing ${pendingPayrolls.length} pending payroll entries...`)
 
-    // Call the auto-release API
-    const response = await fetch(`${process.env.NEXTAUTH_URL || 'http://localhost:3000'}/api/admin/payroll/auto-release`, {
+    // Call the auto-release API using localhost (internal server call)
+    const response = await fetch(`http://localhost:3000/api/admin/payroll/auto-release`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -65,9 +65,9 @@ export async function GET() {
     })
 
     const result = await response.json()
-    
+
     console.log('✅ Auto-release completed:', result.message)
-    
+
     return NextResponse.json({
       success: true,
       message: 'Auto-release executed successfully',
