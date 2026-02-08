@@ -5,10 +5,10 @@ import puppeteer from 'puppeteer'
 
 export async function POST(request: NextRequest) {
   let browser = null
-  
+
   try {
     const session = await getServerSession(authOptions)
-    
+
     if (!session || session.user.role !== 'ADMIN') {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
@@ -18,8 +18,8 @@ export async function POST(request: NextRequest) {
 
     console.log('📥 Generating PDF for period:', periodStart, 'to', periodEnd)
 
-    // Get the HTML from print-screenshot route
-    const baseUrl = process.env.NEXTAUTH_URL || 'http://localhost:3000'
+    // Get the HTML from print-screenshot route using localhost (internal server call)
+    const baseUrl = 'http://localhost:3000'
     const htmlResponse = await fetch(`${baseUrl}/api/admin/payroll/print-screenshot`, {
       method: 'POST',
       headers: {
@@ -52,7 +52,7 @@ export async function POST(request: NextRequest) {
     })
 
     const page = await browser.newPage()
-    
+
     // Set viewport for consistent rendering
     await page.setViewport({ width: 816, height: 1056 }) // 8.5in x 11in at 96 DPI
 
@@ -90,7 +90,7 @@ export async function POST(request: NextRequest) {
     console.error('❌ Error generating PDF:', error)
     console.error('❌ Error stack:', error instanceof Error ? error.stack : 'No stack')
     console.error('❌ Error name:', error instanceof Error ? error.name : 'Unknown')
-    
+
     if (browser) {
       try {
         await browser.close()
@@ -101,7 +101,7 @@ export async function POST(request: NextRequest) {
     }
 
     return NextResponse.json(
-      { 
+      {
         error: 'Failed to generate PDF',
         details: error instanceof Error ? error.message : 'Unknown error',
         stack: error instanceof Error ? error.stack : undefined
