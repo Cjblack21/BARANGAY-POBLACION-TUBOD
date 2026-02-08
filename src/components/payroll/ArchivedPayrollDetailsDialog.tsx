@@ -36,7 +36,7 @@ export default function ArchivedPayrollDetailsDialog({
 
     const periodStart = formatDateForDisplay(new Date(period.periodStart))
     const periodEnd = formatDateForDisplay(new Date(period.periodEnd))
-    const logoUrl = '/brgy-logo-transparent.png'
+    const logoUrl = '/BRGY PICTURE LOG TUBOD.png'
 
     // Use live data if available
     const overloadPayDetails = liveData?.overloadPayDetails || []
@@ -266,10 +266,10 @@ export default function ArchivedPayrollDetailsDialog({
         overloadPayDetails = snapshot?.overloadPayDetails || []
         deductionDetails = snapshot?.deductionDetails || []
         loanDetails = snapshot?.loanDetails || []
-        
+
         // Keep attendance deduction details separate to avoid duplicates
         const attendanceDeductionDetails = snapshot?.attendanceDeductionDetails || []
-        
+
         // Map loan details to have the correct 'amount' field (should be 'payment')
         if (loanDetails.length > 0) {
           loanDetails = loanDetails.map((loan: any) => ({
@@ -358,20 +358,20 @@ export default function ArchivedPayrollDetailsDialog({
           }
         } else {
           // Use snapshot data including attendance deduction details
-          setLiveData({ 
-            overloadPayDetails, 
-            deductionDetails, 
-            loanDetails, 
-            attendanceDeductionDetails: snapshotAttendanceDeductionDetails 
+          setLiveData({
+            overloadPayDetails,
+            deductionDetails,
+            loanDetails,
+            attendanceDeductionDetails: snapshotAttendanceDeductionDetails
           })
           return
         }
 
-        setLiveData({ 
-          overloadPayDetails, 
-          deductionDetails, 
+        setLiveData({
+          overloadPayDetails,
+          deductionDetails,
           loanDetails,
-          attendanceDeductionDetails: snapshotAttendanceDeductionDetails 
+          attendanceDeductionDetails: snapshotAttendanceDeductionDetails
         })
       } catch (error) {
         console.error('Error fetching live breakdown:', error)
@@ -414,7 +414,7 @@ export default function ArchivedPayrollDetailsDialog({
 
   // Use attendanceDeductionDetails directly from snapshot instead of filtering
   const attendanceDeductions = attendanceDeductionDetails
-  
+
   const mandatoryDeductions = deductionDetails.filter((d: any) => d.isMandatory)
   const otherDeductions = deductionDetails.filter((d: any) => {
     const type = d.type?.toLowerCase() || ''
