@@ -135,7 +135,7 @@ export default function ArchivedPayrollDetailsDialog({
             * { box-sizing: border-box; }
             body { font-family: Arial, Helvetica, sans-serif; color: #111827; padding: 32px; font-size: 16px; }
             .header { display:flex; align-items:center; gap:18px; padding-bottom: 16px; border-bottom: 3px solid #e5e7eb; }
-            .logo { width: 80px; height: 80px; object-fit: contain; }
+            .logo { width: 120px; height: 120px; object-fit: contain; }
             .title { font-size: 24px; font-weight: 800; margin: 0; }
             .subtitle { font-size: 16px; color: #6b7280; margin-top: 6px; }
             .meta { margin-top: 12px; font-size: 16px; color: #374151; }

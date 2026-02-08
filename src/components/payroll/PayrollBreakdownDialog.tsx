@@ -233,7 +233,7 @@ export default function PayrollBreakdownDialog({
             * { box-sizing: border-box; }
             body { font-family: Arial, Helvetica, sans-serif; color: #111827; padding: 24px; }
             .header { display:flex; align-items:center; gap:14px; padding-bottom: 12px; border-bottom: 2px solid #e5e7eb; }
-            .logo { width: 62px; height: 62px; object-fit: contain; }
+            .logo { width: 120px; height: 120px; object-fit: contain; }
             .title { font-size: 18px; font-weight: 800; margin: 0; }
             .subtitle { font-size: 12px; color: #6b7280; margin-top: 4px; }
             .meta { margin-top: 10px; font-size: 12px; color: #374151; }
