@@ -75,9 +75,9 @@ export default function Home() {
             </div>
 
             {/* Title */}
-            <div className="text-center -mt-4">
+            <div className="text-center -mt-8">
               <h1 className="text-3xl font-bold text-slate-900 dark:text-white mb-1">
-                POBLACION PMS
+                BRGY POBLACION PMS
               </h1>
               <p className="text-sm text-slate-600 dark:text-slate-400 mb-4">
                 Sign in to continue to your account
