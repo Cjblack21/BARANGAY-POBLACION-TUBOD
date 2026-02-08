@@ -67,7 +67,7 @@ export default function Home() {
 
       {/* Left Side - Login Form */}
       <div className="flex-1 bg-slate-50 dark:bg-[#0a1628] flex items-center justify-center px-4 py-12 transition-colors duration-500">
-        <div className="w-full max-w-lg">
+        <div className="w-full max-w-lg -mt-20">
           <div className="flex flex-col items-center">
             {/* Logo */}
             <div className="flex justify-center mt-8">
@@ -90,7 +90,7 @@ export default function Home() {
             </div>
 
             {/* Footer */}
-            <p className="text-center text-xs text-slate-500 dark:text-slate-500 -mt-6">
+            <p className="text-center text-xs text-slate-500 dark:text-slate-500 mt-6">
               © 2026 PMS. All rights reserved.
             </p>
           </div>
