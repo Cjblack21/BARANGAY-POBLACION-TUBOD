@@ -820,8 +820,8 @@ export default function LoansPage() {
       </div>
 
       {/* Loans List */}
-      <Card className="border-0 shadow-md">
-        <CardHeader className="border-b bg-muted/30">
+      <Card className="border shadow-sm overflow-hidden">
+        <CardHeader className="p-4 border-b bg-muted/40">
           <div className="flex flex-col gap-4">
             <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
               <div className="flex items-center gap-3">
