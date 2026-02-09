@@ -22,6 +22,7 @@ const updateUserSchema = z.object({
   barangay: z.string().optional(),
   purok: z.string().optional(),
   zipCode: z.string().optional(),
+  avatar: z.string().optional().nullable(),
 })
 
 // GET /api/admin/users/[id] - Get single user
@@ -123,7 +124,7 @@ export async function PUT(
     }
 
     // Prepare update data
-    type UpdateShape = { email?: string; name?: string; password?: string; role?: 'ADMIN' | 'PERSONNEL'; isActive?: boolean; personnel_types_id?: string | null }
+    type UpdateShape = { email?: string; name?: string; password?: string; role?: 'ADMIN' | 'PERSONNEL'; isActive?: boolean; personnel_types_id?: string | null; avatar?: string | null }
     const updateData: Partial<UpdateShape> = { ...validatedData }
 
     // Coerce empty personnel_types_id to null

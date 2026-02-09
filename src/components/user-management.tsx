@@ -117,6 +117,7 @@ interface UserFormData {
   barangay?: string
   purok?: string
   zipCode?: string
+  avatar?: string
 }
 
 // Helper function to get initials for avatar
@@ -290,7 +291,7 @@ export function UserManagement() {
       // First, upload the avatar image
       const avatarFormData = new FormData()
       avatarFormData.append('avatar', avatarFile)
-      avatarFormData.append('userId', finalPersonnelId)
+      // userId is optional in backend now, but we can pass it if we have it, or just rely on the random filename
 
       const uploadResponse = await fetch('/api/admin/upload-avatar', {
         method: 'POST',
@@ -303,13 +304,17 @@ export function UserManagement() {
         return
       }
 
+      const { avatarUrl } = await uploadResponse.json()
+
       // Then create the user account
       const response = await fetch('/api/admin/users', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           ...formData,
-          users_id: finalPersonnelId // Send generated personnelId as users_id
+          // Send generated personnelId as users_id
+          users_id: finalPersonnelId,
+          avatar: avatarUrl
         })
       })
 
@@ -367,10 +372,11 @@ export function UserManagement() {
 
     try {
       // If avatar file is selected, upload it first
+      let avatarUrl: string | undefined
+
       if (avatarFile) {
         const avatarFormData = new FormData()
         avatarFormData.append('avatar', avatarFile)
-        avatarFormData.append('userId', selectedPersonnel.users_id)
 
         const uploadResponse = await fetch('/api/admin/upload-avatar', {
           method: 'POST',
@@ -382,9 +388,15 @@ export function UserManagement() {
           toast.error(errorData.error || 'Failed to upload avatar image')
           return
         }
+
+        const data = await uploadResponse.json()
+        avatarUrl = data.avatarUrl
       }
 
       const updateData: Record<string, unknown> = { ...formData }
+      if (avatarUrl) {
+        updateData.avatar = avatarUrl
+      }
       if (!updateData.password) {
         delete updateData.password
       }
@@ -754,7 +766,8 @@ export function UserManagement() {
                   <div className="bg-gradient-to-br from-blue-50 to-indigo-50 rounded-lg p-6 border border-blue-100">
                     <h3 className="text-sm font-semibold text-gray-900 mb-4 flex items-center gap-2">
                       <User className="h-4 w-4 text-blue-600" />
-                      Profile Photo *
+                      Profile Photo <span className="text-red-500 ml-1">*</span>
+                      <span className="text-xs text-gray-500 font-normal ml-2">(Required)</span>
                     </h3>
                     <div className="flex items-center gap-6">
                       <div className="flex-shrink-0">

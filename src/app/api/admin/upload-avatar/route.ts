@@ -33,7 +33,7 @@ export async function POST(request: Request) {
     const bytes = await file.arrayBuffer()
     const buffer = Buffer.from(bytes)
     const timestamp = Date.now()
-    const filename = `${session.user.id}_${timestamp}${path.extname(file.name)}`
+    const filename = `avatar_${timestamp}_${Math.random().toString(36).substring(7)}${path.extname(file.name)}`
 
     // Ensure uploads directory exists
     const uploadsDir = path.join(process.cwd(), "public", "uploads", "avatars")
@@ -45,11 +45,8 @@ export async function POST(request: Request) {
 
     const avatarUrl = `/uploads/avatars/${filename}`
 
-    // Update user avatar in database
-    await prisma.users.update({
-      where: { users_id: session.user.id },
-      data: { avatar: avatarUrl },
-    })
+    // We don't update the user here anymore. 
+    // The frontend will receive the URL and send it to the user creation/update endpoint.
 
     return NextResponse.json({
       message: "Avatar uploaded successfully",

@@ -22,6 +22,7 @@ const createUserSchema = z.object({
   barangay: z.string().optional(),
   purok: z.string().optional(),
   zipCode: z.string().optional(),
+  avatar: z.string().optional().nullable(),
 })
 
 // GET /api/admin/users - Get all users with optional search
@@ -132,6 +133,7 @@ export async function POST(request: NextRequest) {
         barangay: validatedData.barangay || null,
         purok: validatedData.purok || null,
         zipCode: validatedData.zipCode || null,
+        avatar: validatedData.avatar || null,
         updatedAt: new Date()
       },
       select: {
