@@ -32,14 +32,15 @@ async function main() {
   const hashedPassword = await bcrypt.hash('password123', 12)
 
   // Create Admin user
-  const adminId = await generateUniqueId()
+  const adminPassword = await bcrypt.hash('admin123', 12)
+  const adminId = "1"
   const admin = await prisma.users.upsert({
-    where: { email: 'admin@pms.com' },
+    where: { email: 'adminpoblacion@pms.com' },
     update: {},
     create: {
       users_id: adminId,
-      email: 'admin@pms.com',
-      password: hashedPassword,
+      email: 'adminpoblacion@pms.com',
+      password: adminPassword,
       name: 'System Administrator',
       role: 'ADMIN',
       isActive: true,
@@ -106,13 +107,13 @@ async function main() {
     await prisma.deduction_types.upsert({
       where: { name: t.name },
       update: {},
-      create: { 
+      create: {
         deduction_types_id: deductionTypeId,
-        name: t.name, 
-        description: t.description, 
-        amount: t.amount, 
-        isActive: true, 
-        updatedAt: new Date() 
+        name: t.name,
+        description: t.description,
+        amount: t.amount,
+        isActive: true,
+        updatedAt: new Date()
       },
     })
   }
@@ -123,9 +124,9 @@ async function main() {
   console.log('│                    Login Credentials                    │')
   console.log('├─────────────────────────────────────────────────────────┤')
   console.log('│ ADMIN ACCOUNT:                                          │')
-  console.log(`│ ID: ${adminId}                                           │`)
-  console.log('│ Email: admin@pms.com                                    │')
-  console.log('│ Password: password123                                   │')
+  console.log(`│ ID: ${adminId}                                                     │`)
+  console.log('│ Email: adminpoblacion@pms.com                           │')
+  console.log('│ Password: admin123                                      │')
   console.log('│ Role: Admin                                             │')
   console.log('├─────────────────────────────────────────────────────────┤')
   console.log('│ PERSONNEL ACCOUNTS:                                     │')
