@@ -53,7 +53,8 @@ import {
   Lock,
   Shield,
   Briefcase,
-  UserPlus
+  UserPlus,
+  EyeOff
 } from 'lucide-react'
 import {
   Tooltip,
@@ -166,6 +167,7 @@ export function UserManagement() {
   })
   const [avatarFile, setAvatarFile] = useState<File | null>(null)
   const [avatarPreview, setAvatarPreview] = useState<string | null>(null)
+  const [showPassword, setShowPassword] = useState(false)
 
   // Generate unique 6-digit personnel ID
   const generatePersonnelId = () => {
@@ -737,6 +739,7 @@ export function UserManagement() {
                 setPositionSearchTerm('')
                 setAvatarFile(null)
                 setAvatarPreview(null)
+                setShowPassword(false)
               }
               // ID will be generated upon creation
             }}>
@@ -921,15 +924,28 @@ export function UserManagement() {
                         <Label htmlFor="create-password" className="text-sm font-medium">
                           Password *
                         </Label>
-                        <Input
-                          id="create-password"
-                          type="password"
-                          value={formData.password}
-                          onChange={(e) => setFormData({ ...formData, password: e.target.value })}
-                          placeholder="Minimum 6 characters"
-                          className="mt-1.5"
-                          required
-                        />
+                        <div className="relative">
+                          <Input
+                            id="create-password"
+                            type={showPassword ? "text" : "password"}
+                            value={formData.password}
+                            onChange={(e) => setFormData({ ...formData, password: e.target.value })}
+                            placeholder="Minimum 6 characters"
+                            className="mt-1.5 pr-10"
+                            required
+                          />
+                          <button
+                            type="button"
+                            onClick={() => setShowPassword(!showPassword)}
+                            className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 hover:text-gray-700"
+                          >
+                            {showPassword ? (
+                              <EyeOff className="h-4 w-4" />
+                            ) : (
+                              <Eye className="h-4 w-4" />
+                            )}
+                          </button>
+                        </div>
                         <p className="text-xs text-muted-foreground mt-1.5 flex items-center gap-1">
                           <Shield className="h-3 w-3" />
                           Must be at least 6 characters long
@@ -1211,6 +1227,7 @@ export function UserManagement() {
           if (!open) {
             setAvatarFile(null)
             setAvatarPreview(null)
+            setShowPassword(false)
           }
         }}>
           <DialogContent className="sm:max-w-[700px] max-h-[90vh] overflow-y-auto">
@@ -1378,14 +1395,27 @@ export function UserManagement() {
                 <div className="grid gap-4">
                   <div>
                     <Label htmlFor="edit-password" className="text-sm font-medium">New Password (optional)</Label>
-                    <Input
-                      id="edit-password"
-                      type="password"
-                      value={formData.password}
-                      onChange={(e) => setFormData({ ...formData, password: e.target.value })}
-                      placeholder="Leave empty to keep current password"
-                      className="mt-1.5"
-                    />
+                    <div className="relative">
+                      <Input
+                        id="edit-password"
+                        type={showPassword ? "text" : "password"}
+                        value={formData.password}
+                        onChange={(e) => setFormData({ ...formData, password: e.target.value })}
+                        placeholder="Leave empty to keep current password"
+                        className="mt-1.5 pr-10"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => setShowPassword(!showPassword)}
+                        className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 hover:text-gray-700"
+                      >
+                        {showPassword ? (
+                          <EyeOff className="h-4 w-4" />
+                        ) : (
+                          <Eye className="h-4 w-4" />
+                        )}
+                      </button>
+                    </div>
                   </div>
                   <div>
                     <Label htmlFor="edit-role" className="text-sm font-medium">System Role</Label>
