@@ -237,7 +237,7 @@ export function generatePayslipHTML(
       <div style="margin-top: 6px; display: flex; justify-content: space-around; gap: 8px; border-top: 1px solid #ccc; padding-top: 6px;">
         <div style="flex: 1; text-align: center; font-size: 7px;">
           <div style="border-top: 1px solid #000; margin: 18px 4px 2px 4px;"></div>
-          <div style="font-weight: bold; font-size: 8px;">Emma L. Mactao</div>
+          <div style="font-weight: bold; font-size: 8px;">EMMA L. MAGTAO</div>
           <div style="font-size: 7px; color: #666;">Brgy Treasurer</div>
         </div>
         <div style="flex: 1; text-align: center; font-size: 7px;">

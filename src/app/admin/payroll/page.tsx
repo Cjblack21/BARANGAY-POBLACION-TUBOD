@@ -1491,7 +1491,7 @@ html, body { margin: 0 !important; padding: 0 !important; overflow: hidden !impo
           <div class="sign">
             <div class="sigbox">
               <div class="sig-label-top">Prepared by:</div>
-              <div class="signame">EMMA L. MACTAO</div>
+              <div class="signame">EMMA L. MAGTAO</div>
               <div class="line"></div>
               <div class="siglabel">Brgy Treasurer</div>
               <div class="sig-date">Date: ________________________</div>
@@ -3196,8 +3196,8 @@ html, body { margin: 0 !important; padding: 0 !important; overflow: hidden !impo
                 </div>
               )}
             </div>
-            <div className="text-base text-muted-foreground">
-              Would you like to preview and print the payslips now?
+            <div className="bg-blue-50 dark:bg-blue-900/20 p-3 rounded-lg border border-blue-200 dark:border-blue-800 text-blue-700 dark:text-blue-300 text-sm font-medium">
+              Check "Archived Payrolls" for payslips.
             </div>
           </div>
           <DialogFooter className="px-8 pb-8 flex gap-3 sm:gap-3">
@@ -3672,7 +3672,7 @@ html, body { margin: 0 !important; padding: 0 !important; overflow: hidden !impo
 
       {/* Generate Payroll Confirmation Modal */}
       <Dialog open={showGenerateConfirmModal} onOpenChange={setShowGenerateConfirmModal}>
-        <DialogContent className="sm:max-w-4xl">
+        <DialogContent className="sm:max-w-4xl max-h-[90vh] overflow-y-auto flex flex-col">
           <DialogHeader className="pb-4 border-b">
             <DialogTitle className="text-2xl font-bold">Confirm Payroll Period</DialogTitle>
             <DialogDescription className="text-base">

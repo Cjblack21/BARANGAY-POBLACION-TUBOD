@@ -211,7 +211,7 @@ export default function ArchivedPayrollDetailsDialog({
           <div class="sign">
             <div class="sigbox">
               <div class="sig-label-top">Prepared by:</div>
-              <div class="signame">EMMA L. MACTAO</div>
+              <div class="signame">EMMA L. MAGTAO</div>
               <div class="line"></div>
               <div class="siglabel">Brgy Treasurer</div>
               <div class="sig-date">Date: _________________</div>

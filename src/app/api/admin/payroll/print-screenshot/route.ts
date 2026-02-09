@@ -569,6 +569,21 @@ export async function POST(request: NextRequest) {
             ${breakdown.attendanceDeductionDetails && breakdown.attendanceDeductionDetails.length > 0 ? `
               <div class="deduction-section">
                 <div class="deduction-title">Attendance Deductions: (${breakdown.attendanceDeductionDetails.length} item${breakdown.attendanceDeductionDetails.length > 1 ? 's' : ''})</div>
+                ${(() => {
+            // Calculate summary: count absences and late arrivals
+            const absentCount = breakdown.attendanceDeductionDetails.filter((d: any) => d.description.toLowerCase().includes('absence')).length;
+            const lateCount = breakdown.attendanceDeductionDetails.filter((d: any) => d.description.toLowerCase().includes('late')).length;
+            const earlyCount = breakdown.attendanceDeductionDetails.filter((d: any) => d.description.toLowerCase().includes('early')).length;
+            const partialCount = breakdown.attendanceDeductionDetails.filter((d: any) => d.description.toLowerCase().includes('partial')).length;
+
+            let summary = [];
+            if (absentCount > 0) summary.push(`Absent: ${absentCount} day${absentCount > 1 ? 's' : ''}`);
+            if (lateCount > 0) summary.push(`Late: ${lateCount} time${lateCount > 1 ? 's' : ''}`);
+            if (earlyCount > 0) summary.push(`Early: ${earlyCount} time${earlyCount > 1 ? 's' : ''}`);
+            if (partialCount > 0) summary.push(`Partial: ${partialCount} time${partialCount > 1 ? 's' : ''}`);
+
+            return summary.length > 0 ? `<div style="font-size: 9px; color: #d32f2f; margin: 2px 0 4px 4px; font-weight: 500;">${summary.join(', ')}</div>` : '';
+          })()}
                 ${breakdown.attendanceDeductionDetails.map((deduction: any) => `
                   <div class="detail-row deduction-detail">
                     <span>${deduction.date}: ${deduction.description}</span>
@@ -709,7 +724,7 @@ export async function POST(request: NextRequest) {
           <div class="signatures">
             <div class="sig-box">
               <div class="sig-line"></div>
-              <div class="sig-label">Emma L. Mactao</div>
+              <div class="sig-label">EMMA L. MAGTAO</div>
               <div class="sig-sublabel">Brgy Treasurer</div>
             </div>
             <div class="sig-box">
@@ -722,8 +737,8 @@ export async function POST(request: NextRequest) {
       `
     }
 
-    // Group payslips into pages of 6
-    const employeesPerPage = 6
+    // Group payslips into pages of 2 (half A4 each)
+    const employeesPerPage = 2
     const pages = []
     for (let i = 0; i < payslipData.length; i += employeesPerPage) {
       pages.push(payslipData.slice(i, i + employeesPerPage))
@@ -743,8 +758,8 @@ export async function POST(request: NextRequest) {
         <title>Payroll Slips - Perfect Layout</title>
         <style>
           @page {
-            size: 8.5in 13in;
-            margin: 0.15in;
+            size: 8.27in 11.69in; /* A4 size */
+            margin: 0.25in;
           }
           * {
             margin: 0;
@@ -758,10 +773,10 @@ export async function POST(request: NextRequest) {
             padding: 0;
           }
           .page {
-            width: 8.4in;
-            height: 12.7in;
+            width: 7.77in;
+            height: 11.19in;
             margin: 0;
-            padding: 0.05in;
+            padding: 0.2in;
             page-break-after: always;
             position: relative;
           }
@@ -769,11 +784,11 @@ export async function POST(request: NextRequest) {
             page-break-after: avoid;
           }
           .payslip-card {
-            width: 4.0in;
-            min-height: 4.2in;
+            width: 7.35in;
+            min-height: 5.2in;
             height: auto;
             border: 2px solid #000;
-            padding: 8px;
+            padding: 12px;
             font-size: 14px;
             line-height: 1.4;
             display: flex;
@@ -783,12 +798,9 @@ export async function POST(request: NextRequest) {
             overflow: visible;
             position: absolute;
           }
-          .payslip-card:nth-child(1) { top: 0.1in; left: 0.05in; }
-          .payslip-card:nth-child(2) { top: 0.1in; left: 4.15in; }
-          .payslip-card:nth-child(3) { top: 4.0in; left: 0.05in; }
-          .payslip-card:nth-child(4) { top: 4.0in; left: 4.15in; }
-          .payslip-card:nth-child(5) { top: 7.9in; left: 0.05in; }
-          .payslip-card:nth-child(6) { top: 7.9in; left: 4.15in; }
+          /* Only 2 payslips per page now - top and bottom */
+          .payslip-card:nth-child(1) { top: 0.1in; left: 0.1in; }
+          .payslip-card:nth-child(2) { top: 5.5in; left: 0.1in; }
           .payslip-header {
             text-align: center;
             margin-bottom: 8px;
@@ -798,12 +810,15 @@ export async function POST(request: NextRequest) {
           }
           .logo-container {
             margin-bottom: 2px;
+            background-color: white;
+            padding: 4px;
           }
           .logo {
             height: 40px;
             width: auto;
             max-width: 120px;
             object-fit: contain;
+            background-color: white;
           }
           .school-name {
             font-weight: bold;

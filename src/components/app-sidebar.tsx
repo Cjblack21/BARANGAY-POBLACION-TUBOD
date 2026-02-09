@@ -209,7 +209,7 @@ export function AppSidebar({ user, ...props }: AppSidebarProps) {
                 <SidebarMenuButton asChild className="h-10 font-medium [&>svg]:size-[18px]">
                   <Link href="/admin/user-management">
                     <Users />
-                    <span>Staff</span>
+                    <span>Brgy Staff</span>
                   </Link>
                 </SidebarMenuButton>
               </SidebarMenuItem>
