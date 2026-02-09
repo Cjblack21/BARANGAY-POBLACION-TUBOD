@@ -48,51 +48,7 @@ async function main() {
     },
   })
 
-  // Create Personnel users
-  const personnel1Id = await generateUniqueId()
-  const personnel1 = await prisma.users.upsert({
-    where: { email: 'john.doe@pms.com' },
-    update: {},
-    create: {
-      users_id: personnel1Id,
-      email: 'john.doe@pms.com',
-      password: hashedPassword,
-      name: 'John Doe',
-      role: 'PERSONNEL',
-      isActive: true,
-      updatedAt: new Date(),
-    },
-  })
 
-  const personnel2Id = await generateUniqueId()
-  const personnel2 = await prisma.users.upsert({
-    where: { email: 'jane.smith@pms.com' },
-    update: {},
-    create: {
-      users_id: personnel2Id,
-      email: 'jane.smith@pms.com',
-      password: hashedPassword,
-      name: 'Jane Smith',
-      role: 'PERSONNEL',
-      isActive: true,
-      updatedAt: new Date(),
-    },
-  })
-
-  const personnel3Id = await generateUniqueId()
-  const personnel3 = await prisma.users.upsert({
-    where: { email: 'mike.johnson@pms.com' },
-    update: {},
-    create: {
-      users_id: personnel3Id,
-      email: 'mike.johnson@pms.com',
-      password: hashedPassword,
-      name: 'Mike Johnson',
-      role: 'PERSONNEL',
-      isActive: true,
-      updatedAt: new Date(),
-    },
-  })
 
   // Seed default deduction types if not present
   const defaultTypes = [
