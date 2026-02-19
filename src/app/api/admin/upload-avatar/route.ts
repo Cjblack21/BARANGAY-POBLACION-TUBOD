@@ -45,8 +45,11 @@ export async function POST(request: Request) {
 
     const avatarUrl = `/uploads/avatars/${filename}`
 
-    // We don't update the user here anymore. 
-    // The frontend will receive the URL and send it to the user creation/update endpoint.
+    // Update the user's avatar in the database
+    await prisma.users.update({
+      where: { users_id: session.user.id },
+      data: { avatar: avatarUrl }
+    })
 
     return NextResponse.json({
       message: "Avatar uploaded successfully",

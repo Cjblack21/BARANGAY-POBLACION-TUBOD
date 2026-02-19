@@ -1,7 +1,7 @@
 "use client"
 
 import { useEffect, useState, useRef } from "react"
-import { useSearchParams } from "next/navigation"
+import { useSearchParams, useRouter } from "next/navigation"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -23,6 +23,7 @@ type ProfileData = {
 export default function AdminProfile() {
   const searchParams = useSearchParams()
   const defaultTab = searchParams.get("tab") || "profile"
+  const router = useRouter()
 
   const [data, setData] = useState<ProfileData | null>(null)
   const [loading, setLoading] = useState(true)
@@ -183,11 +184,14 @@ export default function AdminProfile() {
         throw new Error(result.error || 'Failed to upload photo')
       }
 
+      // Instantly update avatar in local state
+      if (result.avatarUrl) {
+        setData(prev => prev ? { ...prev, user: { ...prev.user, avatar: result.avatarUrl } } : prev)
+      }
+
       toast.success('Profile picture updated successfully!')
-      // Reload the page to update sidebar avatar and session
-      setTimeout(() => {
-        window.location.reload()
-      }, 500)
+      // Refresh session/sidebar without full page reload
+      router.refresh()
     } catch (error) {
       console.error('Error uploading photo:', error)
       toast.error(error instanceof Error ? error.message : 'Failed to upload photo')
@@ -215,11 +219,11 @@ export default function AdminProfile() {
         throw new Error(result.error || 'Failed to remove photo')
       }
 
+      // Instantly remove avatar from local state
+      setData(prev => prev ? { ...prev, user: { ...prev.user, avatar: undefined } } : prev)
       toast.success('Profile picture removed successfully!')
-      // Reload the page to update sidebar avatar and session
-      setTimeout(() => {
-        window.location.reload()
-      }, 500)
+      // Refresh session/sidebar without full page reload
+      router.refresh()
     } catch (error) {
       console.error('Error removing photo:', error)
       toast.error(error instanceof Error ? error.message : 'Failed to remove photo')
