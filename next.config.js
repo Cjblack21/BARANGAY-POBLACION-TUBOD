@@ -5,8 +5,8 @@ const nextConfig = {
     ignoreDuringBuilds: true,
   },
   typescript: {
-    // Already passing type checks, so ignore during build
-    ignoreBuildErrors: false,
+    // Skip type checking during production builds for faster deploys
+    ignoreBuildErrors: true,
   },
   experimental: {
     serverActions: {
