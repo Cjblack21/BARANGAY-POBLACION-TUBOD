@@ -38,6 +38,7 @@ export default function AdminProfile() {
     confirmPassword: "",
   })
   const [uploadingPhoto, setUploadingPhoto] = useState(false)
+  const [previewUrl, setPreviewUrl] = useState<string | null>(null)
   const fileInputRef = useRef<HTMLInputElement>(null)
 
   // Settings state
@@ -163,6 +164,10 @@ export default function AdminProfile() {
 
     try {
       setUploadingPhoto(true)
+      // Instantly show blob preview
+      const localPreview = URL.createObjectURL(file)
+      setPreviewUrl(localPreview)
+
       const formData = new FormData()
       formData.append('avatar', file)
 
@@ -187,6 +192,7 @@ export default function AdminProfile() {
       // Instantly update avatar in local state
       if (result.avatarUrl) {
         setData(prev => prev ? { ...prev, user: { ...prev.user, avatar: result.avatarUrl } } : prev)
+        setPreviewUrl(null) // clear blob preview, use server URL
       }
 
       toast.success('Profile picture updated successfully!')
@@ -194,6 +200,7 @@ export default function AdminProfile() {
       router.refresh()
     } catch (error) {
       console.error('Error uploading photo:', error)
+      setPreviewUrl(null) // clear preview on error
       toast.error(error instanceof Error ? error.message : 'Failed to upload photo')
     } finally {
       setUploadingPhoto(false)
@@ -221,6 +228,7 @@ export default function AdminProfile() {
 
       // Instantly remove avatar from local state
       setData(prev => prev ? { ...prev, user: { ...prev.user, avatar: undefined } } : prev)
+      setPreviewUrl(null)
       toast.success('Profile picture removed successfully!')
       // Refresh session/sidebar without full page reload
       router.refresh()
@@ -445,7 +453,7 @@ export default function AdminProfile() {
             <CardContent>
               <div className="flex items-center gap-6">
                 <Avatar className="h-24 w-24">
-                  <AvatarImage src={data.user.avatar ? `${data.user.avatar}?t=${Date.now()}` : undefined} alt={data.user.name} />
+                  <AvatarImage src={previewUrl ?? (data.user.avatar ? `${data.user.avatar}?t=${Date.now()}` : undefined)} alt={data.user.name} />
                   <AvatarFallback className="text-2xl">
                     {data.user.name.split(' ').map(n => n[0]).join('').toUpperCase()}
                   </AvatarFallback>

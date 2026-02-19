@@ -30,22 +30,23 @@ type ProfileData = {
 export default function PersonnelProfile() {
   const searchParams = useSearchParams()
   const defaultTab = searchParams.get("tab") || "profile"
-  
+
   const [data, setData] = useState<ProfileData | null>(null)
   const [loading, setLoading] = useState(true)
   const [changingPassword, setChangingPassword] = useState(false)
   const [showCurrentPassword, setShowCurrentPassword] = useState(false)
   const [showNewPassword, setShowNewPassword] = useState(false)
   const [showConfirmPassword, setShowConfirmPassword] = useState(false)
-  
+
   const [passwordData, setPasswordData] = useState({
     currentPassword: "",
     newPassword: "",
     confirmPassword: "",
   })
   const [uploadingPhoto, setUploadingPhoto] = useState(false)
+  const [previewUrl, setPreviewUrl] = useState<string | null>(null)
   const fileInputRef = useRef<HTMLInputElement>(null)
-  
+
   // Settings state
   const [settings, setSettings] = useState({
     theme: "light",
@@ -163,6 +164,10 @@ export default function PersonnelProfile() {
 
     try {
       setUploadingPhoto(true)
+      // Instantly show blob preview
+      const localPreview = URL.createObjectURL(file)
+      setPreviewUrl(localPreview)
+
       const formData = new FormData()
       formData.append('avatar', file)
 
@@ -177,13 +182,16 @@ export default function PersonnelProfile() {
         throw new Error(result.error || 'Failed to upload photo')
       }
 
+      // Update local state with server URL
+      if (result.avatarUrl) {
+        setData(prev => prev ? { ...prev, user: { ...prev.user, avatar: result.avatarUrl } } : prev)
+        setPreviewUrl(null)
+      }
+
       toast.success('Profile picture updated successfully!')
-      // Reload the page to update sidebar avatar and session
-      setTimeout(() => {
-        window.location.reload()
-      }, 500)
     } catch (error) {
       console.error('Error uploading photo:', error)
+      setPreviewUrl(null)
       toast.error(error instanceof Error ? error.message : 'Failed to upload photo')
     } finally {
       setUploadingPhoto(false)
@@ -206,10 +214,8 @@ export default function PersonnelProfile() {
       }
 
       toast.success('Profile picture removed successfully!')
-      // Reload the page to update sidebar avatar and session
-      setTimeout(() => {
-        window.location.reload()
-      }, 500)
+      setData(prev => prev ? { ...prev, user: { ...prev.user, avatar: undefined } } : prev)
+      setPreviewUrl(null)
     } catch (error) {
       console.error('Error removing photo:', error)
       toast.error(error instanceof Error ? error.message : 'Failed to remove photo')
@@ -234,7 +240,7 @@ export default function PersonnelProfile() {
       }
 
       toast.success('Settings saved successfully!')
-      
+
       // Apply theme if changed
       if (settings.theme !== 'light') {
         document.documentElement.classList.toggle('dark', settings.theme === 'dark')
@@ -306,7 +312,7 @@ export default function PersonnelProfile() {
             <CardContent>
               <div className="flex items-center gap-6">
                 <Avatar className="h-24 w-24">
-                  <AvatarImage src={data.user.avatar ? `${data.user.avatar}?t=${Date.now()}` : undefined} alt={data.user.name} />
+                  <AvatarImage src={previewUrl ?? (data.user.avatar ? `${data.user.avatar}?t=${Date.now()}` : undefined)} alt={data.user.name} />
                   <AvatarFallback className="text-2xl">
                     {data.user.name.split(' ').map(n => n[0]).join('').toUpperCase()}
                   </AvatarFallback>
@@ -323,8 +329,8 @@ export default function PersonnelProfile() {
                       ref={fileInputRef}
                       onChange={handlePhotoUpload}
                     />
-                    <Button 
-                      variant="outline" 
+                    <Button
+                      variant="outline"
                       size="sm"
                       onClick={() => fileInputRef.current?.click()}
                       disabled={uploadingPhoto}
@@ -333,9 +339,9 @@ export default function PersonnelProfile() {
                       {uploadingPhoto ? 'Uploading...' : 'Change Photo'}
                     </Button>
                     {data.user.avatar && (
-                      <Button 
-                        variant="ghost" 
-                        size="sm" 
+                      <Button
+                        variant="ghost"
+                        size="sm"
                         className="text-red-600 hover:text-red-700 hover:bg-red-50"
                         onClick={handleRemovePhoto}
                         disabled={uploadingPhoto}
@@ -455,7 +461,7 @@ export default function PersonnelProfile() {
                     <div className="font-medium">Theme</div>
                     <div className="text-sm text-muted-foreground">Choose your display theme</div>
                   </div>
-                  <select 
+                  <select
                     className="border rounded-md px-3 py-2 bg-card text-card-foreground dark:border-border"
                     value={settings.theme}
                     onChange={(e) => setSettings({ ...settings, theme: e.target.value })}
@@ -481,9 +487,9 @@ export default function PersonnelProfile() {
                       </div>
                       <div className="text-sm text-muted-foreground">Receive email updates about your account</div>
                     </div>
-                    <input 
-                      type="checkbox" 
-                      className="h-4 w-4" 
+                    <input
+                      type="checkbox"
+                      className="h-4 w-4"
                       checked={settings.emailNotifications}
                       onChange={(e) => setSettings({ ...settings, emailNotifications: e.target.checked })}
                       disabled
@@ -494,9 +500,9 @@ export default function PersonnelProfile() {
                       <div className="font-medium">Payroll Notifications</div>
                       <div className="text-sm text-muted-foreground">Get notified about payroll updates</div>
                     </div>
-                    <input 
-                      type="checkbox" 
-                      className="h-4 w-4" 
+                    <input
+                      type="checkbox"
+                      className="h-4 w-4"
                       checked={settings.payrollNotifications}
                       onChange={(e) => setSettings({ ...settings, payrollNotifications: e.target.checked })}
                     />
@@ -506,9 +512,9 @@ export default function PersonnelProfile() {
                       <div className="font-medium">Attendance Reminders</div>
                       <div className="text-sm text-muted-foreground">Get reminders about time-in and time-out</div>
                     </div>
-                    <input 
-                      type="checkbox" 
-                      className="h-4 w-4" 
+                    <input
+                      type="checkbox"
+                      className="h-4 w-4"
                       checked={settings.attendanceReminders}
                       onChange={(e) => setSettings({ ...settings, attendanceReminders: e.target.checked })}
                     />
@@ -525,7 +531,7 @@ export default function PersonnelProfile() {
                       <div className="font-medium">Language</div>
                       <div className="text-sm text-muted-foreground">Select your preferred language</div>
                     </div>
-                    <select 
+                    <select
                       className="border rounded-md px-3 py-2 bg-card text-card-foreground dark:border-border"
                       value={settings.language}
                       onChange={(e) => setSettings({ ...settings, language: e.target.value })}
@@ -543,7 +549,7 @@ export default function PersonnelProfile() {
                 </div>
               </div>
 
-              <Button 
+              <Button
                 className="w-full md:w-auto"
                 onClick={handleSaveSettings}
                 disabled={savingSettings}
@@ -634,8 +640,8 @@ export default function PersonnelProfile() {
                 </div>
               </div>
 
-              <Button 
-                onClick={handleChangePassword} 
+              <Button
+                onClick={handleChangePassword}
                 disabled={changingPassword}
                 className="w-full md:w-auto"
               >
