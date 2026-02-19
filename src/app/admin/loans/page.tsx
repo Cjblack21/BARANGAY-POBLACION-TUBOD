@@ -393,12 +393,17 @@ export default function LoansPage() {
           termMonths: Number(form.termMonths),
         })
       })
-      if (!res.ok) throw new Error('Failed to create loan')
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}))
+        throw new Error(data.error || 'Failed to create loan')
+      }
+      toast.success('Loan created successfully')
       setOpen(false)
       setForm({ users_id: "", amount: "", purpose: "", monthlyPaymentPercent: "", termMonths: "" })
       await loadLoans()
     } catch (e) {
       console.error(e)
+      toast.error(e instanceof Error ? e.message : 'Failed to create loan')
     } finally {
       setSaving(false)
     }
@@ -539,7 +544,7 @@ export default function LoansPage() {
                         <Input
                           value={form.purpose}
                           onChange={(e) => setForm(f => ({ ...f, purpose: e.target.value }))}
-                          placeholder="e.g. Emergency, Medical"
+                          placeholder="e.g. Personal Loan"
                           className="h-11 text-base"
                         />
                       </div>
@@ -556,7 +561,7 @@ export default function LoansPage() {
                       <div className="space-y-2">
                         <label className="text-base font-medium">Term (Months)</label>
                         <div className="grid grid-cols-3 gap-2 mb-2">
-                          {[6, 12, 18, 24].map(months => (
+                          {[1, 6, 12, 18, 24].map(months => (
                             <Button
                               key={months}
                               type="button"
@@ -568,7 +573,7 @@ export default function LoansPage() {
                               }}
                               className={(!isCustomTerm && Number(form.termMonths) === months) ? "bg-blue-600 hover:bg-blue-700" : ""}
                             >
-                              {months} Months
+                              {months} {months === 1 ? 'Month' : 'Months'}
                             </Button>
                           ))}
                           <Button
@@ -658,7 +663,7 @@ export default function LoansPage() {
                                 <span className="text-sm font-medium text-muted-foreground">Term</span>
                               </div>
                               <span className="text-lg font-bold text-purple-600">
-                                {form.termMonths} months
+                                {form.termMonths} {Number(form.termMonths) === 1 ? 'month' : 'months'}
                               </span>
                             </div>
 

@@ -21,15 +21,15 @@ model activity_logs {
 }
 
 model attendances {
-  attendances_id String              @id
+  attendances_id String             @id
   users_id       String
   date           DateTime
   timeIn         DateTime?
   timeOut        DateTime?
-  status         attendances_status  @default(PENDING)
-  createdAt      DateTime            @default(now())
+  status         attendances_status @default(PENDING)
+  createdAt      DateTime           @default(now())
   updatedAt      DateTime
-  users          users               @relation(fields: [users_id], references: [users_id])
+  users          users              @relation(fields: [users_id], references: [users_id])
 
   @@unique([users_id, date])
   @@index([users_id], map: "attendances_users_id_fkey")
@@ -282,12 +282,12 @@ enum users_role {
 }
 
 enum loans_status {
-  PENDING      // Waiting for admin approval
-  APPROVED     // Approved by admin, not yet active
-  ACTIVE       // Currently being paid
-  REJECTED     // Rejected by admin
-  COMPLETED    // Fully paid
-  DEFAULTED    // Payment defaulted
+  PENDING
+  APPROVED
+  ACTIVE
+  REJECTED
+  COMPLETED
+  DEFAULTED
 }
 
 enum payroll_entries_status {

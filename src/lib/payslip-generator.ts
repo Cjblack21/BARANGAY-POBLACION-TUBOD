@@ -67,188 +67,253 @@ export function generatePayslipHTML(
 ): string {
   const breakdown = employee.breakdown
 
+  // Get logo URL (use default if not configured)
+  const logoUrl = headerSettings?.logoUrl || '/BRGY PICTURE LOG TUBOD.png'
+
+  // Use biweekly salary (not monthly)
+  const biweeklySalary = breakdown.biweeklyBasicSalary
+  const honorarium = breakdown.overtimePay || 0
+
+  // Separate deductions into categories
+  const mandatoryDeductions = breakdown.deductionDetails?.filter((d: any) =>
+    d.isMandatory ||
+    d.type?.includes('PhilHealth') ||
+    d.type?.includes('SSS') ||
+    d.type?.includes('Pag-IBIG') ||
+    d.type?.includes('Tax')
+  ) || []
+
+  const attendanceDeductions = breakdown.attendanceDeductionDetails || []
+  const loanDeductions = breakdown.loanDetails || []
+
+  const totalMandatory = mandatoryDeductions.reduce((sum: number, d: any) => sum + (d.amount || 0), 0)
+  const totalLoans = breakdown.loanPayments || 0
+
+  // Calculate attendance deductions: if not explicitly provided, derive from total deductions
+  let totalAttendance = breakdown.attendanceDeductions || 0
+  if (totalAttendance === 0 && breakdown.totalDeductions > 0) {
+    // Calculate: attendance = total - mandatory - loans
+    totalAttendance = breakdown.totalDeductions - totalMandatory - totalLoans
+    // Ensure it's not negative
+    totalAttendance = Math.max(0, totalAttendance)
+  }
+
   return `
     <div class="payslip" style="
+      position: relative;
       width: 100%;
       height: 100%;
-      border: 1px solid #000;
+      border: 2px solid #000;
       margin: 0;
       padding: 8px;
       box-sizing: border-box;
       font-family: Arial, sans-serif;
-      font-size: 9px;
+      font-size: 10px;
       line-height: 1.2;
       page-break-inside: avoid;
       overflow: hidden;
+      background: white;
     ">
-      ${headerSettings ? `
-        <div style="text-align: ${headerSettings.headerAlignment}; margin-bottom: 4px; border-bottom: 1px solid #000; padding-bottom: 2px;">
-          ${headerSettings.showLogo ? `
-            <div style="margin-bottom: 2px;">
-              <img src="${headerSettings.logoUrl}" alt="Logo" style="height: 50px; width: auto;" onerror="this.src='/BRGY PICTURE LOG TUBOD.png'">
-            </div>
-          ` : ''}
-          <div style="font-weight: bold; font-size: 10px; margin-bottom: 1px; line-height: 1.1;">
-            ${headerSettings.schoolName}
-          </div>
-          <div style="font-size: 8px; color: #666; margin-bottom: 1px; line-height: 1.1;">
-            ${headerSettings.schoolAddress}
-          </div>
-          <div style="font-size: 8px; color: #666; margin-bottom: 1px; line-height: 1.1;">
-            ${headerSettings.systemName}
-          </div>
-          ${headerSettings.customText ? `
-            <div style="font-size: 8px; color: #666; margin-bottom: 1px; line-height: 1.1;">
-              ${headerSettings.customText}
-            </div>
-          ` : ''}
-          <div style="font-weight: bold; margin-top: 1px; border-top: 1px solid #ccc; padding-top: 1px; font-size: 9px;">
-            PAYSLIP
-          </div>
-        </div>
-      ` : `
-        <div style="text-align: center; font-weight: bold; margin-bottom: 4px; border-bottom: 1px solid #000; padding-bottom: 2px; font-size: 10px;">
-          PAYSLIP
-        </div>
-      `}
-      
-      <div style="margin-bottom: 2px; font-size: 8px;">
-        <div style="margin-bottom: 1px;">
-          <strong>Staff:</strong> ${employee.name || employee.email}
-        </div>
-        <div style="margin-bottom: 1px;">
-          <strong>Staff ID:</strong> ${employee.users_id}
-        </div>
-        <div style="margin-bottom: 1px;">
-          <strong>Email:</strong> ${employee.email}
-        </div>
-        <div style="margin-bottom: 1px;">
-          <strong>Department:</strong> BLGU
-        </div>
-        ${employee.position ? `
-        <div style="margin-bottom: 1px;">
-          <strong>Position:</strong> ${employee.position}
-        </div>
-        ` : ''}
-        <div>
-          <strong>Period:</strong> ${new Date(period.periodStart).toLocaleDateString()} - ${new Date(period.periodEnd).toLocaleDateString()}
-        </div>
+      <!-- Background Watermark Logo -->
+      <div style="
+        position: absolute;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        opacity: 0.03;
+        z-index: 0;
+        pointer-events: none;
+      ">
+        <img src="${logoUrl}" alt="Watermark" style="
+          width: 500px;
+          height: 500px;
+          object-fit: contain;
+          filter: blur(2px);
+        " onerror="this.style.display='none'">
       </div>
-      
-      <div style="margin: 4px 0; border-top: 1px solid #ccc; padding-top: 3px;">
-        ${breakdown ? `
-          <div style="font-weight: bold; font-size: 9px; margin-bottom: 2px; color: #16a34a;">EARNINGS</div>
-          ${(breakdown.overtimePay || 0) > 0 ? `
-            <div style="display: flex; justify-content: space-between; margin-bottom: 2px; font-size: 8px;">
+
+      <!-- Content (above watermark) -->
+      <div style="position: relative; z-index: 1;">
+        <!-- Header -->
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px; border-bottom: 2px solid #000; padding-bottom: 4px;">
+          <!-- Logo left -->
+          <div style="min-width: 50px;">
+            ${headerSettings?.showLogo !== false ? `
+              <img src="${logoUrl}" alt="Logo" style="height: 50px; width: auto;" onerror="this.src='/BRGY PICTURE LOG TUBOD.png'">
+            ` : ''}
+          </div>
+          <!-- Center text -->
+          <div style="text-align: center; flex: 1;">
+            <div style="font-weight: bold; font-size: 13px; margin-bottom: 2px;">
+              ${headerSettings?.schoolName || 'BARANGAY POBLACION TUBOD'}
+            </div>
+            <div style="font-size: 9px; color: #666; margin-bottom: 1px;">
+              ${headerSettings?.schoolAddress || ''}
+            </div>
+            <div style="font-size: 9px; color: #666; margin-bottom: 2px;">
+              ${headerSettings?.systemName || 'Payroll Management System'}
+            </div>
+            <div style="font-weight: bold; font-size: 16px; letter-spacing: 2px;">
+              PAYSLIP
+            </div>
+          </div>
+          <!-- QR code right -->
+          <div style="min-width: 50px; text-align: right;">
+            <img src="/QR CODE PMS SYSTEM.png" alt="QR Code" style="height: 50px; width: 50px; object-fit: contain;" onerror="this.style.display='none'">
+            <div style="font-size: 7px; font-weight: bold; color: #555; text-align: center; margin-top: 2px; letter-spacing: 1px;">SCAN ME</div>
+          </div>
+        </div>
+        
+        <!-- Staff Information -->
+        <div style="margin-bottom: 4px; font-size: 10px; line-height: 1.3;">
+          <div style="margin-bottom: 3px;">
+            <strong>Brgy Staff:</strong> ${employee.name || employee.email}
+          </div>
+          <div style="margin-bottom: 3px;">
+            <strong>Brgy Staff ID:</strong> ${employee.users_id}
+          </div>
+          <div style="margin-bottom: 3px;">
+            <strong>Email:</strong> ${employee.email}
+          </div>
+          <div style="margin-bottom: 3px;">
+            <strong>BLGU/Position:</strong> ${employee.department || 'BLGU'} / ${employee.position || 'Barangay Staff'}
+          </div>
+          <div>
+            <strong>Period:</strong> ${new Date(period.periodStart).toLocaleDateString()} - ${new Date(period.periodEnd).toLocaleDateString()}
+          </div>
+        </div>
+        
+        <!-- HONORARIUM SECTION -->
+        <div style="margin: 6px 0; border-top: 1px solid #ccc; padding-top: 6px;">
+          <div style="font-weight: bold; font-size: 13px; margin-bottom: 3px; color: #16a34a;">HONORARIUM</div>
+          <div style="padding: 5px; border-radius: 3px;">
+            <div style="display: flex; justify-content: space-between; margin-bottom: 3px; font-size: 10px;">
+              <span>Monthly Salary:</span>
+              <span style="font-weight: bold; color: #16a34a;">₱${biweeklySalary.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+            </div>
+            ${honorarium > 0 ? `
+            <div style="display: flex; justify-content: space-between; margin-bottom: 3px; font-size: 10px;">
               <span>Additional Pay:</span>
-              <span style="color: #16a34a;">₱${(breakdown.overtimePay || 0).toLocaleString(undefined, { maximumFractionDigits: 2 })}</span>
+              <span style="font-weight: bold; color: #16a34a;">₱${honorarium.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
             </div>
-          ` : ''}
-          <div style="font-weight: bold; font-size: 9px; margin: 3px 0 2px 0; color: #dc2626;">DEDUCTIONS</div>
-          ${breakdown.attendanceDeductionDetails && breakdown.attendanceDeductionDetails.length > 0 ? `
-            <div style="margin-bottom: 2px; padding: 2px; background: #fee2e2; border-radius: 2px;">
-              <div style="font-size: 7px; font-weight: bold; color: #dc2626; margin-bottom: 1px;">Attendance Deductions:</div>
-              ${breakdown.attendanceDeductionDetails.map((deduction: any) => `
-                <div style="display: flex; justify-content: space-between; margin-bottom: 0.5px; font-size: 6px; padding-left: 4px;">
-                  <span style="color: #666;">${deduction.type || 'Attendance Deduction'}</span>
-                  <span style="color: #dc2626; font-weight: bold;">-₱${(deduction.amount || 0).toLocaleString(undefined, { maximumFractionDigits: 2 })}</span>
-                </div>
-              `).join('')}
-              <div style="display: flex; justify-content: space-between; margin-top: 1px; padding-top: 1px; border-top: 1px solid #fecaca; font-size: 7px; font-weight: bold;">
-                <span>Total:</span>
-                <span style="color: #dc2626;">-₱${(breakdown.attendanceDeductions || 0).toLocaleString(undefined, { maximumFractionDigits: 2 })}</span>
+            ` : ''}
+          </div>
+        </div>
+
+        <!-- DEDUCTIONS SECTION -->
+        <div style="margin: 4px 0; border-top: 1px solid #ccc; padding-top: 4px;">
+          <div style="font-weight: bold; font-size: 13px; margin-bottom: 3px; color: #dc2626;">DEDUCTIONS</div>
+          
+          <!-- Mandatory Deductions -->
+          ${mandatoryDeductions.length > 0 || totalMandatory > 0 ? `
+          <div style="padding: 5px; border-radius: 3px; margin-bottom: 4px;">
+            <div style="font-size: 10px; font-weight: bold; color: #3b82f6; margin-bottom: 3px;">Mandatory Deductions:</div>
+            ${mandatoryDeductions.map((d: any) => `
+              <div style="display: flex; justify-content: space-between; margin-bottom: 1px; font-size: 9px; padding-left: 6px;">
+                <span style="color: #666;">${d.type || 'Deduction'}</span>
+                <span style="color: #dc2626; font-weight: bold;">-₱${(d.amount || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+              </div>
+            `).join('')}
+            <div style="border-top: 1px solid #ddd; margin-top: 3px; padding-top: 3px;">
+              <div style="display: flex; justify-content: space-between; font-size: 10px; font-weight: bold;">
+                <span>Subtotal:</span>
+                <span style="color: #dc2626;">-₱${totalMandatory.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
               </div>
             </div>
-          ` : (breakdown.attendanceDeductions || 0) > 0 ? `
-            <div style="margin-bottom: 2px; padding: 2px; background: #fee2e2; border-radius: 2px;">
-              <div style="font-size: 7px; font-weight: bold; color: #dc2626; margin-bottom: 1px;">Attendance Deductions:</div>
-              <div style="display: flex; justify-content: space-between; margin-bottom: 0.5px; font-size: 6px; padding-left: 4px;">
+          </div>
+          ` : ''}
+
+          <!-- Attendance Deductions -->
+          ${attendanceDeductions.length > 0 || totalAttendance > 0 ? `
+          <div style="padding: 5px; border-radius: 3px; margin-bottom: 4px;">
+            <div style="font-size: 10px; font-weight: bold; color: #dc2626; margin-bottom: 3px;">Attendance Deductions:</div>
+            ${attendanceDeductions.map((d: any) => `
+              <div style="margin-bottom: 3px; padding-left: 6px;">
+                <div style="display: flex; justify-content: space-between; font-size: 9px;">
+                  <span style="color: #666;">${d.description || d.type || 'Attendance Deduction'}</span>
+                  <span style="color: #dc2626; font-weight: bold;">-₱${(d.amount || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+                </div>
+              </div>
+            `).join('')}
+            ${attendanceDeductions.length === 0 && totalAttendance > 0 ? `
+              <div style="display: flex; justify-content: space-between; margin-bottom: 1px; font-size: 9px; padding-left: 6px;">
                 <span style="color: #666;">Attendance Deduction</span>
-                <span style="color: #dc2626; font-weight: bold;">-₱${(breakdown.attendanceDeductions || 0).toLocaleString(undefined, { maximumFractionDigits: 2 })}</span>
+                <span style="color: #dc2626; font-weight: bold;">-₱${totalAttendance.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
               </div>
-              <div style="display: flex; justify-content: space-between; margin-top: 1px; padding-top: 1px; border-top: 1px solid #fecaca; font-size: 7px; font-weight: bold;">
-                <span>Total:</span>
-                <span style="color: #dc2626;">-₱${(breakdown.attendanceDeductions || 0).toLocaleString(undefined, { maximumFractionDigits: 2 })}</span>
+            ` : ''}
+            <div style="border-top: 1px solid #ddd; margin-top: 3px; padding-top: 3px;">
+              <div style="display: flex; justify-content: space-between; font-size: 10px; font-weight: bold;">
+                <span>Subtotal:</span>
+                <span style="color: #dc2626;">-₱${totalAttendance.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
               </div>
             </div>
+          </div>
           ` : ''}
-          ${breakdown.deductionDetails && breakdown.deductionDetails.length > 0 ? `
-            <div style="margin-bottom: 2px; padding: 2px; background: #f3f4f6; border-radius: 2px;">
-              <div style="font-size: 7px; font-weight: bold; color: #374151; margin-bottom: 1px;">Mandatory Deductions:</div>
-              ${breakdown.deductionDetails.map((deduction: any) => `
-                <div style="display: flex; justify-content: space-between; margin-bottom: 0.5px; font-size: 6px; padding-left: 4px;">
-                  <span style="color: #666;">${deduction.type || 'Deduction'}</span>
-                  <span style="color: #dc2626; font-weight: bold;">-₱${(deduction.amount || 0).toLocaleString(undefined, { maximumFractionDigits: 2 })}</span>
-                </div>
-              `).join('')}
-              <div style="display: flex; justify-content: space-between; margin-top: 1px; padding-top: 1px; border-top: 1px solid #d1d5db; font-size: 7px; font-weight: bold;">
-                <span>Total:</span>
-                <span style="color: #dc2626;">-₱${breakdown.deductionDetails.reduce((sum: number, d: any) => sum + (d.amount || 0), 0).toLocaleString(undefined, { maximumFractionDigits: 2 })}</span>
-              </div>
-            </div>
-          ` : (breakdown.nonAttendanceDeductions || 0) > 0 ? `
-            <div style="margin-bottom: 2px; padding: 2px; background: #f3f4f6; border-radius: 2px;">
-              <div style="font-size: 7px; font-weight: bold; color: #374151; margin-bottom: 1px;">Mandatory Deductions:</div>
-              <div style="display: flex; justify-content: space-between; margin-bottom: 0.5px; font-size: 6px; padding-left: 4px;">
-                <span style="color: #666;">Other Deductions</span>
-                <span style="color: #dc2626; font-weight: bold;">-₱${(breakdown.nonAttendanceDeductions || 0).toLocaleString(undefined, { maximumFractionDigits: 2 })}</span>
-              </div>
-              <div style="display: flex; justify-content: space-between; margin-top: 1px; padding-top: 1px; border-top: 1px solid #d1d5db; font-size: 7px; font-weight: bold;">
-                <span>Total:</span>
-                <span style="color: #dc2626;">-₱${(breakdown.nonAttendanceDeductions || 0).toLocaleString(undefined, { maximumFractionDigits: 2 })}</span>
-              </div>
-            </div>
-          ` : ''}
-          ${breakdown.loanDetails && breakdown.loanDetails.length > 0 ? `
-            <div style="margin-bottom: 2px; padding: 2px; background: #fef3c7; border-radius: 2px;">
-              <div style="font-size: 7px; font-weight: bold; color: #d97706; margin-bottom: 1px;">Loan Payments:</div>
-              ${breakdown.loanDetails.map((loan: any) => `
-                <div style="display: flex; justify-content: space-between; margin-bottom: 0.5px; font-size: 6px; padding-left: 4px;">
+
+          <!-- Loan Payments -->
+          ${loanDeductions.length > 0 || totalLoans > 0 ? `
+          <div style="padding: 5px; border-radius: 3px; margin-bottom: 4px;">
+            <div style="font-size: 10px; font-weight: bold; color: #d97706; margin-bottom: 3px;">Loan Payments:</div>
+            ${loanDeductions.map((loan: any) => `
+              <div style="margin-bottom: 2px; font-size: 9px; padding-left: 6px;">
+                <div style="display: flex; justify-content: space-between;">
                   <span style="color: #666;">${loan.purpose || 'Loan Payment'}</span>
-                  <span style="color: #d97706; font-weight: bold;">-₱${(loan.payment || 0).toLocaleString(undefined, { maximumFractionDigits: 2 })}</span>
+                  <span style="color: #d97706; font-weight: bold;">-₱${(loan.payment || loan.amount || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
                 </div>
-              `).join('')}
-              <div style="display: flex; justify-content: space-between; margin-top: 1px; padding-top: 1px; border-top: 1px solid #fde68a; font-size: 7px; font-weight: bold;">
-                <span>Total:</span>
-                <span style="color: #d97706;">-₱${(breakdown.loanPayments || 0).toLocaleString(undefined, { maximumFractionDigits: 2 })}</span>
+                ${loan.remainingBalance ? `
+                <div style="font-size: 8px; color: #666; margin-top: 1px;">
+                  Balance: ₱${(loan.remainingBalance || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                </div>
+                ` : ''}
               </div>
-            </div>
-          ` : (breakdown.loanPayments || 0) > 0 ? `
-            <div style="margin-bottom: 2px; padding: 2px; background: #fef3c7; border-radius: 2px;">
-              <div style="font-size: 7px; font-weight: bold; color: #d97706; margin-bottom: 1px;">Loan Payments:</div>
-              <div style="display: flex; justify-content: space-between; margin-bottom: 0.5px; font-size: 6px; padding-left: 4px;">
+            `).join('')}
+            ${loanDeductions.length === 0 && totalLoans > 0 ? `
+              <div style="display: flex; justify-content: space-between; margin-bottom: 1px; font-size: 9px; padding-left: 6px;">
                 <span style="color: #666;">Loan Payment</span>
-                <span style="color: #d97706; font-weight: bold;">-₱${(breakdown.loanPayments || 0).toLocaleString(undefined, { maximumFractionDigits: 2 })}</span>
+                <span style="color: #d97706; font-weight: bold;">-₱${totalLoans.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
               </div>
-              <div style="display: flex; justify-content: space-between; margin-top: 1px; padding-top: 1px; border-top: 1px solid #fde68a; font-size: 7px; font-weight: bold;">
-                <span>Total:</span>
-                <span style="color: #d97706;">-₱${(breakdown.loanPayments || 0).toLocaleString(undefined, { maximumFractionDigits: 2 })}</span>
+            ` : ''}
+            <div style="border-top: 1px solid #ddd; margin-top: 3px; padding-top: 3px;">
+              <div style="display: flex; justify-content: space-between; font-size: 10px; font-weight: bold;">
+                <span>Subtotal:</span>
+                <span style="color: #d97706;">-₱${totalLoans.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
               </div>
             </div>
+          </div>
           ` : ''}
-        ` : ''}
 
-        <div style="display: flex; justify-content: space-between; margin-top: 4px; padding-top: 3px; border-top: 2px solid #000; font-weight: bold; font-size: 10px;">
+          <!-- Total Deductions -->
+          <div style="padding: 5px; border-radius: 3px; border-top: 2px solid #000; border-bottom: 2px solid #000;">
+            <div style="display: flex; justify-content: space-between; font-size: 11px; font-weight: bold;">
+              <span>TOTAL DEDUCTIONS:</span>
+              <span style="color: #dc2626;">-₱${breakdown.totalDeductions.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- NET PAY -->
+        <div style="display: flex; justify-content: space-between; margin-top: 6px; padding: 6px; border-top: 2px solid #000; font-weight: bold; font-size: 14px; border-radius: 3px;">
           <span>NET PAY</span>
-          <span>₱${employee.totalSalary.toLocaleString(undefined, { maximumFractionDigits: 2 })}</span>
+          <span style="color: #16a34a;">₱${employee.totalSalary.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
         </div>
-      </div>
 
-      <div style="margin-top: 6px; display: flex; justify-content: space-around; gap: 8px; border-top: 1px solid #ccc; padding-top: 6px;">
-        <div style="flex: 1; text-align: center; font-size: 7px;">
-          <div style="border-top: 1px solid #000; margin: 18px 4px 2px 4px;"></div>
-          <div style="font-weight: bold; font-size: 8px;">EMMA L. MAGTAO</div>
-          <div style="font-size: 7px; color: #666;">Brgy Treasurer</div>
+        <!-- Signatures -->
+        <div style="margin-top: 6px; display: flex; justify-content: space-around; gap: 12px; border-top: 1px solid #ccc; padding-top: 6px;">
+          <div style="flex: 1; text-align: center; font-size: 9px;">
+            <div style="border-top: 1px solid #000; margin: 12px 6px 2px 6px;"></div>
+            <div style="font-weight: bold; font-size: 10px;">EMMA L. MAGTAO</div>
+            <div style="font-size: 8px; color: #666;">Brgy Treasurer</div>
+          </div>
+          <div style="flex: 1; text-align: center; font-size: 9px;">
+            <div style="border-top: 1px solid #000; margin: 12px 6px 2px 6px;"></div>
+            <div style="font-weight: bold; font-size: 10px;">${employee.name || employee.email}</div>
+            <div style="font-size: 8px; color: #666;">Received by</div>
+          </div>
         </div>
-        <div style="flex: 1; text-align: center; font-size: 7px;">
-          <div style="border-top: 1px solid #000; margin: 18px 4px 2px 4px;"></div>
-          <div style="font-weight: bold; font-size: 8px;">${employee.name || employee.email}</div>
-          <div style="font-size: 7px; color: #666;">Received by</div>
+        
+        <div style="margin-top: 2px; font-size: 8px; text-align: center; color: #666;">
+          Status: ${employee.released ? 'RELEASED' : 'PENDING'}
         </div>
-      </div>
-      
-      <div style="margin-top: 2px; font-size: 7px; text-align: center; color: #666;">
-        Status: ${employee.released ? 'RELEASED' : 'PENDING'}
       </div>
     </div>
   `
@@ -258,9 +323,9 @@ export function generatePayslipsHTML(
   employees: PayslipData[],
   period: { periodStart: string; periodEnd: string },
   headerSettings: HeaderSettings | null,
-  employeesPerPage: number = 6
+  employeesPerPage: number = 2 // Changed from 6 to 2 for half A4 layout
 ): string {
-  // Group personnel into pages
+  // Group personnel into pages (2 per page)
   const pages = []
   for (let i = 0; i < employees.length; i += employeesPerPage) {
     pages.push(employees.slice(i, i + employeesPerPage))
@@ -273,10 +338,10 @@ export function generatePayslipsHTML(
 
     return `
       <div class="page" style="
-        width: 8.4in;
-        height: 12.7in;
+        width: 210mm;
+        height: 297mm;
         margin: 0;
-        padding: 0.05in;
+        padding: 0;
         box-sizing: border-box;
         ${pageIndex > 0 ? 'page-break-before: always;' : ''}
         clear: both;
@@ -285,8 +350,8 @@ export function generatePayslipsHTML(
           width: 100%;
           height: 100%;
           display: grid;
-          grid-template-columns: 1fr 1fr;
-          grid-template-rows: 1fr 1fr 1fr;
+          grid-template-columns: 1fr;
+          grid-template-rows: 1fr 1fr;
           gap: 0;
         ">
           ${payslips}
@@ -308,13 +373,13 @@ export function generatePayslipsHTML(
       <style>
         @media print {
           @page {
-            size: 8.5in 13in;
-            margin: 0.15in;
+            size: A4;
+            margin: 0;
           }
           .page {
             page-break-after: always;
-            width: 8.2in;
-            height: 12.7in;
+            width: 210mm;
+            height: 297mm;
           }
           .page:last-child {
             page-break-after: avoid;
@@ -322,7 +387,7 @@ export function generatePayslipsHTML(
           .payslip {
             width: 100% !important;
             height: 100% !important;
-            float: none !important;
+            page-break-inside: avoid;
           }
         }
         body {
@@ -332,22 +397,17 @@ export function generatePayslipsHTML(
           background: white;
         }
         .page {
-          width: 8.2in;
-          height: 12.7in;
-          margin: 0;
-          padding: 0.05in;
+          width: 210mm;
+          height: 297mm;
+          margin: 0 auto;
+          padding: 0;
           box-sizing: border-box;
+          background: white;
         }
         .payslip {
           width: 100%;
           height: 100%;
-          border: 1px solid #000;
-          margin: 0;
-          padding: 8px;
           box-sizing: border-box;
-          font-family: Arial, sans-serif;
-          font-size: 9px;
-          line-height: 1.2;
           page-break-inside: avoid;
         }
       </style>

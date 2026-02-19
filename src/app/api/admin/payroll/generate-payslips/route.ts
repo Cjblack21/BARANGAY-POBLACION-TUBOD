@@ -7,22 +7,20 @@ import { generatePayslipsHTML, getHeaderSettings } from '@/lib/payslip-generator
 async function handlePayslipGeneration(periodStart: string | null, periodEnd: string | null, userId: string | null) {
   try {
     const session = await getServerSession(authOptions)
-    
+
     if (!session?.user?.id || session.user.role !== 'ADMIN') {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
-    // Get header settings for payslip generation
+
+    // Get header settings for payslip generation (optional)
     const headerSettings = await getHeaderSettings()
-    
-    if (!headerSettings) {
-      return NextResponse.json({ error: 'Header settings not configured' }, { status: 400 })
-    }
+
 
     // Determine period dates
     let startDate: Date
     let endDate: Date
-    
+
     if (periodStart && periodEnd) {
       startDate = new Date(periodStart)
       endDate = new Date(periodEnd)
@@ -31,7 +29,7 @@ async function handlePayslipGeneration(periodStart: string | null, periodEnd: st
       const now = new Date()
       const currentYear = now.getFullYear()
       const currentMonth = now.getMonth()
-      
+
       if (now.getDate() <= 15) {
         startDate = new Date(currentYear, currentMonth, 1)
         endDate = new Date(currentYear, currentMonth, 15)
@@ -47,12 +45,12 @@ async function handlePayslipGeneration(periodStart: string | null, periodEnd: st
     startOfDay.setHours(0, 0, 0, 0)
     const endOfDay = new Date(startDate)
     endOfDay.setHours(23, 59, 59, 999)
-    
+
     const endStartOfDay = new Date(endDate)
     endStartOfDay.setHours(0, 0, 0, 0)
     const endEndOfDay = new Date(endDate)
     endEndOfDay.setHours(23, 59, 59, 999)
-    
+
     const payrollEntries = await prisma.payroll_entries.findMany({
       where: {
         periodStart: { gte: startOfDay, lte: endOfDay },
@@ -84,6 +82,7 @@ async function handlePayslipGeneration(periodStart: string | null, periodEnd: st
       const deductionRecords = await prisma.deductions.findMany({
         where: {
           users_id: entry.users_id,
+          archivedAt: null,
           OR: [
             // Mandatory deductions - always include
             {
@@ -125,6 +124,8 @@ async function handlePayslipGeneration(periodStart: string | null, periodEnd: st
         const monthlyPayment = Number(loan.amount) * Number(loan.monthlyPaymentPercent) / 100
         const periodPayment = monthlyPayment * loanFactor
         return {
+          purpose: loan.purpose || 'Loan Payment',
+          payment: periodPayment,
           type: 'Loan Payment',
           amount: periodPayment,
           description: `${loan.purpose} (${loan.monthlyPaymentPercent}% of ₱${Number(loan.amount).toLocaleString()})`,
@@ -134,7 +135,7 @@ async function handlePayslipGeneration(periodStart: string | null, periodEnd: st
 
       // Build deduction details (excluding attendance-related deductions)
       const otherDeductionDetails = deductionRecords
-        .filter((d: any) => 
+        .filter((d: any) =>
           !d.deduction_types.name.includes('Late') &&
           !d.deduction_types.name.includes('Absent') &&
           !d.deduction_types.name.includes('Early') &&
@@ -154,19 +155,54 @@ async function handlePayslipGeneration(periodStart: string | null, periodEnd: st
       let storedBreakdown: any = null
       if (entry.breakdownSnapshot) {
         try {
-          storedBreakdown = typeof entry.breakdownSnapshot === 'string' 
-            ? JSON.parse(entry.breakdownSnapshot) 
+          storedBreakdown = typeof entry.breakdownSnapshot === 'string'
+            ? JSON.parse(entry.breakdownSnapshot)
             : entry.breakdownSnapshot
         } catch (e) {
           console.error('Failed to parse breakdownSnapshot:', e)
         }
       }
-      
-      const attendanceDeductionDetails = storedBreakdown?.attendanceDeductionDetails || []
-      const totalAttendanceDeductions = storedBreakdown?.attendanceDeductions || 0
-      const storedLoanDetails = storedBreakdown?.loanDetails || []
-      const storedOtherDeductionDetails = storedBreakdown?.deductionDetails || []
-      
+
+      // Fetch attendance deduction records
+      // For RELEASED/ARCHIVED payrolls, use the stored breakdownSnapshot as the source of truth
+      // to avoid mixing deductions from different payroll periods.
+      // Only query live data for PENDING entries.
+      let liveAttendanceDeductionDetails: any[] = []
+      let totalAttendanceDeductions = 0
+
+      if (entry.status === 'PENDING') {
+        // PENDING: query only active (non-archived) deductions within this period
+        const allAttendanceDeductionRecords = await prisma.deductions.findMany({
+          where: {
+            users_id: entry.users_id,
+            archivedAt: null, // Only non-archived deductions
+            appliedAt: {
+              gte: startDate,
+              lte: endDate
+            },
+            deduction_types: {
+              OR: [
+                { name: { contains: 'Attendance' } },
+                { name: { contains: 'Late' } },
+                { name: { contains: 'Absent' } },
+                { name: { contains: 'Early' } },
+                { name: { contains: 'Partial' } },
+                { name: { contains: 'Tardiness' } }
+              ]
+            }
+          },
+          include: { deduction_types: true }
+        })
+        liveAttendanceDeductionDetails = allAttendanceDeductionRecords.map((d: any) => ({
+          type: d.deduction_types.name,
+          amount: Number(d.amount),
+          description: d.notes || d.deduction_types.description || d.deduction_types.name
+        }))
+        totalAttendanceDeductions = allAttendanceDeductionRecords.reduce((sum: number, d: any) => sum + Number(d.amount), 0)
+      }
+      // For RELEASED/ARCHIVED, liveAttendanceDeductionDetails stays empty
+      // and we use storedAttendanceDeductionDetails from breakdownSnapshot below
+
       // Calculate total work hours from attendance records
       const totalWorkHours = attendanceRecords.reduce((sum, record) => {
         let hours = 0
@@ -178,10 +214,24 @@ async function handlePayslipGeneration(periodStart: string | null, periodEnd: st
         return sum + hours
       }, 0)
 
+      const storedAttendanceDeductionDetails = storedBreakdown?.attendanceDeductionDetails || []
+      const storedLoanDetails = storedBreakdown?.loanDetails || []
+      const storedOtherDeductionDetails = storedBreakdown?.deductionDetails || []
+
+      // For released/archived, use snapshot; for pending, use live data
+      const attendanceDeductionDetails = entry.status === 'PENDING'
+        ? (liveAttendanceDeductionDetails.length > 0 ? liveAttendanceDeductionDetails : storedAttendanceDeductionDetails)
+        : storedAttendanceDeductionDetails
+
+      // Recalculate totalAttendanceDeductions from snapshot for released entries
+      const finalTotalAttendanceDeductions = entry.status === 'PENDING'
+        ? totalAttendanceDeductions
+        : (storedBreakdown?.attendanceDeductions || 0)
+
       // Use stored breakdown details if available, otherwise fall back to live data
       const finalLoanDetails = storedLoanDetails.length > 0 ? storedLoanDetails : loanDetails
       const finalOtherDeductionDetails = storedOtherDeductionDetails.length > 0 ? storedOtherDeductionDetails : otherDeductionDetails
-      
+
       const totalLoanPayments = finalLoanDetails.reduce((sum: number, loan: any) => sum + Number(loan.payment || loan.amount || 0), 0)
       const totalOtherDeductions = finalOtherDeductionDetails.reduce((sum: number, ded: any) => sum + Number(ded.amount || 0), 0)
 
@@ -189,6 +239,8 @@ async function handlePayslipGeneration(periodStart: string | null, periodEnd: st
         users_id: entry.users_id,
         name: entry.users.name,
         email: entry.users.email,
+        department: (entry.users as any).personnel_types?.department || null,
+        position: (entry.users as any).personnel_types?.name || null,
         totalHours: totalWorkHours,
         totalSalary: Number(entry.netPay),
         released: entry.status === 'RELEASED',
@@ -197,7 +249,7 @@ async function handlePayslipGeneration(periodStart: string | null, periodEnd: st
           realTimeEarnings: Number(entry.basicSalary) + Number(entry.overtime),
           realWorkHours: totalWorkHours,
           overtimePay: Number(entry.overtime),
-          attendanceDeductions: totalAttendanceDeductions,
+          attendanceDeductions: finalTotalAttendanceDeductions,
           nonAttendanceDeductions: totalOtherDeductions,
           loanPayments: totalLoanPayments,
           grossPay: Number(entry.basicSalary) + Number(entry.overtime),
@@ -219,7 +271,7 @@ async function handlePayslipGeneration(periodStart: string | null, periodEnd: st
         periodEnd: endDate.toISOString()
       },
       headerSettings,
-      6 // 6 payslips per page for Long Bond Paper
+      2 // 2 payslips per page for half A4 layout
     )
 
     return new NextResponse(html, {

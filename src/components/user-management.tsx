@@ -146,10 +146,6 @@ export function UserManagement() {
   const [selectedPersonnel, setSelectedPersonnel] = useState<User | null>(null)
   const [personnelTypes, setPersonnelTypes] = useState<PersonnelTypeWithDept[]>([])
   const [selectedPersonnelIds, setSelectedPersonnelIds] = useState<Set<string>>(new Set())
-  const [showDeactivated, setShowDeactivated] = useState(false)
-  const [showPasswordDialog, setShowPasswordDialog] = useState(false)
-  const [adminPassword, setAdminPassword] = useState('')
-  const [pendingDeactivation, setPendingDeactivation] = useState<User | null>(null)
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false)
   const [pendingDelete, setPendingDelete] = useState<User | null>(null)
   const [positionSearchTerm, setPositionSearchTerm] = useState('')
@@ -202,12 +198,8 @@ export function UserManagement() {
   useEffect(() => {
     let filtered = personnel
 
-    // Filter by active/deactivated status
-    if (showDeactivated) {
-      filtered = filtered.filter(person => !person.isActive)
-    } else {
-      filtered = filtered.filter(person => person.isActive)
-    }
+    // Filter to show only active staff
+    filtered = filtered.filter(person => person.isActive)
 
     // Apply search filter
     if (searchTerm) {
@@ -223,7 +215,7 @@ export function UserManagement() {
     }
 
     setFilteredPersonnel(filtered)
-  }, [personnel, searchTerm, roleFilter, showDeactivated])
+  }, [personnel, searchTerm, roleFilter])
 
   // Load personnel on mount
   useEffect(() => {
@@ -273,11 +265,6 @@ export function UserManagement() {
       return
     }
 
-    // Validate avatar image is required
-    if (!avatarFile) {
-      toast.error('Please upload a profile image')
-      return
-    }
 
     try {
       // Auto-generate ID if not manually provided (though field is read-only now)
@@ -290,23 +277,26 @@ export function UserManagement() {
         }
       }
 
-      // First, upload the avatar image
-      const avatarFormData = new FormData()
-      avatarFormData.append('avatar', avatarFile)
-      // userId is optional in backend now, but we can pass it if we have it, or just rely on the random filename
+      // Upload avatar image if provided
+      let avatarUrl = null;
+      if (avatarFile) {
+        const avatarFormData = new FormData()
+        avatarFormData.append('avatar', avatarFile)
 
-      const uploadResponse = await fetch('/api/admin/upload-avatar', {
-        method: 'POST',
-        body: avatarFormData
-      })
+        const uploadResponse = await fetch('/api/admin/upload-avatar', {
+          method: 'POST',
+          body: avatarFormData
+        })
 
-      if (!uploadResponse.ok) {
-        const errorData = await uploadResponse.json()
-        toast.error(errorData.error || 'Failed to upload avatar image')
-        return
+        if (!uploadResponse.ok) {
+          const errorData = await uploadResponse.json()
+          toast.error(errorData.error || 'Failed to upload avatar image')
+          return
+        }
+
+        const uploadData = await uploadResponse.json()
+        avatarUrl = uploadData.avatarUrl
       }
-
-      const { avatarUrl } = await uploadResponse.json()
 
       // Then create the user account
       const response = await fetch('/api/admin/users', {
@@ -437,73 +427,7 @@ export function UserManagement() {
   }
 
 
-  // Handle toggle personnel status
-  const handleTogglePersonnelStatus = async (person: User) => {
-    // If trying to deactivate an ADMIN, require password confirmation
-    if (person.role === 'ADMIN' && person.isActive) {
-      setPendingDeactivation(person)
-      setShowPasswordDialog(true)
-      return
-    }
 
-    // For non-admin or reactivation, proceed directly
-    await performStatusToggle(person)
-  }
-
-  // Perform the actual status toggle
-  const performStatusToggle = async (person: User) => {
-    try {
-      const response = await fetch(`/api/admin/users/${person.users_id}`, {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ ...person, isActive: !person.isActive })
-      })
-
-      if (!response.ok) {
-        const error = await response.text()
-        throw new Error(error)
-      }
-
-      toast.success(`Staff ${!person.isActive ? 'activated' : 'deactivated'} successfully`)
-      fetchPersonnel()
-    } catch (error) {
-      console.error('Error toggling staff status:', error)
-      toast.error('Failed to update staff status')
-    }
-  }
-
-  // Verify admin password and proceed with deactivation
-  const handleConfirmDeactivation = async () => {
-    if (!pendingDeactivation || !adminPassword) {
-      toast.error('Please enter your admin password')
-      return
-    }
-
-    try {
-      // Verify admin password
-      const verifyResponse = await fetch('/api/auth/verify-password', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ password: adminPassword })
-      })
-
-      if (!verifyResponse.ok) {
-        toast.error('Incorrect admin password')
-        return
-      }
-
-      // Password verified, proceed with deactivation
-      await performStatusToggle(pendingDeactivation)
-
-      // Close dialog and reset
-      setShowPasswordDialog(false)
-      setAdminPassword('')
-      setPendingDeactivation(null)
-    } catch (error) {
-      console.error('Error verifying password:', error)
-      toast.error('Failed to verify password')
-    }
-  }
 
   // Open edit dialog
   const openEditDialog = (person: User) => {
@@ -553,57 +477,6 @@ export function UserManagement() {
     setSelectedPersonnelIds(newSelected)
   }
 
-  // Handle bulk activate
-  const handleBulkActivate = async () => {
-    if (selectedPersonnelIds.size === 0) return
-
-    try {
-      const promises = Array.from(selectedPersonnelIds).map(personnelId => {
-        const person = personnel.find(p => p.users_id === personnelId)
-        if (!person) return Promise.resolve()
-
-        return fetch(`/api/admin/users/${personnelId}`, {
-          method: 'PUT',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ ...person, isActive: true })
-        })
-      })
-
-      await Promise.all(promises)
-      toast.success(`Activated ${selectedPersonnelIds.size} staff`)
-      setSelectedPersonnelIds(new Set())
-      fetchPersonnel()
-    } catch (error) {
-      console.error('Error activating staff:', error)
-      toast.error('Failed to activate some staff')
-    }
-  }
-
-  // Handle bulk deactivate
-  const handleBulkDeactivate = async () => {
-    if (selectedPersonnelIds.size === 0) return
-
-    try {
-      const promises = Array.from(selectedPersonnelIds).map(personnelId => {
-        const person = personnel.find(p => p.users_id === personnelId)
-        if (!person) return Promise.resolve()
-
-        return fetch(`/api/admin/users/${personnelId}`, {
-          method: 'PUT',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ ...person, isActive: false })
-        })
-      })
-
-      await Promise.all(promises)
-      toast.success(`Deactivated ${selectedPersonnelIds.size} staff`)
-      setSelectedPersonnelIds(new Set())
-      fetchPersonnel()
-    } catch (error) {
-      console.error('Error deactivating staff:', error)
-      toast.error('Failed to deactivate some staff')
-    }
-  }
 
   // Delete flow handlers
   const [deleteRecordCounts, setDeleteRecordCounts] = useState<{
@@ -702,36 +575,6 @@ export function UserManagement() {
           )}
         </div>
         <div className="flex items-center space-x-2 flex-wrap gap-2">
-          {selectedPersonnelIds.size > 0 && (
-            <>
-              <Button
-                onClick={handleBulkActivate}
-                variant="outline"
-                size="sm"
-                className="text-green-600 hover:text-green-700"
-              >
-                <UserCheck className="h-4 w-4 mr-2" />
-                Activate
-              </Button>
-              <Button
-                onClick={handleBulkDeactivate}
-                variant="outline"
-                size="sm"
-                className="text-red-600 hover:text-red-700"
-              >
-                <UserX className="h-4 w-4 mr-2" />
-                Deactivate
-              </Button>
-            </>
-          )}
-          <Button
-            onClick={() => setShowDeactivated(!showDeactivated)}
-            variant={showDeactivated ? "default" : "outline"}
-            size="sm"
-          >
-            <Archive className="h-4 w-4 mr-2" />
-            {showDeactivated ? 'Show Active' : 'Show Deactivated'}
-          </Button>
           <SSRSafe>
             <Dialog open={isCreateDialogOpen} onOpenChange={(open) => {
               setIsCreateDialogOpen(open)
@@ -769,8 +612,8 @@ export function UserManagement() {
                   <div className="bg-gradient-to-br from-blue-50 to-indigo-50 rounded-lg p-6 border border-blue-100">
                     <h3 className="text-sm font-semibold text-gray-900 mb-4 flex items-center gap-2">
                       <User className="h-4 w-4 text-blue-600" />
-                      Profile Photo <span className="text-red-500 ml-1">*</span>
-                      <span className="text-xs text-gray-500 font-normal ml-2">(Required)</span>
+                      Profile Photo
+                      <span className="text-xs text-gray-500 font-normal ml-2">(Optional)</span>
                     </h3>
                     <div className="flex items-center gap-6">
                       <div className="flex-shrink-0">
@@ -807,7 +650,6 @@ export function UserManagement() {
                                   reader.readAsDataURL(file)
                                 }
                               }}
-                              required
                             />
                             <div className="text-center">
                               <Upload className="h-8 w-8 text-blue-500 mx-auto mb-2" />
@@ -1032,7 +874,6 @@ export function UserManagement() {
                   <Button
                     onClick={handleCreatePersonnel}
                     className="w-full sm:w-auto bg-blue-600 hover:bg-blue-700"
-                    disabled={!avatarFile}
                   >
                     <UserPlus className="h-4 w-4 mr-2" />
                     Create Staff Member
@@ -1087,10 +928,10 @@ export function UserManagement() {
       < Card >
         <CardHeader>
           <CardTitle>
-            {showDeactivated ? 'Deactivated Staff' : 'Active Staff'} ({filteredPersonnel.length})
+            Active Staff ({filteredPersonnel.length})
           </CardTitle>
           <CardDescription>
-            Showing {filteredPersonnel.length} of {showDeactivated ? personnel.filter(p => !p.isActive).length : personnel.filter(p => p.isActive).length} {showDeactivated ? 'deactivated' : 'active'} staff
+            Showing {filteredPersonnel.length} of {personnel.filter(p => p.isActive).length} active staff
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -1188,14 +1029,6 @@ export function UserManagement() {
                             <DropdownMenuItem onClick={() => openEditDialog(person)}>
                               <Edit className="mr-2 h-4 w-4" />
                               Edit Staff
-                            </DropdownMenuItem>
-                            <DropdownMenuItem onClick={() => handleTogglePersonnelStatus(person)}>
-                              {person.isActive ? (
-                                <UserX className="mr-2 h-4 w-4" />
-                              ) : (
-                                <UserCheck className="mr-2 h-4 w-4" />
-                              )}
-                              {person.isActive ? 'Deactivate' : 'Activate'}
                             </DropdownMenuItem>
                             <DropdownMenuItem onClick={() => handleDeleteRequest(person)} className="text-red-600 focus:text-red-700">
                               <Trash2 className="mr-2 h-4 w-4" />
@@ -1671,89 +1504,6 @@ export function UserManagement() {
                   Delete Staff
                 </Button>
               )}
-            </DialogFooter>
-          </DialogContent>
-        </Dialog>
-      </SSRSafe >
-
-      {/* Admin Password Confirmation Dialog */}
-      < SSRSafe >
-        <Dialog open={showPasswordDialog} onOpenChange={(open) => {
-          setShowPasswordDialog(open)
-          if (!open) {
-            setAdminPassword('')
-            setPendingDeactivation(null)
-          }
-        }}>
-          <DialogContent className="sm:max-w-[425px]">
-            <DialogHeader>
-              <DialogTitle className="flex items-center gap-2 text-red-600">
-                <UserX className="h-5 w-5" />
-                Deactivate Admin Account
-              </DialogTitle>
-              <DialogDescription>
-                You are about to deactivate an <strong>ADMIN</strong> account. This is a sensitive action that requires verification.
-              </DialogDescription>
-            </DialogHeader>
-            {pendingDeactivation && (
-              <div className="space-y-4 py-4">
-                <div className="bg-amber-50 border border-amber-200 rounded-lg p-4">
-                  <p className="text-sm font-medium text-amber-900 mb-2">Account to be deactivated:</p>
-                  <div className="flex items-center gap-3">
-                    <Avatar>
-                      <AvatarImage src={`https://api.dicebear.com/7.x/initials/svg?seed=${pendingDeactivation.name || pendingDeactivation.email}`} />
-                      <AvatarFallback>{getInitials(pendingDeactivation.name, pendingDeactivation.email)}</AvatarFallback>
-                    </Avatar>
-                    <div>
-                      <p className="font-semibold text-amber-900">{pendingDeactivation.name || pendingDeactivation.email}</p>
-                      <p className="text-sm text-amber-700">{pendingDeactivation.email}</p>
-                      <Badge variant="destructive" className="mt-1">ADMIN</Badge>
-                    </div>
-                  </div>
-                </div>
-
-                <div className="space-y-2">
-                  <Label htmlFor="admin-password" className="text-sm font-medium">
-                    Enter your admin password to confirm
-                  </Label>
-                  <Input
-                    id="admin-password"
-                    type="password"
-                    placeholder="Admin password"
-                    value={adminPassword}
-                    onChange={(e) => setAdminPassword(e.target.value)}
-                    onKeyDown={(e) => {
-                      if (e.key === 'Enter') {
-                        handleConfirmDeactivation()
-                      }
-                    }}
-                    className="border-red-200 focus:border-red-500"
-                  />
-                  <p className="text-xs text-muted-foreground">
-                    This verification ensures only authorized admins can deactivate admin accounts.
-                  </p>
-                </div>
-              </div>
-            )}
-            <DialogFooter>
-              <Button
-                variant="outline"
-                onClick={() => {
-                  setShowPasswordDialog(false)
-                  setAdminPassword('')
-                  setPendingDeactivation(null)
-                }}
-              >
-                Cancel
-              </Button>
-              <Button
-                variant="destructive"
-                onClick={handleConfirmDeactivation}
-                disabled={!adminPassword}
-              >
-                <UserX className="h-4 w-4 mr-2" />
-                Confirm Deactivation
-              </Button>
             </DialogFooter>
           </DialogContent>
         </Dialog>

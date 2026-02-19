@@ -167,11 +167,11 @@ export async function POST(req: NextRequest) {
         // Validate: total obligations cannot exceed 80% of monthly salary (must keep at least 20% net pay)
         const maxAllowedDeductions = monthlySalary * 0.8 // 80% max
         const minimumNetPay = monthlySalary * 0.2 // 20% min
-        
+
         if (totalMonthlyObligations > maxAllowedDeductions) {
           const available = maxAllowedDeductions - (existingLoanPayments + totalExistingDeductions)
           const projectedNetPay = monthlySalary - totalMonthlyObligations
-          
+
           validationErrors.push(
             `${user.name || eid}: Cannot add deduction of ₱${newDeductionAmount.toFixed(2)}. ` +
             `Total monthly obligations (₱${totalMonthlyObligations.toFixed(2)}) would exceed the maximum allowed (₱${maxAllowedDeductions.toFixed(2)}). ` +
@@ -193,9 +193,9 @@ export async function POST(req: NextRequest) {
         })
       })
 
-      // If there are validation errors, throw them
+      // If there are validation errors, return them with 400
       if (validationErrors.length > 0) {
-        throw new Error(`Validation failed:\n${validationErrors.join('\n')}`)
+        throw Object.assign(new Error(validationErrors[0]), { isValidation: true, errors: validationErrors })
       }
 
       // Filter out null values (shouldn't happen if validation passed)
@@ -212,6 +212,13 @@ export async function POST(req: NextRequest) {
     console.error('Error creating deductions:', error)
     if (error instanceof z.ZodError) {
       return NextResponse.json({ error: "Validation failed", details: error.issues }, { status: 400 })
+    }
+    if (error instanceof Error && (error as any).isValidation) {
+      // Net pay / validation errors - return 400 with details (same as loans route)
+      return NextResponse.json({
+        error: error.message,
+        details: { errors: (error as any).errors }
+      }, { status: 400 })
     }
     if (error instanceof Error) {
       return NextResponse.json({ error: error.message }, { status: 500 })

@@ -8,7 +8,7 @@ import { Label } from "@/components/ui/label"
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { Plus, Edit, Trash2, Eye, UserCheck } from "lucide-react"
+import { Plus, Edit, Trash2, Eye, UserCheck, Home, Banknote } from "lucide-react"
 import { toast } from "react-hot-toast"
 import { Badge } from "@/components/ui/badge"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
@@ -335,7 +335,7 @@ export default function PersonnelTypesPage() {
                 <div>
                     <h2 className="text-3xl font-bold tracking-tight flex items-center gap-2">
                         <UserCheck className="h-6 w-6 sm:h-8 sm:w-8 text-blue-600" />
-                        Position
+                        Brgy Position
                     </h2>
                     <p className="text-muted-foreground text-sm">Manage positions and configure salary structures</p>
                 </div>
@@ -349,83 +349,104 @@ export default function PersonnelTypesPage() {
                         <DialogTrigger asChild>
                             <Button><Plus className="h-4 w-4 mr-2" />Add New Position</Button>
                         </DialogTrigger>
-                        <DialogContent className="sm:max-w-3xl">
+                        <DialogContent className="sm:max-w-2xl">
                             <DialogHeader>
-                                <DialogTitle className="text-2xl">Add New Position</DialogTitle>
-                                <DialogDescription>Create a new position with monthly salary information.</DialogDescription>
+                                <DialogTitle className="text-2xl flex items-center gap-2">
+                                    <Plus className="h-6 w-6 text-primary" />
+                                    Add Brgy Position
+                                </DialogTitle>
+                                <DialogDescription>
+                                    Create a new position and configure salary details.
+                                </DialogDescription>
                             </DialogHeader>
 
-                            <div className="space-y-6 py-4">
+                            <div className="py-6 space-y-6">
                                 {/* Input Section */}
-                                <div className="bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-blue-950/20 dark:to-indigo-950/20 rounded-lg p-8 border space-y-6">
-                                    <div className="space-y-3">
-                                        <Label htmlFor="office" className="text-lg font-semibold">BLGU</Label>
-                                        <Select value={office} onValueChange={handleOfficeChange}>
-                                            <SelectTrigger className="w-full h-14 text-lg">
-                                                <SelectValue placeholder="Select BLGU" />
-                                            </SelectTrigger>
-                                            <SelectContent>
-                                                <SelectItem value="Barangay Officials">Barangay Officials</SelectItem>
-                                                <SelectItem value="Barangay Staff">Barangay Staff</SelectItem>
-                                            </SelectContent>
-                                        </Select>
+                                <div className="bg-muted/30 rounded-lg p-6 border space-y-6">
+                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                        <div className="space-y-3">
+                                            <Label htmlFor="office" className="text-sm font-semibold flex items-center gap-2">
+                                                <Home className="h-4 w-4 text-muted-foreground" />
+                                                BLGU
+                                            </Label>
+                                            <Select value={office} onValueChange={handleOfficeChange}>
+                                                <SelectTrigger className="w-full h-11">
+                                                    <SelectValue placeholder="Select BLGU" />
+                                                </SelectTrigger>
+                                                <SelectContent>
+                                                    <SelectItem value="Barangay Officials">Barangay Officials</SelectItem>
+                                                    <SelectItem value="Barangay Staff">Barangay Staff</SelectItem>
+                                                </SelectContent>
+                                            </Select>
+                                        </div>
+
+                                        <div className="space-y-3">
+                                            <Label htmlFor="position-name" className="text-sm font-semibold flex items-center gap-2">
+                                                <UserCheck className="h-4 w-4 text-muted-foreground" />
+                                                Position Title
+                                            </Label>
+                                            <Select value={positionName} onValueChange={setPositionName} disabled={!office}>
+                                                <SelectTrigger className="w-full h-11">
+                                                    <SelectValue placeholder={office ? "Select Position" : "Select BLGU First"} />
+                                                </SelectTrigger>
+                                                <SelectContent>
+                                                    {office === "Barangay Officials" && (
+                                                        <>
+                                                            <SelectItem value="Punong Barangay">Punong Barangay</SelectItem>
+                                                            <SelectItem value="Barangay Kagawad">Barangay Kagawad</SelectItem>
+                                                            <SelectItem value="Barangay Secretary">Barangay Secretary</SelectItem>
+                                                            <SelectItem value="Barangay Treasurer">Barangay Treasurer</SelectItem>
+                                                        </>
+                                                    )}
+                                                    {office === "Barangay Staff" && (
+                                                        <>
+                                                            <SelectItem value="Collector">Collector</SelectItem>
+                                                            <SelectItem value="Encoder">Encoder</SelectItem>
+                                                            <SelectItem value="Accounting Clerk">Accounting Clerk</SelectItem>
+                                                            <SelectItem value="Driver">Driver</SelectItem>
+                                                            <SelectItem value="Electrician">Electrician</SelectItem>
+                                                            <SelectItem value="Lupon Recorder">Lupon Recorder</SelectItem>
+                                                            <SelectItem value="Child Development Worker">Child Development Worker</SelectItem>
+                                                        </>
+                                                    )}
+                                                </SelectContent>
+                                            </Select>
+                                        </div>
                                     </div>
 
                                     <div className="space-y-3">
-                                        <Label htmlFor="position-name" className="text-lg font-semibold">Position</Label>
-                                        <Select value={positionName} onValueChange={setPositionName} disabled={!office}>
-                                            <SelectTrigger className="w-full h-14 text-lg">
-                                                <SelectValue placeholder={office ? "Select Position" : "Select BLGU first"} />
-                                            </SelectTrigger>
-                                            <SelectContent>
-                                                {office === "Barangay Officials" && (
-                                                    <>
-                                                        <SelectItem value="Punong Barangay">Punong Barangay</SelectItem>
-                                                        <SelectItem value="Barangay Kagawad">Barangay Kagawad</SelectItem>
-                                                        <SelectItem value="Barangay Secretary">Barangay Secretary</SelectItem>
-                                                        <SelectItem value="Barangay Treasurer">Barangay Treasurer</SelectItem>
-                                                    </>
-                                                )}
-                                                {office === "Barangay Staff" && (
-                                                    <>
-                                                        <SelectItem value="Collector">Collector</SelectItem>
-                                                        <SelectItem value="Encoder">Encoder</SelectItem>
-                                                        <SelectItem value="Accounting Clerk">Accounting Clerk</SelectItem>
-                                                        <SelectItem value="Driver">Driver</SelectItem>
-                                                        <SelectItem value="Electrician">Electrician</SelectItem>
-                                                        <SelectItem value="Lupon Recorder">Lupon Recorder</SelectItem>
-                                                        <SelectItem value="Child Development Worker">Child Development Worker</SelectItem>
-                                                    </>
-                                                )}
-                                            </SelectContent>
-                                        </Select>
-                                    </div>
-
-                                    <div className="space-y-3">
-                                        <Label htmlFor="monthly-salary" className="text-lg font-semibold">Monthly Salary (PHP)</Label>
-                                        <div className="relative">
-                                            <span className="absolute left-4 top-1/2 -translate-y-1/2 text-xl font-semibold text-muted-foreground">₱</span>
+                                        <Label htmlFor="monthly-salary" className="text-sm font-semibold flex items-center gap-2">
+                                            <Banknote className="h-4 w-4 text-muted-foreground" />
+                                            Monthly Salary
+                                        </Label>
+                                        <div className="relative group">
+                                            <span className="absolute left-3 top-1/2 -translate-y-1/2 text-lg font-semibold text-muted-foreground">₱</span>
                                             <Input
                                                 id="monthly-salary"
                                                 value={basicSalaryInput}
                                                 onChange={(e) => setBasicSalaryInput(e.target.value)}
-                                                placeholder="25000 or 25k"
-                                                className="w-full h-14 pl-10 text-lg font-medium"
+                                                placeholder="e.g. 25,000"
+                                                className="w-full h-12 pl-8 text-lg font-medium"
                                             />
                                         </div>
-                                        <p className="text-sm text-muted-foreground flex items-center gap-1">
-                                            <span className="inline-block w-1.5 h-1.5 rounded-full bg-blue-500"></span>
-                                            Tip: Use shorthand like 25k (25,000) or 1.5m (1,500,000)
+                                        <p className="text-xs text-muted-foreground flex items-center gap-1.5 pl-1">
+                                            <span className="w-1.5 h-1.5 rounded-full bg-primary/60"></span>
+                                            Tip: Use shorthand like "25k" for 25,000
                                         </p>
                                     </div>
                                 </div>
                             </div>
 
-                            <DialogFooter className="flex gap-3 pt-4 border-t">
-                                <Button variant="outline" onClick={() => { setOpen(false); resetForm(); }} className="flex-1">
+                            <DialogFooter className="gap-3 sm:justify-end">
+                                <Button variant="outline" onClick={() => { setOpen(false); resetForm(); }} className="sm:w-32">
                                     Cancel
                                 </Button>
-                                <Button onClick={handleCreateClick} disabled={!office || !positionName || !basicSalaryInput.trim()} className="flex-1 bg-green-600 hover:bg-green-700">
+                                <Button
+                                    onClick={handleCreateClick}
+                                    disabled={!office || !positionName || !basicSalaryInput.trim()}
+                                    className="sm:w-40 bg-primary hover:bg-primary/90"
+                                >
+                                    <Plus className="h-4 w-4 mr-2" />
                                     Create Position
                                 </Button>
                             </DialogFooter>
@@ -533,78 +554,94 @@ export default function PersonnelTypesPage() {
             {/* Edit Dialog */}
             <SSRSafe>
                 <Dialog open={editOpen} onOpenChange={setEditOpen}>
-                    <DialogContent className="sm:max-w-3xl max-h-[90vh] overflow-y-auto">
+                    <DialogContent className="sm:max-w-2xl">
                         <DialogHeader>
-                            <DialogTitle className="text-2xl">Edit Position</DialogTitle>
-                            <DialogDescription>Update position information and view automatic salary calculations.</DialogDescription>
+                            <DialogTitle className="text-2xl flex items-center gap-2">
+                                <Edit className="h-6 w-6 text-primary" />
+                                Edit Brgy Position
+                            </DialogTitle>
+                            <DialogDescription>
+                                Update position information and view automatic salary calculations.
+                            </DialogDescription>
                         </DialogHeader>
 
-                        <div className="space-y-6 py-4">
+                        <div className="py-6 space-y-6">
                             {/* Input Section */}
-                            <div className="bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-blue-950/20 dark:to-indigo-950/20 rounded-lg p-6 border space-y-4">
-                                <div className="space-y-2">
-                                    <Label htmlFor="edit-office" className="text-base font-semibold">BLGU</Label>
-                                    <Select value={office} onValueChange={handleOfficeChange}>
-                                        <SelectTrigger className="w-full h-11 text-base">
-                                            <SelectValue placeholder="Select BLGU" />
-                                        </SelectTrigger>
-                                        <SelectContent>
-                                            <SelectItem value="Barangay Officials">Barangay Officials</SelectItem>
-                                            <SelectItem value="Barangay Staff">Barangay Staff</SelectItem>
-                                        </SelectContent>
-                                    </Select>
+                            <div className="bg-muted/30 rounded-lg p-6 border space-y-6">
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                    <div className="space-y-3">
+                                        <Label htmlFor="edit-office" className="text-sm font-semibold flex items-center gap-2">
+                                            <Home className="h-4 w-4 text-muted-foreground" />
+                                            BLGU
+                                        </Label>
+                                        <Select value={office} onValueChange={handleOfficeChange}>
+                                            <SelectTrigger className="w-full h-11">
+                                                <SelectValue placeholder="Select BLGU" />
+                                            </SelectTrigger>
+                                            <SelectContent>
+                                                <SelectItem value="Barangay Officials">Barangay Officials</SelectItem>
+                                                <SelectItem value="Barangay Staff">Barangay Staff</SelectItem>
+                                            </SelectContent>
+                                        </Select>
+                                    </div>
+
+                                    <div className="space-y-3">
+                                        <Label htmlFor="edit-position-name" className="text-sm font-semibold flex items-center gap-2">
+                                            <UserCheck className="h-4 w-4 text-muted-foreground" />
+                                            Position Title
+                                        </Label>
+                                        <Select value={positionName} onValueChange={setPositionName} disabled={!office}>
+                                            <SelectTrigger className="w-full h-11">
+                                                <SelectValue placeholder={office ? "Select Position" : "Select BLGU First"} />
+                                            </SelectTrigger>
+                                            <SelectContent>
+                                                {office === "Barangay Officials" && (
+                                                    <>
+                                                        <SelectItem value="Punong Barangay">Punong Barangay</SelectItem>
+                                                        <SelectItem value="Barangay Kagawad">Barangay Kagawad</SelectItem>
+                                                        <SelectItem value="Barangay Secretary">Barangay Secretary</SelectItem>
+                                                        <SelectItem value="Barangay Treasurer">Barangay Treasurer</SelectItem>
+                                                    </>
+                                                )}
+                                                {office === "Barangay Staff" && (
+                                                    <>
+                                                        <SelectItem value="Collector">Collector</SelectItem>
+                                                        <SelectItem value="Encoder">Encoder</SelectItem>
+                                                        <SelectItem value="Accounting Clerk">Accounting Clerk</SelectItem>
+                                                        <SelectItem value="Driver">Driver</SelectItem>
+                                                        <SelectItem value="Electrician">Electrician</SelectItem>
+                                                        <SelectItem value="Lupon Recorder">Lupon Recorder</SelectItem>
+                                                        <SelectItem value="Child Development Worker">Child Development Worker</SelectItem>
+                                                    </>
+                                                )}
+                                            </SelectContent>
+                                        </Select>
+                                    </div>
                                 </div>
 
-                                <div className="space-y-2">
-                                    <Label htmlFor="edit-position-name" className="text-base font-semibold">Position</Label>
-                                    <Select value={positionName} onValueChange={setPositionName} disabled={!office}>
-                                        <SelectTrigger className="w-full h-11 text-base">
-                                            <SelectValue placeholder={office ? "Select Position" : "Select BLGU first"} />
-                                        </SelectTrigger>
-                                        <SelectContent>
-                                            {office === "Barangay Officials" && (
-                                                <>
-                                                    <SelectItem value="Punong Barangay">Punong Barangay</SelectItem>
-                                                    <SelectItem value="Barangay Kagawad">Barangay Kagawad</SelectItem>
-                                                    <SelectItem value="Barangay Secretary">Barangay Secretary</SelectItem>
-                                                    <SelectItem value="Barangay Treasurer">Barangay Treasurer</SelectItem>
-                                                </>
-                                            )}
-                                            {office === "Barangay Staff" && (
-                                                <>
-                                                    <SelectItem value="Collector">Collector</SelectItem>
-                                                    <SelectItem value="Encoder">Encoder</SelectItem>
-                                                    <SelectItem value="Accounting Clerk">Accounting Clerk</SelectItem>
-                                                    <SelectItem value="Driver">Driver</SelectItem>
-                                                    <SelectItem value="Electrician">Electrician</SelectItem>
-                                                    <SelectItem value="Lupon Recorder">Lupon Recorder</SelectItem>
-                                                    <SelectItem value="Child Development Worker">Child Development Worker</SelectItem>
-                                                </>
-                                            )}
-                                        </SelectContent>
-                                    </Select>
-                                </div>
-
-                                <div className="space-y-2">
-                                    <Label htmlFor="edit-monthly-salary" className="text-base font-semibold">Monthly Salary (PHP)</Label>
-                                    <div className="relative">
+                                <div className="space-y-3">
+                                    <Label htmlFor="edit-monthly-salary" className="text-sm font-semibold flex items-center gap-2">
+                                        <Banknote className="h-4 w-4 text-muted-foreground" />
+                                        Monthly Salary
+                                    </Label>
+                                    <div className="relative group">
                                         <span className="absolute left-3 top-1/2 -translate-y-1/2 text-lg font-semibold text-muted-foreground">₱</span>
                                         <Input
                                             id="edit-monthly-salary"
                                             value={basicSalaryInput}
                                             onChange={(e) => setBasicSalaryInput(e.target.value)}
-                                            placeholder="25000 or 25k"
-                                            className="w-full h-11 pl-8 text-base font-medium"
+                                            placeholder="e.g. 25,000"
+                                            className="w-full h-12 pl-8 text-lg font-medium"
                                         />
                                     </div>
-                                    <p className="text-xs text-muted-foreground flex items-center gap-1">
-                                        <span className="inline-block w-1.5 h-1.5 rounded-full bg-blue-500"></span>
-                                        Tip: Use shorthand like 25k (25,000) or 1.5m (1,500,000)
+                                    <p className="text-xs text-muted-foreground flex items-center gap-1.5 pl-1">
+                                        <span className="w-1.5 h-1.5 rounded-full bg-primary/60"></span>
+                                        Tip: Use shorthand like "25k" for 25,000
                                     </p>
                                 </div>
 
-                                <div className="space-y-2">
-                                    <Label className="text-base font-semibold">Status</Label>
+                                <div className="space-y-3">
+                                    <Label className="text-sm font-semibold">Status</Label>
                                     <div className="flex items-center space-x-2">
                                         <input
                                             type="checkbox"
@@ -637,7 +674,7 @@ export default function PersonnelTypesPage() {
                                             <span className="text-2xl font-bold text-green-600 dark:text-green-400">₱{basic.toLocaleString()}</span>
                                         </div>
 
-                                        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                                             <div className="bg-white/50 dark:bg-black/20 rounded-lg p-4 space-y-2">
                                                 <div className="flex justify-between items-center pb-2 border-b border-green-200/50 dark:border-green-900/50">
                                                     <span className="text-sm text-muted-foreground">Semi-Monthly</span>
@@ -652,38 +689,6 @@ export default function PersonnelTypesPage() {
                                                     <span className="text-base font-semibold">₱{weekly.toLocaleString(undefined, { maximumFractionDigits: 2 })}</span>
                                                 </div>
                                                 <p className="text-xs text-muted-foreground">÷ 4 weeks</p>
-                                            </div>
-
-                                            <div className="bg-white/50 dark:bg-black/20 rounded-lg p-4 space-y-2">
-                                                <div className="flex justify-between items-center pb-2 border-b border-green-200/50 dark:border-green-900/50">
-                                                    <span className="text-sm text-muted-foreground">Daily Rate</span>
-                                                    <span className="text-base font-semibold">₱{daily.toLocaleString(undefined, { maximumFractionDigits: 2 })}</span>
-                                                </div>
-                                                <p className="text-xs text-muted-foreground">÷ {workingDays} working days</p>
-                                            </div>
-
-                                            <div className="bg-white/50 dark:bg-black/20 rounded-lg p-4 space-y-2">
-                                                <div className="flex justify-between items-center pb-2 border-b border-green-200/50 dark:border-green-900/50">
-                                                    <span className="text-sm text-muted-foreground">Hourly Rate</span>
-                                                    <span className="text-base font-semibold">₱{hourly.toLocaleString(undefined, { maximumFractionDigits: 2 })}</span>
-                                                </div>
-                                                <p className="text-xs text-muted-foreground">÷ 8 hours per day</p>
-                                            </div>
-
-                                            <div className="bg-white/50 dark:bg-black/20 rounded-lg p-4 space-y-2">
-                                                <div className="flex justify-between items-center pb-2 border-b border-green-200/50 dark:border-green-900/50">
-                                                    <span className="text-sm text-muted-foreground">Per Minute</span>
-                                                    <span className="text-base font-semibold">₱{min.toLocaleString(undefined, { maximumFractionDigits: 4 })}</span>
-                                                </div>
-                                                <p className="text-xs text-muted-foreground">÷ 60 minutes per hour</p>
-                                            </div>
-
-                                            <div className="bg-white/50 dark:bg-black/20 rounded-lg p-4 space-y-2">
-                                                <div className="flex justify-between items-center pb-2 border-b border-green-200/50 dark:border-green-900/50">
-                                                    <span className="text-sm text-muted-foreground">Per Second</span>
-                                                    <span className="text-base font-semibold">₱{sec.toLocaleString(undefined, { maximumFractionDigits: 6 })}</span>
-                                                </div>
-                                                <p className="text-xs text-muted-foreground">÷ 60 seconds per minute</p>
                                             </div>
                                         </div>
 
@@ -706,11 +711,12 @@ export default function PersonnelTypesPage() {
                             )}
                         </div>
 
-                        <DialogFooter className="flex gap-3 pt-4 border-t">
-                            <Button variant="outline" onClick={() => { setEditOpen(false); resetForm(); }} className="flex-1">
+                        <DialogFooter className="gap-3 sm:justify-end">
+                            <Button variant="outline" onClick={() => { setEditOpen(false); resetForm(); }} className="sm:w-32">
                                 Cancel
                             </Button>
-                            <Button onClick={update} disabled={!office || !positionName || !basicSalaryInput.trim()} className="flex-1 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700">
+                            <Button onClick={update} disabled={!office || !positionName || !basicSalaryInput.trim()} className="sm:w-40 bg-primary hover:bg-primary/90">
+                                <Edit className="h-4 w-4 mr-2" />
                                 Update Position
                             </Button>
                         </DialogFooter>
@@ -765,50 +771,25 @@ export default function PersonnelTypesPage() {
                                         <div className="w-2 h-2 bg-blue-500 rounded-full"></div>
                                         Salary Breakdown
                                     </h4>
-                                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                                         <div className="space-y-3">
                                             <div className="flex justify-between items-center py-2 border-b border-border/50">
                                                 <span className="text-sm text-muted-foreground">Monthly</span>
                                                 <span className="font-semibold">₱{Number(selectedType.basicSalary).toLocaleString(undefined, { maximumFractionDigits: 2 })}</span>
                                             </div>
+                                        </div>
+                                        <div className="space-y-3">
                                             <div className="flex justify-between items-center py-2 border-b border-border/50">
                                                 <span className="text-sm text-muted-foreground">Semi-Monthly</span>
                                                 <span className="font-semibold">₱{(Number(selectedType.basicSalary) / 2).toLocaleString(undefined, { maximumFractionDigits: 2 })}</span>
                                             </div>
-                                            <div className="flex justify-between items-center py-2">
+                                        </div>
+                                        <div className="space-y-3">
+                                            <div className="flex justify-between items-center py-2 border-b border-border/50">
                                                 <span className="text-sm text-muted-foreground">Weekly</span>
                                                 <span className="font-semibold">₱{(Number(selectedType.basicSalary) / 4).toLocaleString(undefined, { maximumFractionDigits: 2 })}</span>
                                             </div>
                                         </div>
-                                        <div className="space-y-3">
-                                            <div className="flex justify-between items-center py-2 border-b border-border/50">
-                                                <span className="text-sm text-muted-foreground">Daily</span>
-                                                <span className="font-semibold">₱{(Number(selectedType.basicSalary) / (workingDays || 22)).toLocaleString(undefined, { maximumFractionDigits: 2 })}</span>
-                                            </div>
-                                            <div className="flex justify-between items-center py-2 border-b border-border/50">
-                                                <span className="text-sm text-muted-foreground">Hourly</span>
-                                                <span className="font-semibold">₱{(Number(selectedType.basicSalary) / ((workingDays || 22) * 8)).toLocaleString(undefined, { maximumFractionDigits: 2 })}</span>
-                                            </div>
-                                            <div className="flex justify-between items-center py-2">
-                                                <span className="text-sm text-muted-foreground">Per Minute</span>
-                                                <span className="font-semibold">₱{(Number(selectedType.basicSalary) / ((workingDays || 22) * 8 * 60)).toLocaleString(undefined, { maximumFractionDigits: 4 })}</span>
-                                            </div>
-                                        </div>
-                                        <div className="space-y-3">
-                                            <div className="flex justify-between items-center py-2 border-b border-border/50">
-                                                <span className="text-sm text-muted-foreground">Per Second</span>
-                                                <span className="font-semibold">₱{(Number(selectedType.basicSalary) / ((workingDays || 22) * 8 * 60 * 60)).toLocaleString(undefined, { maximumFractionDigits: 6 })}</span>
-                                            </div>
-                                            <div className="flex justify-between items-center py-2">
-                                                <span className="text-xs text-muted-foreground italic">Based on {workingDays || 22} working days</span>
-                                                <span className="text-xs text-muted-foreground">& 8hrs/day</span>
-                                            </div>
-                                        </div>
-                                    </div>
-                                    <div className="mt-4 pt-4 border-t border-border/50">
-                                        <p className="text-xs text-muted-foreground">
-                                            * Daily and hourly rates based on {workingDays || 22} working days per month and 8 hours per day
-                                        </p>
                                     </div>
                                 </div>
                             </div>

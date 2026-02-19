@@ -6,7 +6,7 @@ import { prisma } from '@/lib/prisma'
 export async function GET(request: NextRequest) {
   try {
     const session = await getServerSession(authOptions)
-    
+
     if (!session || session.user.role !== 'ADMIN') {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
@@ -43,7 +43,7 @@ export async function GET(request: NextRequest) {
     })
 
     console.log(`📦 Found ${releasedPayrolls.length} released payroll entries`)
-    
+
     if (releasedPayrolls.length > 0) {
       console.log('📦 Sample entry:', {
         status: releasedPayrolls[0].status,
@@ -58,7 +58,7 @@ export async function GET(request: NextRequest) {
     // Group by period for better organization and calculate breakdown
     const payrollsByPeriod = releasedPayrolls.reduce((acc, payroll) => {
       const periodKey = `${payroll.periodStart.toISOString().split('T')[0]}_${payroll.periodEnd.toISOString().split('T')[0]}`
-      
+
       if (!acc[periodKey]) {
         acc[periodKey] = {
           id: periodKey,
@@ -66,7 +66,7 @@ export async function GET(request: NextRequest) {
           periodEnd: payroll.periodEnd.toISOString(),
           archivedAt: payroll.archivedAt?.toISOString() || new Date().toISOString(),
           releasedAt: payroll.releasedAt?.toISOString() || new Date().toISOString(),
-          releasedBy: (payroll as any).releasedBy || 'System',
+          releasedBy: (payroll as any).releasedBy || 'Admin',
           totalEmployees: 0,
           totalGrossSalary: 0,
           totalDeductions: 0,
@@ -75,18 +75,18 @@ export async function GET(request: NextRequest) {
           payrolls: []
         }
       }
-      
+
       // Calculate breakdown
       const grossSalary = Number(payroll.basicSalary) || 0
       const deductions = Number(payroll.deductions) || 0
       const netPay = Number(payroll.netPay) || 0
-      
+
       acc[periodKey].totalEmployees += 1
       acc[periodKey].totalGrossSalary += grossSalary
       acc[periodKey].totalDeductions += deductions
       acc[periodKey].totalNetPay += netPay
       acc[periodKey].totalExpenses += grossSalary
-      
+
       // Transform the data to match frontend expectations
       const transformedPayroll = {
         ...payroll,
@@ -102,7 +102,7 @@ export async function GET(request: NextRequest) {
           } : null
         }
       }
-      
+
       acc[periodKey].payrolls.push(transformedPayroll)
       return acc
     }, {} as Record<string, any>)

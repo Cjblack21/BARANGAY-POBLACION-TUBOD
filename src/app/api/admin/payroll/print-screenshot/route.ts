@@ -299,78 +299,43 @@ export async function POST(request: NextRequest) {
       const storedOvertime = Number(entry.overtime || 0)
       const monthlyBasicSalary = storedBasicSalary - storedOvertime
 
-      // Daily salary = Monthly ÷ 22 (standard working days per month)
-      const dailySalary = monthlyBasicSalary / 22
-      const timeInEnd = attendanceSettings?.timeInEnd || '09:30'
-
       let totalAttendanceDeductions = 0
       const attendanceDeductionDetails: any[] = []
 
-      attendanceRecords.forEach(record => {
-        if (record.status === 'ABSENT') {
-          attendanceDeductionDetails.push({
-            date: record.date.toISOString().split('T')[0],
-            amount: dailySalary,
-            description: 'Absence deduction'
-          })
-          totalAttendanceDeductions += dailySalary
-        } else if (record.status === 'LATE' && record.timeIn) {
-          const timeIn = new Date(record.timeIn)
-          const expected = new Date(record.date)
-          const [h, m] = timeInEnd.split(':').map(Number)
-          expected.setHours(h, m + 1, 0, 0) // Add 1 minute grace period
-          const perSecond = dailySalary / 8 / 60 / 60
-          const secondsLate = Math.max(0, (timeIn.getTime() - expected.getTime()) / 1000)
-          const lateAmount = secondsLate * perSecond // Remove 50% cap
+      // Build attendance deduction details from the deductions table (notes field has the detail)
+      // Only include ACTIVE (non-archived) deductions within this payroll period.
+      // Archived attendance deductions belong to a previous payroll period.
+      const allAttendanceDeductionRecords = await prisma.deductions.findMany({
+        where: {
+          users_id: entry.users_id,
+          archivedAt: null, // 🔑 Only include non-archived (current) deductions
+          // Only include deductions that fall within this payroll period
+          appliedAt: {
+            gte: entry.periodStart,
+            lte: entry.periodEnd
+          },
+          deduction_types: {
+            OR: [
+              { name: { contains: 'Attendance' } },
+              { name: { contains: 'Late' } },
+              { name: { contains: 'Absent' } },
+              { name: { contains: 'Early' } },
+              { name: { contains: 'Partial' } },
+              { name: { contains: 'Tardiness' } }
+            ]
+          }
+        },
+        include: { deduction_types: true }
+      })
 
-          // Check for early timeout
-          let earlyAmount = 0
-          if (record.timeOut && attendanceSettings?.timeOutStart) {
-            const timeOut = new Date(record.timeOut)
-            const expectedTimeOut = new Date(record.date)
-            const [outH, outM] = attendanceSettings.timeOutStart.split(':').map(Number)
-            expectedTimeOut.setHours(outH, outM, 0, 0)
-            const secondsEarly = Math.max(0, (expectedTimeOut.getTime() - timeOut.getTime()) / 1000)
-            earlyAmount = secondsEarly * perSecond
-          }
-
-          if (lateAmount > 0) {
-            attendanceDeductionDetails.push({
-              date: record.date.toISOString().split('T')[0],
-              amount: lateAmount,
-              description: `Late arrival - ${Math.round(secondsLate / 60)} minutes late`
-            })
-            totalAttendanceDeductions += lateAmount
-          }
-
-          if (earlyAmount > 0 && record.timeOut) {
-            const minutesEarly = Math.round(earlyAmount / perSecond / 60)
-            attendanceDeductionDetails.push({
-              date: record.date.toISOString().split('T')[0],
-              amount: earlyAmount,
-              description: `Early departure - ${minutesEarly} minutes early`
-            })
-            totalAttendanceDeductions += earlyAmount
-          }
-        } else if (record.status === 'PARTIAL') {
-          let hoursWorked = 0
-          if (record.timeIn && record.timeOut) {
-            const timeIn = new Date(record.timeIn)
-            const timeOut = new Date(record.timeOut)
-            hoursWorked = Math.max(0, (timeOut.getTime() - timeIn.getTime()) / (1000 * 60 * 60))
-          }
-          const hourlyRate = dailySalary / 8
-          const hoursShort = Math.max(0, 8 - hoursWorked)
-          const amount = hoursShort * hourlyRate
-          if (amount > 0) {
-            attendanceDeductionDetails.push({
-              date: record.date.toISOString().split('T')[0],
-              amount: amount,
-              description: `Partial attendance - ${hoursShort.toFixed(1)} hours short`
-            })
-            totalAttendanceDeductions += amount
-          }
-        }
+      allAttendanceDeductionRecords.forEach((d: any) => {
+        const amount = Number(d.amount)
+        attendanceDeductionDetails.push({
+          date: d.appliedAt.toISOString().split('T')[0],
+          amount: amount,
+          description: d.notes || d.deduction_types.description || d.deduction_types.name
+        })
+        totalAttendanceDeductions += amount
       })
 
       // Get other deduction records (non-attendance related)
@@ -475,25 +440,33 @@ export async function POST(request: NextRequest) {
       return `
         <div class="payslip-card">
           <div class="payslip-header">
-            <div class="logo-container">
-              ${headerSettings?.showLogo ? `
-                <img src="${headerSettings.logoUrl}" alt="Logo" class="logo" onerror="this.src='/brgy-logo-transparent.png'">
-              ` : ''}
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px;">
+              <div class="logo-container">
+                ${headerSettings?.showLogo ? `
+                  <img src="${headerSettings.logoUrl}" alt="Logo" class="logo" onerror="this.src='/brgy-logo-transparent.png'">
+                ` : ''}
+              </div>
+              <div style="text-align: center; flex: 1;">
+                <div class="school-name">${headerSettings?.schoolName || 'PAYSLIP'}</div>
+                <div class="school-address">${headerSettings?.schoolAddress || ''}</div>
+                <div class="system-name">${headerSettings?.systemName || ''}</div>
+                ${headerSettings?.customText ? `<div class="custom-text">${headerSettings.customText}</div>` : ''}
+                <div class="payslip-title">PAYSLIP</div>
+              </div>
+              <div style="text-align: right;">
+                <img src="/QR CODE PMS SYSTEM.png" alt="QR Code" style="width: 60px; height: 60px; object-fit: contain;" onerror="this.style.display='none'">
+                <div style="font-size: 7px; font-weight: bold; color: #555; text-align: center; margin-top: 2px; letter-spacing: 1px;">SCAN ME</div>
+              </div>
             </div>
-            <div class="school-name">${headerSettings?.schoolName || 'PAYSLIP'}</div>
-            <div class="school-address">${headerSettings?.schoolAddress || ''}</div>
-            <div class="system-name">${headerSettings?.systemName || ''}</div>
-            ${headerSettings?.customText ? `<div class="custom-text">${headerSettings.customText}</div>` : ''}
-            <div class="payslip-title">PAYSLIP</div>
           </div>
           
           <div class="employee-info">
             <div class="info-row">
-              <span class="label">Staff:</span>
+              <span class="label">Brgy Staff:</span>
               <span class="value">${employee.name || employee.email}</span>
             </div>
             <div class="info-row">
-              <span class="label">Staff ID:</span>
+              <span class="label">Brgy Staff ID:</span>
               <span class="value">${employee.idNumber || 'N/A'}</span>
             </div>
             <div class="info-row">
@@ -501,12 +474,8 @@ export async function POST(request: NextRequest) {
               <span class="value">${employee.email}</span>
             </div>
             <div class="info-row">
-              <span class="label">Department:</span>
-              <span class="value">BLGU</span>
-            </div>
-            <div class="info-row">
-              <span class="label">Position:</span>
-              <span class="value">${employee.position || 'N/A'}</span>
+              <span class="label">BLGU/Position:</span>
+              <span class="value">${employee.department || 'BLGU'} / ${employee.position || 'Barangay Staff'}</span>
             </div>
             <div class="info-row">
               <span class="label">Period:</span>

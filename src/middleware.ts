@@ -20,7 +20,6 @@ export default withAuth(
       pathname.startsWith("/_next") ||
       pathname.startsWith("/favicon") ||
 
-      pathname === "/attendance-portal" ||
       pathname.startsWith("/api/attendance") ||
       pathname.startsWith("/api/personnel-types") ||
       pathname === "/account-setup" ||
@@ -89,7 +88,6 @@ export default withAuth(
           pathname.startsWith("/_next") ||
           pathname.startsWith("/favicon") ||
 
-          pathname === "/attendance-portal" ||
           pathname.startsWith("/api/attendance") ||
           pathname.startsWith("/api/personnel-types") ||
           pathname === "/account-setup" ||

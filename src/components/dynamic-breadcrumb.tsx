@@ -17,7 +17,7 @@ export function DynamicBreadcrumb() {
       '/admin/add-pay': 'Add Pay',
       '/admin/users': 'Personnel',
       '/admin/user-management': 'Staff Management',
-      '/admin/personnel-types': 'Position',
+      '/admin/personnel-types': 'Brgy Position',
       '/admin/loans': 'Loan Management',
       '/admin/personal-deductions': 'Staff Deductions',
       '/admin/profile': 'Profile',
