@@ -45,6 +45,7 @@ export default function PersonnelProfile() {
   })
   const [uploadingPhoto, setUploadingPhoto] = useState(false)
   const [previewUrl, setPreviewUrl] = useState<string | null>(null)
+  const [imageTimestamp, setImageTimestamp] = useState<number>(() => Date.now())
   const fileInputRef = useRef<HTMLInputElement>(null)
 
   // Settings state
@@ -186,6 +187,7 @@ export default function PersonnelProfile() {
       if (result.avatarUrl) {
         setData(prev => prev ? { ...prev, user: { ...prev.user, avatar: result.avatarUrl } } : prev)
         setPreviewUrl(null)
+        setImageTimestamp(Date.now()) // bust browser cache so new image shows immediately
       }
 
       toast.success('Profile picture updated successfully!')
@@ -216,6 +218,7 @@ export default function PersonnelProfile() {
       toast.success('Profile picture removed successfully!')
       setData(prev => prev ? { ...prev, user: { ...prev.user, avatar: undefined } } : prev)
       setPreviewUrl(null)
+      setImageTimestamp(Date.now())
     } catch (error) {
       console.error('Error removing photo:', error)
       toast.error(error instanceof Error ? error.message : 'Failed to remove photo')
@@ -312,7 +315,7 @@ export default function PersonnelProfile() {
             <CardContent>
               <div className="flex items-center gap-6">
                 <Avatar className="h-24 w-24">
-                  <AvatarImage src={previewUrl ?? (data.user.avatar ? `${data.user.avatar}?t=${Date.now()}` : undefined)} alt={data.user.name} />
+                  <AvatarImage src={previewUrl ?? (data.user.avatar ? `${data.user.avatar}?t=${imageTimestamp}` : undefined)} alt={data.user.name} />
                   <AvatarFallback className="text-2xl">
                     {data.user.name.split(' ').map(n => n[0]).join('').toUpperCase()}
                   </AvatarFallback>
