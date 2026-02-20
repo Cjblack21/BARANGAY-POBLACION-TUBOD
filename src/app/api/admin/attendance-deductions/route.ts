@@ -15,11 +15,13 @@ export async function GET(request: NextRequest) {
     // Check if we should fetch archived deductions
     const { searchParams } = new URL(request.url)
     const archived = searchParams.get('archived') === 'true'
+    const userId = searchParams.get('userId') || undefined
 
     // Get attendance-related deductions based on archived flag
     const deductions = await prisma.deductions.findMany({
       where: {
         archivedAt: archived ? { not: null } : null,
+        ...(userId ? { users_id: userId } : {}),
         deduction_types: {
           OR: [
             { name: { contains: 'Attendance' } },
@@ -51,7 +53,7 @@ export async function GET(request: NextRequest) {
     const formattedDeductions = deductions.map(d => ({
       deductions_id: d.deductions_id,
       users_id: d.users_id,
-      personnelName: d.users.name || d.users.email,
+      staffName: d.users.name || d.users.email,
       deductionType: d.deduction_types.name,
       amount: Number(d.amount),
       notes: d.notes || '',

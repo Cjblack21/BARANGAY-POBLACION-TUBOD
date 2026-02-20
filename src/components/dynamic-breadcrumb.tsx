@@ -25,6 +25,8 @@ export function DynamicBreadcrumb() {
       '/admin/holidays': 'Holidays',
       '/admin/reports': 'Reports',
       '/admin/archive': 'Archive',
+      '/admin/attendance-deduction': 'Attendance Deduction',
+      '/admin/attendance-deduction/archived': 'Archived Deductions',
     }
 
     const currentPageName = routeMap[pathname] || 'Dashboard'

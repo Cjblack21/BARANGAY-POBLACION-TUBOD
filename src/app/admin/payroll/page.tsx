@@ -1467,7 +1467,7 @@ html, body { margin: 0 !important; padding: 0 !important; overflow: hidden !impo
                 <th style="width:52px;">#</th>
                 <th>Name</th>
                 <th>Position</th>
-                <th>Office</th>
+                <th>BLGU</th>
                 <th class="right">Basic Salary</th>
                 <th class="right">Additional Pay</th>
                 <th class="right">Deductions</th>
@@ -3516,7 +3516,7 @@ html, body { margin: 0 !important; padding: 0 !important; overflow: hidden !impo
                   )}
                 </DialogDescription>
               </div>
-              <Button onClick={printArchivedOverallDetails} className="gap-2" variant="outline">
+              <Button onClick={printArchivedOverallDetails} className="gap-2 bg-blue-600 hover:bg-blue-700 text-white border-blue-600 mr-8" variant="outline">
                 <Printer className="h-4 w-4" />
                 Print Overall Details
               </Button>
@@ -3554,7 +3554,7 @@ html, body { margin: 0 !important; padding: 0 !important; overflow: hidden !impo
                       <TableRow>
                         <TableHead>ID Number</TableHead>
                         <TableHead>Name</TableHead>
-                        <TableHead>Office</TableHead>
+                        <TableHead>BLGU</TableHead>
                         <TableHead>Position</TableHead>
                         <TableHead className="text-right">Net Pay</TableHead>
                         <TableHead className="text-center">Action</TableHead>

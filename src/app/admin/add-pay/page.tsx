@@ -368,35 +368,29 @@ export default function AddPayPage() {
       {/* Additional Pays Table */}
       <Card>
         <CardHeader>
-          <div className="flex items-center justify-between">
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-              <CardTitle>Current Additional Pays</CardTitle>
-              <div className="flex items-center gap-2">
-                <div className="relative w-full sm:w-64">
-                  <Input
-                    placeholder="Search staff..."
-                    value={searchQuery}
-                    onChange={(e) => setSearchQuery(e.target.value)}
-                    className="pl-8"
-                  />
-                  <Edit className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground opacity-50" />
-                  {/* Note: Using Edit as placeholder icon, should be Search but Lucide imports need check. 
-                    Actually Search was NOT imported in original file, only Plus, CheckSquare, Square, Trash2, Edit.
-                    I will use Edit for now or check imports. Wait, I can import Search. 
-                */}
-                </div>
-                {selectedOverloadPays.length > 0 && (
-                  <Button
-                    variant="destructive"
-                    size="sm"
-                    onClick={promptDeleteOverloadPays}
-                    disabled={loading}
-                  >
-                    <Trash2 className="h-4 w-4 mr-2" />
-                    Delete Selected ({selectedOverloadPays.length})
-                  </Button>
-                )}
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+            <CardTitle>Current Additional Pays</CardTitle>
+            <div className="flex items-center gap-2">
+              <div className="relative w-full sm:w-64">
+                <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+                <Input
+                  placeholder="Search staff..."
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  className="pl-9"
+                />
               </div>
+              {selectedOverloadPays.length > 0 && (
+                <Button
+                  variant="destructive"
+                  size="sm"
+                  onClick={promptDeleteOverloadPays}
+                  disabled={loading}
+                >
+                  <Trash2 className="h-4 w-4 mr-2" />
+                  Delete Selected ({selectedOverloadPays.length})
+                </Button>
+              )}
             </div>
           </div>
         </CardHeader>
@@ -728,6 +722,6 @@ export default function AddPayPage() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
-    </div>
+    </div >
   )
 }

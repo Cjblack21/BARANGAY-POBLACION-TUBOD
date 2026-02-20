@@ -3,7 +3,7 @@
 import React, { useState, useEffect, useRef } from 'react'
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { Button } from '@/components/ui/button'
-import { Printer } from 'lucide-react'
+import { Printer, X } from 'lucide-react'
 import { formatDateForDisplay } from '@/lib/timezone'
 
 interface ArchivedPayrollDetailsDialogProps {
@@ -21,6 +21,7 @@ export default function ArchivedPayrollDetailsDialog({
 }: ArchivedPayrollDetailsDialogProps) {
   const [liveData, setLiveData] = useState<any>(null)
   const [loading, setLoading] = useState(false)
+  const [archivedAttendance, setArchivedAttendance] = useState<any[]>([])
   const printRef = useRef<HTMLDivElement | null>(null)
 
   const handlePrint = () => {
@@ -82,48 +83,77 @@ export default function ArchivedPayrollDetailsDialog({
           </tr>
         ` : '')
 
+    // Resolve attendance the same way the dialog view does
+    const mandatoryTotal = deductionDetails
+      .filter((d: any) => d.isMandatory)
+      .reduce((s: number, d: any) => s + Number(d.amount), 0)
+    const loanTotalPrint = loanDetails.reduce((s: number, l: any) => s + Number(l.amount || l.payment || 0), 0)
+    const derivedAttendanceTotal = Math.max(0, deductions - mandatoryTotal - loanTotalPrint)
+
+    const resolvedAttendance: any[] = attendanceDeductionDetails.length > 0
+      ? attendanceDeductionDetails
+      : archivedAttendance.length > 0
+        ? archivedAttendance.map((d: any) => ({
+          type: d.deductionType || 'Attendance Deduction',
+          amount: Number(d.amount),
+          description: d.notes || '',
+          appliedAt: d.appliedAt,
+          notes: d.notes
+        }))
+        : derivedAttendanceTotal > 0
+          ? [{ type: 'Attendance Deduction', amount: derivedAttendanceTotal, description: 'Attendance-based deduction for this period', appliedAt: null }]
+          : []
+
     const deductionsRows = (() => {
-      // Use attendanceDeductionDetails directly from snapshot
-      const attendance = attendanceDeductionDetails
       const mandatory = deductionDetails.filter((d: any) => d.isMandatory)
       const other = deductionDetails.filter((d: any) => {
         const type = d.type?.toLowerCase() || ''
-        return !d.isMandatory && !type.includes('late') && !type.includes('early') && !type.includes('absent') && !type.includes('tardiness') && !type.includes('partial')
+        return !d.isMandatory && !type.includes('late') && !type.includes('early') && !type.includes('absent') && !type.includes('tardiness') && !type.includes('partial') && !type.includes('attendance')
       })
 
       const actualLoans = loanDetails.filter((l: any) => !l.type?.startsWith('[DEDUCTION]'))
       const deductionPayments = loanDetails.filter((l: any) => l.type?.startsWith('[DEDUCTION]'))
 
-      console.log('🖨️ Print deductions:', {
-        attendance: attendance.length,
-        mandatory: mandatory.length,
-        other: other.length,
-        loans: actualLoans.length,
-        deductionDetails: deductionDetails,
-        attendanceDeductionDetails: attendanceDeductionDetails
-      })
-
       const rows: string[] = []
 
-      attendance.forEach((d: any) => {
-        rows.push(`<tr><td class="td">Attendance: ${String(d.type || 'Attendance')}</td><td class="td right">${formatCurrencyPrint(Number(d.amount || 0))}</td></tr>`)
-      })
-      mandatory.forEach((d: any) => {
-        rows.push(`<tr><td class="td">${String(d.type || 'Mandatory')}</td><td class="td right">-${formatCurrencyPrint(Number(d.amount || 0))}</td></tr>`)
-      })
-      actualLoans.forEach((l: any) => {
-        rows.push(`<tr><td class="td">Loan: ${String(l.type || 'Loan')}</td><td class="td right">${formatCurrencyPrint(Number(l.amount || 0))}</td></tr>`)
-      })
+      if (resolvedAttendance.length > 0) {
+        rows.push(`<tr><td class="td" colspan="2" style="font-weight:700;font-size:13px;color:#ea580c;background:#fff7ed;padding:8px 10px;letter-spacing:0.5px">ATTENDANCE</td></tr>`)
+        resolvedAttendance.forEach((d: any) => {
+          const dateStr = d.appliedAt ? new Date(d.appliedAt).toLocaleDateString('en-PH', { month: 'short', day: 'numeric', year: 'numeric' }) : ''
+          const desc = d.description || d.notes || ''
+          rows.push(`<tr><td class="td">${String(d.type || 'Attendance')}${dateStr ? ` <span style="color:#6b7280;font-size:13px">— ${dateStr}</span>` : ''}${desc ? `<br/><span style="color:#6b7280;font-size:12px">${desc}</span>` : ''}</td><td class="td right" style="color:#dc2626">-${formatCurrencyPrint(Number(d.amount || 0))}</td></tr>`)
+        })
+      }
+
+      if (mandatory.length > 0) {
+        rows.push(`<tr><td class="td" colspan="2" style="font-weight:700;font-size:13px;color:#7c3aed;background:#f5f3ff;padding:8px 10px;letter-spacing:0.5px">MANDATORY DEDUCTIONS</td></tr>`)
+        mandatory.forEach((d: any) => {
+          rows.push(`<tr><td class="td">${String(d.type || 'Mandatory')}</td><td class="td right" style="color:#dc2626">-${formatCurrencyPrint(Number(d.amount || 0))}</td></tr>`)
+        })
+      }
+
+      if (actualLoans.length > 0) {
+        rows.push(`<tr><td class="td" colspan="2" style="font-weight:700;font-size:13px;color:#0369a1;background:#f0f9ff;padding:8px 10px;letter-spacing:0.5px">LOANS</td></tr>`)
+        actualLoans.forEach((l: any) => {
+          rows.push(`<tr><td class="td">Loan: ${String(l.type || 'Loan')}</td><td class="td right" style="color:#dc2626">-${formatCurrencyPrint(Number(l.amount || 0))}</td></tr>`)
+        })
+      }
+
       deductionPayments.forEach((d: any) => {
         const label = String(d.type || '').replace(/^\[DEDUCTION\]\s*/i, '') || 'Deduction'
-        rows.push(`<tr><td class="td">Deduction: ${label}</td><td class="td right">${formatCurrencyPrint(Number(d.amount || 0))}</td></tr>`)
+        rows.push(`<tr><td class="td">Deduction: ${label}</td><td class="td right" style="color:#dc2626">-${formatCurrencyPrint(Number(d.amount || 0))}</td></tr>`)
       })
-      other.forEach((d: any) => {
-        rows.push(`<tr><td class="td">Other: ${String(d.type || 'Other')}</td><td class="td right">${formatCurrencyPrint(Number(d.amount || 0))}</td></tr>`)
-      })
+
+      if (other.length > 0) {
+        rows.push(`<tr><td class="td" colspan="2" style="font-weight:700;font-size:13px;color:#374151;background:#f9fafb;padding:8px 10px;letter-spacing:0.5px">OTHER DEDUCTIONS</td></tr>`)
+        other.forEach((d: any) => {
+          rows.push(`<tr><td class="td">${String(d.type || 'Other')}</td><td class="td right" style="color:#dc2626">-${formatCurrencyPrint(Number(d.amount || 0))}</td></tr>`)
+        })
+      }
 
       return rows.join('')
     })()
+
 
     const html = `
       <html>
@@ -385,6 +415,24 @@ export default function ArchivedPayrollDetailsDialog({
     }
 
     fetchLiveBreakdown()
+
+    // Fetch archived attendance deductions and filter to this payroll period
+    if (entry?.users_id && period?.periodStart && period?.periodEnd) {
+      const start = new Date(period.periodStart).getTime()
+      const end = new Date(period.periodEnd).getTime()
+      fetch(`/api/admin/attendance-deductions?archived=true&userId=${entry.users_id}`)
+        .then(res => res.ok ? res.json() : null)
+        .then(data => {
+          if (data?.deductions) {
+            const periodFiltered = data.deductions.filter((d: any) => {
+              const appliedAt = new Date(d.appliedAt).getTime()
+              return appliedAt >= start && appliedAt <= end
+            })
+            setArchivedAttendance(periodFiltered)
+          }
+        })
+        .catch(() => { })
+    }
   }, [entry?.users_id, isOpen])
 
   if (!entry || !period) return null
@@ -416,13 +464,37 @@ export default function ArchivedPayrollDetailsDialog({
     overloadPay = dbNetPay - periodSalary + deductions
   }
 
-  // Use attendanceDeductionDetails directly from snapshot instead of filtering
-  const attendanceDeductions = attendanceDeductionDetails
-
+  // Only show attendance deductions from the payroll snapshot.
+  // If snapshot has none, use period-filtered archived attendance deductions.
+  // If still none, derive total from stored deductions as a single fallback line.
   const mandatoryDeductions = deductionDetails.filter((d: any) => d.isMandatory)
+  const mandatoryTotal = mandatoryDeductions.reduce((s: number, d: any) => s + Number(d.amount), 0)
+  const loanTotal = loanDetails.reduce((s: number, l: any) => s + Number(l.amount || l.payment || 0), 0)
+  const derivedAttendanceTotal = Math.max(0, deductions - mandatoryTotal - loanTotal)
+
+  const attendanceDeductions: any[] = attendanceDeductionDetails.length > 0
+    ? attendanceDeductionDetails
+    : archivedAttendance.length > 0
+      ? archivedAttendance.map((d: any) => ({
+        type: d.deductionType || 'Attendance Deduction',
+        amount: Number(d.amount),
+        description: d.notes || '',
+        appliedAt: d.appliedAt,
+        notes: d.notes
+      }))
+      : derivedAttendanceTotal > 0
+        ? [{ type: 'Attendance Deduction', amount: derivedAttendanceTotal, description: 'Attendance-based deduction for this period', appliedAt: null, notes: null }]
+        : []
+
   const otherDeductions = deductionDetails.filter((d: any) => {
     const type = d.type?.toLowerCase() || ''
-    return !d.isMandatory && !type.includes('late') && !type.includes('early') && !type.includes('absent') && !type.includes('tardiness') && !type.includes('partial')
+    return !d.isMandatory &&
+      !type.includes('late') &&
+      !type.includes('early') &&
+      !type.includes('absent') &&
+      !type.includes('tardiness') &&
+      !type.includes('partial') &&
+      !type.includes('attendance')
   })
 
   const actualLoans = loanDetails.filter((l: any) => !l.type?.startsWith('[DEDUCTION]'))
@@ -433,7 +505,7 @@ export default function ArchivedPayrollDetailsDialog({
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="!w-[85vw] !max-w-[1200px] max-h-[90vh] overflow-y-auto scrollbar-hide p-0">
+      <DialogContent className="!w-[85vw] !max-w-[1200px] max-h-[90vh] overflow-y-auto scrollbar-minimal p-0">
         {/* Header Section */}
         <div className="sticky top-0 z-10 bg-background border-b px-4 py-3">
           <DialogHeader>
@@ -454,10 +526,15 @@ export default function ArchivedPayrollDetailsDialog({
                   )}
                 </div>
               </div>
-              <Button variant="outline" size="sm" onClick={handlePrint} className="gap-2">
-                <Printer className="h-4 w-4" />
-                Print
-              </Button>
+              <div className="flex items-center gap-2">
+                <Button size="sm" onClick={handlePrint} className="gap-2 bg-blue-600 hover:bg-blue-700 text-white">
+                  <Printer className="h-4 w-4" />
+                  Print
+                </Button>
+                <Button variant="ghost" size="sm" onClick={onClose} className="h-8 w-8 p-0">
+                  <X className="h-4 w-4" />
+                </Button>
+              </div>
             </div>
           </DialogHeader>
         </div>
@@ -470,21 +547,44 @@ export default function ArchivedPayrollDetailsDialog({
 
         {!loading && (
           <div className="px-4 py-4 space-y-4" ref={printRef}>
-            <div>
-              <div className="text-lg font-bold">{entry.user?.name || 'N/A'}</div>
-              <div className="muted">
-                {formatDateForDisplay(new Date(period.periodStart))} - {formatDateForDisplay(new Date(period.periodEnd))}
-                {entry.user?.email ? ` • ${entry.user.email}` : ''}
-                {entry.user?.personnelType?.department ? ` • ${entry.user.personnelType.department}` : ''}
+
+            {/* Logo + Employee Info Header */}
+            <div className="flex items-center gap-4 pb-4 border-b">
+              <img
+                src="/BRGY PICTURE LOG TUBOD.png"
+                alt="Barangay Logo"
+                className="w-20 h-20 object-contain flex-shrink-0"
+                onError={(e) => { (e.target as HTMLImageElement).style.display = 'none' }}
+              />
+              <div>
+                <div className="text-lg font-bold">{entry.user?.name || 'N/A'}</div>
+                {(entry.user?.personnelType?.department || entry.user?.personnelType?.name) && (
+                  <div className="flex items-center gap-2 mt-0.5">
+                    {entry.user?.personnelType?.department && (
+                      <span className="text-xs font-semibold bg-blue-100 text-blue-700 dark:bg-blue-900/40 dark:text-blue-300 px-2 py-0.5 rounded-full">
+                        {entry.user.personnelType.department}
+                      </span>
+                    )}
+                    {entry.user?.personnelType?.name && (
+                      <span className="text-xs font-semibold bg-gray-100 text-gray-700 dark:bg-gray-800 dark:text-gray-300 px-2 py-0.5 rounded-full">
+                        {entry.user.personnelType.name}
+                      </span>
+                    )}
+                  </div>
+                )}
+                <div className="text-xs text-muted-foreground mt-1">
+                  {formatDateForDisplay(new Date(period.periodStart))} – {formatDateForDisplay(new Date(period.periodEnd))}
+                  {entry.user?.email ? ` • ${entry.user.email}` : ''}
+                </div>
               </div>
             </div>
 
-            {/* Simplified Salary Summary */}
-            <div className="border rounded-lg">
-              <div className="border-b px-4 py-3">
+            {/* Salary Summary */}
+            <div className="border rounded-lg overflow-hidden">
+              <div className="border-b px-4 py-3 bg-muted/30">
                 <h3 className="text-base font-semibold">Salary Summary</h3>
               </div>
-              <div className="p-4 space-y-2">
+              <div className="p-4 space-y-1">
                 <div className="flex justify-between items-center py-2 border-b">
                   <span className="text-xs font-medium">Monthly Basic Salary</span>
                   <span className="text-sm font-bold">{formatCurrency(periodSalary)}</span>
@@ -493,13 +593,13 @@ export default function ArchivedPayrollDetailsDialog({
                 {/* Additional Pay Section */}
                 {(overloadPayDetails.length > 0 || overloadPay > 0) && (
                   <>
-                    <div className="pt-2">
-                      <span className="text-xs font-semibold text-green-700 dark:text-green-400 uppercase tracking-wide">Additional Pay:</span>
+                    <div className="pt-3 pb-1">
+                      <span className="text-xs font-bold text-green-700 dark:text-green-400 uppercase tracking-wider">Additional Pay</span>
                     </div>
                     {overloadPayDetails.length > 0 ? (
                       overloadPayDetails.map((detail: any, idx: number) => (
-                        <div key={idx} className="flex justify-between items-center py-2 border-b pl-3">
-                          <span className="text-xs font-medium text-green-600">
+                        <div key={idx} className="flex justify-between items-center py-2 border-b pl-4">
+                          <span className="text-xs font-medium text-green-700 dark:text-green-400">
                             • {detail.type === 'POSITION_PAY' ? 'Position Pay' :
                               detail.type === 'BONUS' ? 'Bonus' :
                                 detail.type === '13TH_MONTH' ? '13th Month Pay' :
@@ -512,8 +612,8 @@ export default function ArchivedPayrollDetailsDialog({
                       ))
                     ) : (
                       overloadPay > 0 && (
-                        <div className="flex justify-between items-center py-2 border-b pl-3">
-                          <span className="text-xs font-medium text-green-600">• Additional Pay</span>
+                        <div className="flex justify-between items-center py-2 border-b pl-4">
+                          <span className="text-xs font-medium text-green-700 dark:text-green-400">• Additional Pay</span>
                           <span className="text-sm font-bold text-green-600">+{formatCurrency(overloadPay)}</span>
                         </div>
                       )
@@ -521,67 +621,190 @@ export default function ArchivedPayrollDetailsDialog({
                   </>
                 )}
 
-                <div className="flex justify-between items-center py-2 border-b">
-                  <span className="text-xs font-medium">Gross Pay</span>
-                  <span className="text-sm font-bold">{formatCurrency(grossPay)}</span>
-                </div>
-
-                {/* Deductions Section */}
-                {deductions > 0 && (
-                  <>
-                    <div className="pt-2">
-                      <span className="text-xs font-semibold text-red-700 dark:text-red-400 uppercase tracking-wide">Deductions:</span>
-                    </div>
-                    {/* Attendance Deductions */}
-                    {attendanceDeductions.map((deduction: any, idx: number) => (
-                      <div key={idx} className="flex justify-between items-center py-2 border-b pl-3">
-                        <span className="text-xs font-medium text-red-600">• {deduction.type}</span>
-                        <span className="text-sm font-bold text-red-600">-{formatCurrency(deduction.amount)}</span>
-                      </div>
-                    ))}
-                    {/* Mandatory Deductions */}
-                    {mandatoryDeductions.map((deduction: any, idx: number) => (
-                      <div key={idx} className="flex justify-between items-center py-2 border-b pl-3">
-                        <span className="text-xs font-medium text-red-600">• {(deduction.type || 'Deduction').split('(')[0].trim()}</span>
-                        <span className="text-sm font-bold text-red-600">-{formatCurrency(deduction.amount)}</span>
-                      </div>
-                    ))}
-                    {/* Loan Payments */}
-                    {actualLoans.map((loan: any, idx: number) => (
-                      <div key={idx} className="flex justify-between items-center py-2 border-b pl-3">
-                        <span className="text-xs font-medium text-red-600">• {(loan.type || 'Loan').split('(')[0].trim()}</span>
-                        <span className="text-sm font-bold text-red-600">-{formatCurrency(loan.amount)}</span>
-                      </div>
-                    ))}
-                    {/* Deduction Payments */}
-                    {deductionPayments.map((deduction: any, idx: number) => (
-                      <div key={idx} className="flex justify-between items-center py-2 border-b pl-3">
-                        <span className="text-xs font-medium text-red-600">• {(deduction.type || 'Deduction').replace(/^\[DEDUCTION\]\s*/i, '').split('(')[0].trim()}</span>
-                        <span className="text-sm font-bold text-red-600">-{formatCurrency(deduction.amount)}</span>
-                      </div>
-                    ))}
-                    {/* Other Deductions */}
-                    {otherDeductions.map((deduction: any, idx: number) => (
-                      <div key={idx} className="flex justify-between items-center py-2 border-b pl-3">
-                        <span className="text-xs font-medium text-red-600">• {deduction.type}</span>
-                        <span className="text-sm font-bold text-red-600">-{formatCurrency(deduction.amount)}</span>
-                      </div>
-                    ))}
-                    {/* Total Deductions */}
-                    <div className="flex justify-between items-center py-2 border-b pl-3 bg-red-50 dark:bg-red-950/20">
-                      <span className="text-xs font-semibold text-red-700 dark:text-red-300">Total Deductions</span>
-                      <span className="text-sm font-bold text-red-700 dark:text-red-300">-{formatCurrency(deductions)}</span>
-                    </div>
-                  </>
-                )}
-
-                {/* NET PAY */}
-                <div className="flex justify-between items-center py-3 bg-primary/5 rounded-lg px-3 mt-2">
-                  <span className="text-sm font-semibold">Net Pay</span>
-                  <span className="text-xl font-bold text-primary">{formatCurrency(netPay)}</span>
+                <div className="flex justify-between items-center py-2 border-b font-semibold">
+                  <span className="text-xs">Gross Pay</span>
+                  <span className="text-sm">{formatCurrency(grossPay)}</span>
                 </div>
               </div>
             </div>
+
+            {/* Deductions Section - Separated */}
+            {deductions > 0 && (
+              <div className="border rounded-lg overflow-hidden">
+                <div className="border-b px-4 py-3 bg-red-50 dark:bg-red-950/20">
+                  <h3 className="text-base font-semibold text-red-700 dark:text-red-400">Deductions</h3>
+                </div>
+                <div className="p-4 space-y-1">
+
+                  {/* Attendance Deductions - Detailed Grouped (merged snapshot + archived API) */}
+                  {(() => {
+                    // Normalize snapshot items to a common shape
+                    const snapshotItems = attendanceDeductions.map((d: any) => ({
+                      _id: d.deductions_id || null,
+                      type: d.type || 'Attendance',
+                      amount: Number(d.amount || 0),
+                      label: d.description || d.notes || d.type || 'Attendance',
+                      dateStr: d.appliedAt
+                        ? new Date(d.appliedAt).toLocaleDateString('en-PH', { month: 'short', day: 'numeric', year: 'numeric' })
+                        : d.date
+                          ? new Date(d.date).toLocaleDateString('en-PH', { month: 'short', day: 'numeric', year: 'numeric' })
+                          : null,
+                      source: 'snapshot'
+                    }))
+
+                    // Normalize fetched archived API items (richer data)
+                    const apiItems = archivedAttendance.map((d: any) => ({
+                      _id: d.deductions_id,
+                      type: d.deductionType || 'Attendance',
+                      amount: Number(d.amount || 0),
+                      label: d.notes || d.deductionType || 'Attendance',
+                      dateStr: d.appliedAt
+                        ? new Date(d.appliedAt).toLocaleDateString('en-PH', { month: 'short', day: 'numeric', year: 'numeric' })
+                        : null,
+                      source: 'api'
+                    }))
+
+                    // Merge: API items take priority, snapshot fills gaps
+                    const apiIds = new Set(apiItems.map((i: any) => i._id).filter(Boolean))
+                    const merged = [
+                      ...apiItems,
+                      ...snapshotItems.filter((i: any) => !i._id || !apiIds.has(i._id))
+                    ]
+
+                    if (merged.length === 0) return null
+
+                    // Group by category
+                    const getCategory = (type: string) => {
+                      const t = (type || '').toLowerCase()
+                      if (t.includes('absent')) return 'Absent'
+                      if (t.includes('late') || t.includes('tardiness')) return 'Late / Tardiness'
+                      if (t.includes('early') || t.includes('undertime')) return 'Early Departure'
+                      if (t.includes('partial')) return 'Partial Day'
+                      return 'Attendance'
+                    }
+                    const groups: Record<string, any[]> = {}
+                    merged.forEach((d: any) => {
+                      const cat = getCategory(d.type)
+                      if (!groups[cat]) groups[cat] = []
+                      groups[cat].push(d)
+                    })
+
+                    return (
+                      <>
+                        <div className="pt-1 pb-1 flex items-center justify-between">
+                          <span className="text-xs font-bold text-orange-600 dark:text-orange-400 uppercase tracking-wider">Attendance</span>
+                          <span className="text-xs text-muted-foreground">{merged.length} item{merged.length !== 1 ? 's' : ''}</span>
+                        </div>
+                        {Object.entries(groups).map(([cat, items]) => {
+                          const subtotal = items.reduce((sum: number, d: any) => sum + d.amount, 0)
+                          return (
+                            <div key={cat} className="pl-3 mb-2">
+                              {/* Category header */}
+                              <div className="flex justify-between items-center py-1.5 border-b border-orange-100 dark:border-orange-900/30">
+                                <div className="flex items-center gap-2">
+                                  <span className="text-xs font-semibold text-orange-700 dark:text-orange-400">{cat}</span>
+                                  <span className="text-[10px] bg-orange-100 dark:bg-orange-900/40 text-orange-700 dark:text-orange-300 px-1.5 py-0.5 rounded-full font-bold">
+                                    ×{items.length}
+                                  </span>
+                                </div>
+                                <span className="text-xs font-semibold text-red-600">-{formatCurrency(subtotal)}</span>
+                              </div>
+                              {/* Individual items */}
+                              {items.map((d: any, idx: number) => (
+                                <div key={idx} className="flex justify-between items-center py-1.5 pl-4 text-[11px] text-muted-foreground border-b last:border-b-0">
+                                  <span>
+                                    {d.dateStr ? <span className="font-medium text-foreground">{d.dateStr}</span> : null}
+                                    {d.dateStr ? ' — ' : ''}
+                                    {d.label}
+                                  </span>
+                                  <span className="text-red-500 font-medium ml-4 shrink-0">-{formatCurrency(d.amount)}</span>
+                                </div>
+                              ))}
+                            </div>
+                          )
+                        })}
+                      </>
+                    )
+                  })()}
+
+                  {/* Mandatory Deductions (SSS, PhilHealth, Pag-IBIG, BIR, etc.) */}
+                  {mandatoryDeductions.length > 0 && (
+                    <>
+                      <div className="pt-3 pb-1">
+                        <span className="text-xs font-bold text-purple-600 dark:text-purple-400 uppercase tracking-wider">Mandatory Deductions</span>
+                      </div>
+                      {mandatoryDeductions.map((deduction: any, idx: number) => (
+                        <div key={idx} className="flex justify-between items-center py-2 border-b pl-4">
+                          <span className="text-xs font-medium text-red-600">• {(deduction.type || 'Deduction').split('(')[0].trim()}</span>
+                          <span className="text-sm font-bold text-red-600">-{formatCurrency(deduction.amount)}</span>
+                        </div>
+                      ))}
+                    </>
+                  )}
+
+                  {/* Loan Payments */}
+                  {actualLoans.length > 0 && (
+                    <>
+                      <div className="pt-3 pb-1">
+                        <span className="text-xs font-bold text-yellow-700 dark:text-yellow-400 uppercase tracking-wider">Loan Payments</span>
+                      </div>
+                      {actualLoans.map((loan: any, idx: number) => (
+                        <div key={idx} className="flex justify-between items-center py-2 border-b pl-4">
+                          <span className="text-xs font-medium text-red-600">• {(loan.type || 'Loan').split('(')[0].trim()}</span>
+                          <span className="text-sm font-bold text-red-600">-{formatCurrency(loan.amount)}</span>
+                        </div>
+                      ))}
+                    </>
+                  )}
+
+                  {/* Other Deduction Payments */}
+                  {deductionPayments.length > 0 && (
+                    <>
+                      <div className="my-2 border-t border-dashed border-muted-foreground/30" />
+                      <div className="pt-1 pb-1">
+                        <span className="text-xs font-bold text-red-600 dark:text-red-400 uppercase tracking-wider">Other Deductions</span>
+                      </div>
+                      {deductionPayments.map((deduction: any, idx: number) => (
+                        <div key={idx} className="flex justify-between items-center py-2 border-b pl-4">
+                          <span className="text-xs font-medium text-red-600">• {(deduction.type || 'Deduction').replace(/^\[DEDUCTION\]\s*/i, '').split('(')[0].trim()}</span>
+                          <span className="text-sm font-bold text-red-600">-{formatCurrency(deduction.amount)}</span>
+                        </div>
+                      ))}
+                    </>
+                  )}
+
+                  {/* Other (non-mandatory) Deductions */}
+                  {otherDeductions.length > 0 && (
+                    <>
+                      {deductionPayments.length === 0 && (
+                        <div className="pt-3 pb-1">
+                          <span className="text-xs font-bold text-red-600 dark:text-red-400 uppercase tracking-wider">Other Deductions</span>
+                        </div>
+                      )}
+                      {otherDeductions.map((deduction: any, idx: number) => (
+                        <div key={idx} className="flex justify-between items-center py-2 border-b pl-4">
+                          <span className="text-xs font-medium text-red-600">• {deduction.type}</span>
+                          <span className="text-sm font-bold text-red-600">-{formatCurrency(deduction.amount)}</span>
+                        </div>
+                      ))}
+                    </>
+                  )}
+
+                  {/* Total Deductions */}
+                  <div className="flex justify-between items-center py-3 pl-4 mt-1 bg-red-50 dark:bg-red-950/20 rounded-lg">
+                    <span className="text-xs font-bold text-red-700 dark:text-red-300 uppercase tracking-wide">Total Deductions</span>
+                    <span className="text-sm font-bold text-red-700 dark:text-red-300">-{formatCurrency(deductions)}</span>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* NET PAY */}
+            <div className="flex justify-between items-center py-4 bg-primary/5 border border-primary/20 rounded-lg px-4">
+              <span className="text-sm font-bold">Net Pay</span>
+              <span className="text-xl font-bold text-primary">{formatCurrency(netPay)}</span>
+            </div>
+
           </div>
         )}
       </DialogContent>

@@ -258,8 +258,8 @@ export default function AttendanceDeductionPage() {
           </p>
         </div>
         <Button
-          variant="outline"
           onClick={() => router.push('/admin/attendance-deduction/archived')}
+          className="bg-orange-500 hover:bg-orange-600 text-white"
         >
           <Archive className="h-4 w-4 mr-2" />
           View Archived
