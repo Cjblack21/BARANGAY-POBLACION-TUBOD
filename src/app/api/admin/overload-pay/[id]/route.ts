@@ -3,7 +3,7 @@ import { getServerSession } from "next-auth"
 import { authOptions } from "@/lib/auth"
 import { prisma } from "@/lib/prisma"
 
-// DELETE - Remove an overload pay record
+// DELETE - Archive (soft-delete) an overload pay record, or permanently delete with ?permanent=true
 export async function DELETE(
   request: NextRequest,
   context: { params: Promise<{ id: string }> }
@@ -16,15 +16,50 @@ export async function DELETE(
 
     const params = await context.params
     const { id } = params
+    const { searchParams } = new URL(request.url)
+    const permanent = searchParams.get("permanent") === "true"
 
-    await prisma.overload_pays.delete({
-      where: { overload_pays_id: id }
+    if (permanent) {
+      await prisma.overload_pays.delete({ where: { overload_pays_id: id } })
+      return NextResponse.json({ success: true, message: "Permanently deleted" })
+    }
+
+    // Soft-delete: set archivedAt
+    await prisma.overload_pays.update({
+      where: { overload_pays_id: id },
+      data: { archivedAt: new Date() }
     })
 
-    return NextResponse.json({ success: true, message: "Overload pay removed" })
+    return NextResponse.json({ success: true, message: "Additional pay archived" })
   } catch (error) {
-    console.error("Error deleting overload pay:", error)
-    return NextResponse.json({ error: "Failed to delete overload pay" }, { status: 500 })
+    console.error("Error archiving overload pay:", error)
+    return NextResponse.json({ error: "Failed to archive overload pay" }, { status: 500 })
+  }
+}
+
+// PATCH - Restore an archived overload pay record
+export async function PATCH(
+  request: NextRequest,
+  context: { params: Promise<{ id: string }> }
+) {
+  try {
+    const session = await getServerSession(authOptions)
+    if (!session || session.user.role !== "ADMIN") {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
+    }
+
+    const params = await context.params
+    const { id } = params
+
+    await prisma.overload_pays.update({
+      where: { overload_pays_id: id },
+      data: { archivedAt: null }
+    })
+
+    return NextResponse.json({ success: true, message: "Additional pay restored" })
+  } catch (error) {
+    console.error("Error restoring overload pay:", error)
+    return NextResponse.json({ error: "Failed to restore overload pay" }, { status: 500 })
   }
 }
 
@@ -63,3 +98,4 @@ export async function PUT(
     return NextResponse.json({ error: "Failed to update overload pay" }, { status: 500 })
   }
 }
+

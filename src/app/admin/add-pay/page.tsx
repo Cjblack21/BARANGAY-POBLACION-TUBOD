@@ -10,7 +10,9 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Switch } from "@/components/ui/switch"
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
-import { Plus, CheckSquare, Square, Trash2, Edit, Search } from "lucide-react"
+import { Plus, CheckSquare, Square, Trash2, Edit, Search, Archive, RotateCcw } from "lucide-react"
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
+import { Badge } from "@/components/ui/badge"
 import { toast } from "react-hot-toast"
 
 type Personnel = {
@@ -45,6 +47,8 @@ type OverloadPay = {
 export default function AddPayPage() {
   const [personnel, setPersonnel] = useState<Personnel[]>([])
   const [overloadPays, setOverloadPays] = useState<OverloadPay[]>([])
+  const [archivedOverloadPays, setArchivedOverloadPays] = useState<OverloadPay[]>([])
+  const [activeTab, setActiveTab] = useState("active")
   const [loading, setLoading] = useState(true)
 
   // Add Pay dialog
@@ -95,11 +99,12 @@ export default function AddPayPage() {
   async function loadAll() {
     try {
       setLoading(true)
-      const res = await fetch("/api/admin/overload-pay")
-      if (res.ok) {
-        const data = await res.json()
-        setOverloadPays(data)
-      }
+      const [activeRes, archivedRes] = await Promise.all([
+        fetch("/api/admin/overload-pay"),
+        fetch("/api/admin/overload-pay?archived=true")
+      ])
+      if (activeRes.ok) setOverloadPays(await activeRes.json())
+      if (archivedRes.ok) setArchivedOverloadPays(await archivedRes.json())
     } catch (e) {
       toast.error("Failed to load additional pay data")
     } finally {
@@ -161,20 +166,40 @@ export default function AddPayPage() {
   async function bulkDeleteOverloadPays() {
     setShowDeleteOverloadPaysModal(false)
     try {
-      toast.loading('Deleting additional pays...', { id: 'bulk-delete-overload' })
-      const deletePromises = selectedOverloadPays.map(id =>
-        fetch(`/api/admin/overload-pay/${id}`, { method: "DELETE" })
+      toast.loading('Archiving additional pays...', { id: 'bulk-delete-overload' })
+      const results = await Promise.all(
+        selectedOverloadPays.map(id => fetch(`/api/admin/overload-pay/${id}`, { method: "DELETE" }))
       )
-      const results = await Promise.all(deletePromises)
       const failed = results.filter(r => !r.ok)
-      if (failed.length > 0) throw new Error(`Failed to delete ${failed.length} additional pay(s)`)
-
-      toast.success(`Deleted ${selectedOverloadPays.length} additional pay(s)`, { id: 'bulk-delete-overload' })
+      if (failed.length > 0) throw new Error(`Failed to archive ${failed.length} additional pay(s)`)
+      toast.success(`Archived ${selectedOverloadPays.length} additional pay(s)`, { id: 'bulk-delete-overload' })
       setSelectedOverloadPays([])
       setIsSelectAllOverloadPays(false)
       loadAll()
     } catch (error) {
-      toast.error(`Failed to delete: ${error instanceof Error ? error.message : 'Unknown error'}`, { id: 'bulk-delete-overload' })
+      toast.error(`Failed to archive: ${error instanceof Error ? error.message : 'Unknown error'}`, { id: 'bulk-delete-overload' })
+    }
+  }
+
+  async function restoreOverloadPay(id: string) {
+    try {
+      const res = await fetch(`/api/admin/overload-pay/${id}`, { method: "PATCH" })
+      if (!res.ok) throw new Error()
+      toast.success("Additional pay restored")
+      loadAll()
+    } catch {
+      toast.error("Failed to restore additional pay")
+    }
+  }
+
+  async function permanentlyDeleteOverloadPay(id: string) {
+    try {
+      const res = await fetch(`/api/admin/overload-pay/${id}?permanent=true`, { method: "DELETE" })
+      if (!res.ok) throw new Error()
+      toast.success("Permanently deleted")
+      loadAll()
+    } catch {
+      toast.error("Failed to permanently delete")
     }
   }
 
@@ -189,11 +214,11 @@ export default function AddPayPage() {
     try {
       const res = await fetch(`/api/admin/overload-pay/${id}`, { method: "DELETE" })
       if (!res.ok) throw new Error()
-      toast.success("Additional pay removed")
+      toast.success("Additional pay archived")
       setOverloadPayToDelete('')
       loadAll()
     } catch {
-      toast.error("Failed to remove additional pay")
+      toast.error("Failed to archive additional pay")
     }
   }
 
@@ -339,175 +364,293 @@ export default function AddPayPage() {
         </Button>
       </div>
 
-      {/* Summary Card */}
-      <Card className="border-green-200 bg-green-50 dark:bg-green-950/20">
-        <CardContent className="pt-6">
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            <div>
-              <p className="text-sm font-medium text-green-600 dark:text-green-400">Total Additional Pays</p>
-              <p className="text-2xl font-bold text-green-900 dark:text-green-100 mt-1">
-                {overloadPays.length}
-              </p>
-            </div>
-            <div>
-              <p className="text-sm font-medium text-green-600 dark:text-green-400">Staff with Additional Pay</p>
-              <p className="text-2xl font-bold text-green-900 dark:text-green-100 mt-1">
-                {new Set(overloadPays.map(op => op.users.users_id)).size}
-              </p>
-            </div>
-            <div>
-              <p className="text-sm font-medium text-green-600 dark:text-green-400">Total Amount</p>
-              <p className="text-2xl font-bold text-green-900 dark:text-green-100 mt-1">
-                ₱{totalAmount.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-              </p>
-            </div>
-          </div>
-        </CardContent>
-      </Card>
+      <Tabs value={activeTab} onValueChange={setActiveTab}>
+        <TabsList className="gap-2 bg-transparent p-0">
+          <TabsTrigger value="active" className="flex items-center gap-2 px-4 py-2 rounded-md border-2 font-medium text-sm transition-all
+              data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:border-primary data-[state=active]:shadow-sm
+              data-[state=inactive]:bg-background data-[state=inactive]:text-muted-foreground data-[state=inactive]:border-gray-400 hover:bg-muted">
+            <Plus className="h-4 w-4" />
+            Active
+            {overloadPays.length > 0 && <Badge variant="secondary" className="ml-1">{overloadPays.length}</Badge>}
+          </TabsTrigger>
+          <TabsTrigger value="archived" className="flex items-center gap-2 px-4 py-2 rounded-md border-2 font-medium text-sm transition-all
+              data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:border-primary data-[state=active]:shadow-sm
+              data-[state=inactive]:bg-background data-[state=inactive]:text-muted-foreground data-[state=inactive]:border-gray-400 hover:bg-muted">
+            <Archive className="h-4 w-4" />
+            Archived
+            {archivedOverloadPays.length > 0 && <Badge variant="secondary" className="ml-1">{archivedOverloadPays.length}</Badge>}
+          </TabsTrigger>
+        </TabsList>
 
-      {/* Additional Pays Table */}
-      <Card>
-        <CardHeader>
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-            <CardTitle>Current Additional Pays</CardTitle>
-            <div className="flex items-center gap-2">
-              <div className="relative w-full sm:w-64">
-                <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
-                <Input
-                  placeholder="Search staff..."
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  className="pl-9"
-                />
-              </div>
-              {selectedOverloadPays.length > 0 && (
-                <Button
-                  variant="destructive"
-                  size="sm"
-                  onClick={promptDeleteOverloadPays}
-                  disabled={loading}
-                >
-                  <Trash2 className="h-4 w-4 mr-2" />
-                  Delete Selected ({selectedOverloadPays.length})
-                </Button>
-              )}
-            </div>
+        <TabsContent value="active" className="space-y-4">
+          {/* Summary Cards */}
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <Card className="border-l-4 border-l-green-500">
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                <CardTitle className="text-sm font-medium">Total Additional Pays</CardTitle>
+                <Plus className="h-4 w-4 text-green-600" />
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold">{overloadPays.length}</div>
+                <p className="text-xs text-muted-foreground mt-1">Active entries</p>
+              </CardContent>
+            </Card>
+            <Card className="border-l-4 border-l-blue-500">
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                <CardTitle className="text-sm font-medium">Staff with Additional Pay</CardTitle>
+                <Search className="h-4 w-4 text-blue-600" />
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold">{new Set(overloadPays.map(op => op.users.users_id)).size}</div>
+                <p className="text-xs text-muted-foreground mt-1">Unique staff members</p>
+              </CardContent>
+            </Card>
+            <Card className="border-l-4 border-l-emerald-500">
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                <CardTitle className="text-sm font-medium">Total Amount</CardTitle>
+                <span className="text-emerald-600 font-bold text-sm">₱</span>
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold text-emerald-600">
+                  ₱{totalAmount.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                </div>
+                <p className="text-xs text-muted-foreground mt-1">Combined additional pay</p>
+              </CardContent>
+            </Card>
           </div>
-        </CardHeader>
-        <CardContent>
-          {loading ? (
-            <div className="py-6">Loading...</div>
-          ) : (
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead className="w-32">
-                    <div className="flex items-center gap-2">
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={toggleSelectAllOverloadPays}
-                        className="h-8 w-8 p-0"
-                      >
-                        {isSelectAllOverloadPays ? (
-                          <CheckSquare className="h-4 w-4" />
-                        ) : (
-                          <Square className="h-4 w-4" />
-                        )}
-                      </Button>
-                      <span className="text-sm font-medium">Select All</span>
-                    </div>
-                  </TableHead>
-                  <TableHead>Staff</TableHead>
-                  <TableHead>BLGU</TableHead>
-                  <TableHead>Position</TableHead>
-                  <TableHead>Type</TableHead>
-                  <TableHead>Amount</TableHead>
-                  <TableHead>Notes</TableHead>
-                  <TableHead>Date Added</TableHead>
-                  <TableHead className="text-right">Actions</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {filteredOverloadPays.length === 0 ? (
-                  <TableRow>
-                    <TableCell colSpan={9} className="text-center py-8 text-muted-foreground">
-                      No additional pays found.
-                    </TableCell>
-                  </TableRow>
-                ) : (
-                  filteredOverloadPays.map(op => (
-                    <TableRow key={op.overload_pays_id}>
-                      <TableCell>
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => toggleOverloadPay(op.overload_pays_id)}
-                          className="h-8 w-8 p-0"
-                        >
-                          {selectedOverloadPays.includes(op.overload_pays_id) ? (
-                            <CheckSquare className="h-4 w-4 text-primary" />
-                          ) : (
-                            <Square className="h-4 w-4" />
-                          )}
-                        </Button>
-                      </TableCell>
-                      <TableCell>
-                        <div>
-                          <div className="font-medium">{op.users.name}</div>
-                          <div className="text-sm text-muted-foreground">{op.users.email}</div>
-                        </div>
-                      </TableCell>
-                      <TableCell>
-                        <div className="text-sm text-muted-foreground">
-                          {op.users.personnel_types?.department || '-'}
-                        </div>
-                      </TableCell>
-                      <TableCell>
-                        <div className="text-sm text-muted-foreground">
-                          {op.users.personnel_types?.name || '-'}
-                        </div>
-                      </TableCell>
-                      <TableCell>
-                        <span className="inline-flex items-center rounded-md bg-green-50 px-2 py-1 text-xs font-medium text-green-700 ring-1 ring-inset ring-green-600/20">
-                          {op.type || 'OVERTIME'}
-                        </span>
-                      </TableCell>
-                      <TableCell className="font-semibold text-green-600">
-                        +₱{op.amount.toLocaleString('en-US', { minimumFractionDigits: 2 })}
-                      </TableCell>
-                      <TableCell className="text-sm text-muted-foreground">
-                        {op.notes || '—'}
-                      </TableCell>
-                      <TableCell className="text-sm text-muted-foreground">
-                        {new Date(op.appliedAt).toLocaleDateString()}
-                      </TableCell>
-                      <TableCell className="text-right">
-                        <div className="flex items-center justify-end gap-2">
+
+          {/* Additional Pays Table */}
+          <Card>
+            <CardHeader>
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                <CardTitle>Current Additional Pays</CardTitle>
+                <div className="flex items-center gap-2">
+                  <div className="relative w-full sm:w-64">
+                    <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+                    <Input
+                      placeholder="Search staff..."
+                      value={searchQuery}
+                      onChange={(e) => setSearchQuery(e.target.value)}
+                      className="pl-9"
+                    />
+                  </div>
+                  {selectedOverloadPays.length > 0 && (
+                    <Button
+                      variant="destructive"
+                      size="sm"
+                      onClick={promptDeleteOverloadPays}
+                      disabled={loading}
+                    >
+                      <Trash2 className="h-4 w-4 mr-2" />
+                      Delete Selected ({selectedOverloadPays.length})
+                    </Button>
+                  )}
+                </div>
+              </div>
+            </CardHeader>
+            <CardContent>
+              {loading ? (
+                <div className="py-6">Loading...</div>
+              ) : (
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead className="w-32">
+                        <div className="flex items-center gap-2">
                           <Button
                             variant="ghost"
                             size="sm"
-                            onClick={() => openEditOverloadPay(op)}
+                            onClick={toggleSelectAllOverloadPays}
+                            className="h-8 w-8 p-0"
                           >
-                            <Edit className="h-4 w-4" />
+                            {isSelectAllOverloadPays ? (
+                              <CheckSquare className="h-4 w-4" />
+                            ) : (
+                              <Square className="h-4 w-4" />
+                            )}
                           </Button>
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={() => promptDeleteOverloadPay(op.overload_pays_id)}
-                          >
-                            <Trash2 className="h-4 w-4 text-red-600" />
-                          </Button>
+                          <span className="text-sm font-medium">Select All</span>
                         </div>
-                      </TableCell>
+                      </TableHead>
+                      <TableHead>Staff</TableHead>
+                      <TableHead>BLGU</TableHead>
+                      <TableHead>Position</TableHead>
+                      <TableHead>Type</TableHead>
+                      <TableHead>Amount</TableHead>
+                      <TableHead>Notes</TableHead>
+                      <TableHead>Date Added</TableHead>
+                      <TableHead className="text-right">Actions</TableHead>
                     </TableRow>
-                  ))
-                )}
-              </TableBody>
-            </Table>
-          )}
-        </CardContent>
-      </Card>
+                  </TableHeader>
+                  <TableBody>
+                    {filteredOverloadPays.length === 0 ? (
+                      <TableRow>
+                        <TableCell colSpan={9} className="text-center py-8 text-muted-foreground">
+                          No additional pays found.
+                        </TableCell>
+                      </TableRow>
+                    ) : (
+                      filteredOverloadPays.map(op => (
+                        <TableRow key={op.overload_pays_id}>
+                          <TableCell>
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => toggleOverloadPay(op.overload_pays_id)}
+                              className="h-8 w-8 p-0"
+                            >
+                              {selectedOverloadPays.includes(op.overload_pays_id) ? (
+                                <CheckSquare className="h-4 w-4 text-primary" />
+                              ) : (
+                                <Square className="h-4 w-4" />
+                              )}
+                            </Button>
+                          </TableCell>
+                          <TableCell>
+                            <div>
+                              <div className="font-medium">{op.users.name}</div>
+                              <div className="text-sm text-muted-foreground">{op.users.email}</div>
+                            </div>
+                          </TableCell>
+                          <TableCell>
+                            <div className="text-sm text-muted-foreground">
+                              {op.users.personnel_types?.department || '-'}
+                            </div>
+                          </TableCell>
+                          <TableCell>
+                            <div className="text-sm text-muted-foreground">
+                              {op.users.personnel_types?.name || '-'}
+                            </div>
+                          </TableCell>
+                          <TableCell>
+                            <span className="inline-flex items-center rounded-md bg-green-50 px-2 py-1 text-xs font-medium text-green-700 ring-1 ring-inset ring-green-600/20">
+                              {op.type || 'OVERTIME'}
+                            </span>
+                          </TableCell>
+                          <TableCell className="font-semibold text-green-600">
+                            +₱{op.amount.toLocaleString('en-US', { minimumFractionDigits: 2 })}
+                          </TableCell>
+                          <TableCell className="text-sm text-muted-foreground">
+                            {op.notes || '—'}
+                          </TableCell>
+                          <TableCell className="text-sm text-muted-foreground">
+                            {new Date(op.appliedAt).toLocaleDateString()}
+                          </TableCell>
+                          <TableCell className="text-right">
+                            <div className="flex items-center justify-end gap-2">
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                onClick={() => openEditOverloadPay(op)}
+                              >
+                                <Edit className="h-4 w-4" />
+                              </Button>
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                onClick={() => promptDeleteOverloadPay(op.overload_pays_id)}
+                              >
+                                <Trash2 className="h-4 w-4 text-red-600" />
+                              </Button>
+                            </div>
+                          </TableCell>
+                        </TableRow>
+                      ))
+                    )}
+                  </TableBody>
+                </Table>
+              )}
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        <TabsContent value="archived" className="space-y-4">
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Archive className="h-5 w-5 text-muted-foreground" />
+                Archived Additional Pays
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              {loading ? (
+                <div className="py-6">Loading...</div>
+              ) : archivedOverloadPays.length === 0 ? (
+                <div className="text-center py-12 text-muted-foreground">
+                  <Archive className="h-12 w-12 mx-auto mb-3 opacity-30" />
+                  <p>No archived additional pays</p>
+                </div>
+              ) : (
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Staff</TableHead>
+                      <TableHead>BLGU</TableHead>
+                      <TableHead>Position</TableHead>
+                      <TableHead>Type</TableHead>
+                      <TableHead>Amount</TableHead>
+                      <TableHead>Notes</TableHead>
+                      <TableHead>Archived</TableHead>
+                      <TableHead className="text-right">Actions</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {archivedOverloadPays.map(op => (
+                      <TableRow key={op.overload_pays_id} className="opacity-75">
+                        <TableCell>
+                          <div>
+                            <div className="font-medium">{op.users.name}</div>
+                            <div className="text-sm text-muted-foreground">{op.users.email}</div>
+                          </div>
+                        </TableCell>
+                        <TableCell className="text-sm text-muted-foreground">
+                          {op.users.personnel_types?.department || '-'}
+                        </TableCell>
+                        <TableCell className="text-sm text-muted-foreground">
+                          {op.users.personnel_types?.name || '-'}
+                        </TableCell>
+                        <TableCell>
+                          <span className="inline-flex items-center rounded-md bg-gray-100 px-2 py-1 text-xs font-medium text-gray-600 ring-1 ring-inset ring-gray-500/20">
+                            {op.type || 'OVERTIME'}
+                          </span>
+                        </TableCell>
+                        <TableCell className="font-semibold text-muted-foreground">
+                          ₱{op.amount.toLocaleString('en-US', { minimumFractionDigits: 2 })}
+                        </TableCell>
+                        <TableCell className="text-sm text-muted-foreground">{op.notes || '—'}</TableCell>
+                        <TableCell className="text-sm text-muted-foreground">
+                          {new Date(op.appliedAt).toLocaleDateString()}
+                        </TableCell>
+                        <TableCell className="text-right">
+                          <div className="flex items-center justify-end gap-2">
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => restoreOverloadPay(op.overload_pays_id)}
+                              className="text-green-600 hover:text-green-700 hover:bg-green-50"
+                            >
+                              <RotateCcw className="h-4 w-4 mr-1" />
+                              Restore
+                            </Button>
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => permanentlyDeleteOverloadPay(op.overload_pays_id)}
+                              className="text-red-600 hover:text-red-700 hover:bg-red-50"
+                            >
+                              <Trash2 className="h-4 w-4" />
+                            </Button>
+                          </div>
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              )}
+            </CardContent>
+          </Card>
+        </TabsContent>
+      </Tabs>
 
       {/* Add Additional Pay Dialog */}
       <Dialog open={overloadPayOpen} onOpenChange={setOverloadPayOpen}>

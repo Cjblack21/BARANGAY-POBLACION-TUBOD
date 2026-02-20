@@ -733,48 +733,62 @@ export default function LoansPage() {
       </div>
 
       {/* Tab Navigation */}
-      <div className="flex gap-2 border-b overflow-x-auto">
-        <Button
-          variant={activeTab === 'active' ? 'default' : 'ghost'}
+      <div className="flex gap-2 flex-wrap">
+        <button
           onClick={() => setActiveTab('active')}
-          className="rounded-b-none"
+          className={`flex items-center gap-2 px-4 py-2 rounded-md border-2 font-medium text-sm transition-all
+            ${activeTab === 'active'
+              ? 'bg-primary text-primary-foreground border-primary shadow-sm'
+              : 'bg-background text-muted-foreground border-gray-400 hover:bg-muted'}`}
         >
+          <CheckCircle className="h-4 w-4" />
           Active Loans
-        </Button>
-        <Button
-          variant={activeTab === 'pending' ? 'default' : 'ghost'}
+          {activeLoansCount > 0 && (
+            <span className="ml-1 bg-white/20 text-inherit text-xs font-semibold px-1.5 py-0.5 rounded-full">
+              {activeLoansCount}
+            </span>
+          )}
+        </button>
+        <button
           onClick={() => setActiveTab('pending')}
-          className="rounded-b-none relative"
+          className={`flex items-center gap-2 px-4 py-2 rounded-md border-2 font-medium text-sm transition-all
+            ${activeTab === 'pending'
+              ? 'bg-primary text-primary-foreground border-primary shadow-sm'
+              : 'bg-background text-muted-foreground border-gray-400 hover:bg-muted'}`}
         >
-          <Clock className="h-4 w-4 mr-2" />
+          <Clock className="h-4 w-4" />
           Pending Requests
           {pendingLoansCount > 0 && (
-            <Badge className="ml-2 bg-yellow-500 hover:bg-yellow-600 text-white border-0 h-5 px-1.5">
+            <span className={`ml-1 text-xs font-semibold px-1.5 py-0.5 rounded-full ${activeTab === 'pending' ? 'bg-white/20 text-inherit' : 'bg-yellow-100 text-yellow-700'}`}>
               {pendingLoansCount}
-            </Badge>
+            </span>
           )}
-        </Button>
-        <Button
-          variant={activeTab === 'rejected' ? 'default' : 'ghost'}
+        </button>
+        <button
           onClick={() => setActiveTab('rejected')}
-          className="rounded-b-none relative"
+          className={`flex items-center gap-2 px-4 py-2 rounded-md border-2 font-medium text-sm transition-all
+            ${activeTab === 'rejected'
+              ? 'bg-primary text-primary-foreground border-primary shadow-sm'
+              : 'bg-background text-muted-foreground border-gray-400 hover:bg-muted'}`}
         >
-          <AlertCircle className="h-4 w-4 mr-2" />
+          <AlertCircle className="h-4 w-4" />
           Rejected
           {rejectedLoansCount > 0 && (
-            <Badge className="ml-2 bg-red-500 hover:bg-red-600 text-white border-0 h-5 px-1.5">
+            <span className={`ml-1 text-xs font-semibold px-1.5 py-0.5 rounded-full ${activeTab === 'rejected' ? 'bg-white/20 text-inherit' : 'bg-red-100 text-red-700'}`}>
               {rejectedLoansCount}
-            </Badge>
+            </span>
           )}
-        </Button>
-        <Button
-          variant={activeTab === 'archived' ? 'default' : 'ghost'}
+        </button>
+        <button
           onClick={() => setActiveTab('archived')}
-          className="rounded-b-none"
+          className={`flex items-center gap-2 px-4 py-2 rounded-md border-2 font-medium text-sm transition-all
+            ${activeTab === 'archived'
+              ? 'bg-primary text-primary-foreground border-primary shadow-sm'
+              : 'bg-background text-muted-foreground border-gray-400 hover:bg-muted'}`}
         >
-          <Archive className="h-4 w-4 mr-2" />
+          <Archive className="h-4 w-4" />
           Archived
-        </Button>
+        </button>
       </div>
 
       {/* Statistics Cards */}

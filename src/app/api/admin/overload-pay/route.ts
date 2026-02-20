@@ -4,16 +4,19 @@ import { authOptions } from "@/lib/auth"
 import { prisma } from "@/lib/prisma"
 import { randomUUID } from "crypto"
 
-// GET - Fetch all overload pay records
-export async function GET() {
+// GET - Fetch all overload pay records (active by default, archived with ?archived=true)
+export async function GET(request: NextRequest) {
   try {
     const session = await getServerSession(authOptions)
     if (!session || session.user.role !== "ADMIN") {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
     }
 
+    const { searchParams } = new URL(request.url)
+    const archived = searchParams.get("archived") === "true"
+
     const overloadPays = await prisma.overload_pays.findMany({
-      where: { archivedAt: null },
+      where: archived ? { archivedAt: { not: null } } : { archivedAt: null },
       include: {
         users: {
           select: {
@@ -29,7 +32,7 @@ export async function GET() {
           }
         }
       },
-      orderBy: { createdAt: "desc" }
+      orderBy: archived ? { archivedAt: "desc" } : { createdAt: "desc" }
     })
 
     return NextResponse.json(overloadPays)

@@ -510,20 +510,47 @@ export default function ArchivedPayrollDetailsDialog({
         <div className="sticky top-0 z-10 bg-background border-b px-4 py-3">
           <DialogHeader>
             <div className="flex items-center justify-between">
-              <div>
-                <DialogTitle className="text-xl font-bold">{entry.user?.name || 'N/A'}</DialogTitle>
-                <div className="flex flex-wrap items-center gap-2 mt-2">
-                  <p className="text-sm text-muted-foreground">
-                    {formatDateForDisplay(new Date(period.periodStart))} - {formatDateForDisplay(new Date(period.periodEnd))}
-                  </p>
-                  <span className="text-muted-foreground">•</span>
-                  <p className="text-sm text-muted-foreground">{entry.user?.email || 'N/A'}</p>
-                  {entry.user?.personnelType?.department && (
-                    <>
-                      <span className="text-muted-foreground">•</span>
-                      <p className="text-sm text-muted-foreground">{entry.user.personnelType.department}</p>
-                    </>
+              <div className="flex items-center gap-4">
+                {/* Profile Avatar */}
+                <div className="relative h-14 w-14 rounded-full overflow-hidden bg-muted flex-shrink-0 border-2 border-border">
+                  {entry.user?.avatar || entry.user?.profilePicture ? (
+                    <img
+                      src={entry.user?.avatar || entry.user?.profilePicture}
+                      alt={entry.user?.name}
+                      className="h-full w-full object-cover"
+                    />
+                  ) : (
+                    <div className="h-full w-full flex items-center justify-center bg-primary/10 text-primary font-bold text-xl">
+                      {(entry.user?.name || 'U').charAt(0).toUpperCase()}
+                    </div>
                   )}
+                </div>
+                <div>
+                  <DialogTitle className="text-2xl font-bold">{entry.user?.name || 'N/A'}</DialogTitle>
+                  <p className="text-base text-muted-foreground mt-0.5">{entry.user?.email || ''}</p>
+                  <div className="flex flex-wrap items-center gap-2 mt-1">
+                    <p className="text-sm text-muted-foreground">
+                      {formatDateForDisplay(new Date(period.periodStart))} - {formatDateForDisplay(new Date(period.periodEnd))}
+                    </p>
+                    <span className="text-muted-foreground">•</span>
+                    <p className="text-sm text-muted-foreground">ID: {entry.users_id || 'N/A'}</p>
+                    {entry.user?.personnelType?.department && (
+                      <>
+                        <span className="text-muted-foreground">•</span>
+                        <span className="text-xs font-semibold bg-blue-100 text-blue-700 dark:bg-blue-900/40 dark:text-blue-300 px-2 py-0.5 rounded-full">
+                          {entry.user.personnelType.department}
+                        </span>
+                      </>
+                    )}
+                    {entry.user?.personnelType?.name && (
+                      <>
+                        <span className="text-muted-foreground">•</span>
+                        <span className="text-xs font-semibold bg-gray-100 text-gray-700 dark:bg-gray-800 dark:text-gray-300 px-2 py-0.5 rounded-full">
+                          {entry.user.personnelType.name}
+                        </span>
+                      </>
+                    )}
+                  </div>
                 </div>
               </div>
               <div className="flex items-center gap-2">
@@ -531,8 +558,13 @@ export default function ArchivedPayrollDetailsDialog({
                   <Printer className="h-4 w-4" />
                   Print
                 </Button>
-                <Button variant="ghost" size="sm" onClick={onClose} className="h-8 w-8 p-0">
-                  <X className="h-4 w-4" />
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  onClick={onClose}
+                  className="h-8 w-8 rounded-full"
+                >
+                  <X className="h-5 w-5" />
                 </Button>
               </div>
             </div>
@@ -548,36 +580,6 @@ export default function ArchivedPayrollDetailsDialog({
         {!loading && (
           <div className="px-4 py-4 space-y-4" ref={printRef}>
 
-            {/* Logo + Employee Info Header */}
-            <div className="flex items-center gap-4 pb-4 border-b">
-              <img
-                src="/BRGY PICTURE LOG TUBOD.png"
-                alt="Barangay Logo"
-                className="w-20 h-20 object-contain flex-shrink-0"
-                onError={(e) => { (e.target as HTMLImageElement).style.display = 'none' }}
-              />
-              <div>
-                <div className="text-lg font-bold">{entry.user?.name || 'N/A'}</div>
-                {(entry.user?.personnelType?.department || entry.user?.personnelType?.name) && (
-                  <div className="flex items-center gap-2 mt-0.5">
-                    {entry.user?.personnelType?.department && (
-                      <span className="text-xs font-semibold bg-blue-100 text-blue-700 dark:bg-blue-900/40 dark:text-blue-300 px-2 py-0.5 rounded-full">
-                        {entry.user.personnelType.department}
-                      </span>
-                    )}
-                    {entry.user?.personnelType?.name && (
-                      <span className="text-xs font-semibold bg-gray-100 text-gray-700 dark:bg-gray-800 dark:text-gray-300 px-2 py-0.5 rounded-full">
-                        {entry.user.personnelType.name}
-                      </span>
-                    )}
-                  </div>
-                )}
-                <div className="text-xs text-muted-foreground mt-1">
-                  {formatDateForDisplay(new Date(period.periodStart))} – {formatDateForDisplay(new Date(period.periodEnd))}
-                  {entry.user?.email ? ` • ${entry.user.email}` : ''}
-                </div>
-              </div>
-            </div>
 
             {/* Salary Summary */}
             <div className="border rounded-lg overflow-hidden">

@@ -379,6 +379,7 @@ html, body { margin: 0 !important; padding: 0 !important; overflow: hidden !impo
         users_id: entry.users_id,
         name: entry.name,
         email: entry.email,
+        avatar: entry.avatar || entry.profilePicture || null,
         personnelType: entry.personnelType || 'N/A',
         personnelTypeCategory: entry.personnelTypeCategory || null,
         department: entry.department || null,
@@ -1947,13 +1948,21 @@ html, body { margin: 0 !important; padding: 0 !important; overflow: hidden !impo
 
       {/* Main Content Tabs */}
       <Tabs value={activeTab} onValueChange={setActiveTab}>
-        <TabsList>
-          <TabsTrigger value="current">
-            <Banknote className="h-4 w-4 mr-2" />
+        <TabsList className="gap-2 bg-transparent p-0">
+          <TabsTrigger
+            value="current"
+            className="flex items-center gap-2 px-4 py-2 rounded-md border font-medium text-sm transition-all
+              data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:border-primary data-[state=active]:shadow-sm
+              data-[state=inactive]:bg-background data-[state=inactive]:text-muted-foreground data-[state=inactive]:border-gray-400 hover:bg-muted border-2"
+          >
+            <Banknote className="h-4 w-4" />
             Current Payroll
           </TabsTrigger>
-          <TabsTrigger value="archived" className="relative">
-            <Archive className="h-4 w-4 mr-2" />
+          <TabsTrigger value="archived" className="relative flex items-center gap-2 px-4 py-2 rounded-md border font-medium text-sm transition-all
+              data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:border-primary data-[state=active]:shadow-sm
+              data-[state=inactive]:bg-background data-[state=inactive]:text-muted-foreground data-[state=inactive]:border-gray-400 hover:bg-muted border-2"
+          >
+            <Archive className="h-4 w-4" />
             Archived Payrolls
             {(archivedPayrolls.length > 0 && !hasViewedNewestPayroll) && (
               <span className="absolute top-0 right-0 flex h-2 w-2 z-50">
@@ -1962,8 +1971,11 @@ html, body { margin: 0 !important; padding: 0 !important; overflow: hidden !impo
               </span>
             )}
           </TabsTrigger>
-          <TabsTrigger value="settings">
-            <Clock className="h-4 w-4 mr-2" />
+          <TabsTrigger value="settings" className="flex items-center gap-2 px-4 py-2 rounded-md border font-medium text-sm transition-all
+              data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:border-primary data-[state=active]:shadow-sm
+              data-[state=inactive]:bg-background data-[state=inactive]:text-muted-foreground data-[state=inactive]:border-gray-400 hover:bg-muted border-2"
+          >
+            <Clock className="h-4 w-4" />
             Payroll Time Settings
           </TabsTrigger>
         </TabsList>
@@ -2105,7 +2117,7 @@ html, body { margin: 0 !important; padding: 0 !important; overflow: hidden !impo
                       <TableHeader>
                         <TableRow className="border-b bg-muted/50">
                           <TableHead className="font-semibold text-xs uppercase tracking-wider h-12 px-6">ID Number</TableHead>
-                          <TableHead className="font-semibold text-xs uppercase tracking-wider h-12">Personnel</TableHead>
+                          <TableHead className="font-semibold text-xs uppercase tracking-wider h-12">Staff</TableHead>
                           <TableHead className="font-semibold text-xs uppercase tracking-wider h-12">Email</TableHead>
                           <TableHead className="font-semibold text-xs uppercase tracking-wider h-12">BLGU</TableHead>
                           <TableHead className="font-semibold text-xs uppercase tracking-wider h-12">Position</TableHead>

@@ -10,7 +10,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Clock, TrendingDown, TrendingUp, Calendar, AlertCircle, UserCheck } from 'lucide-react'
 import { formatDateForDisplay } from '@/lib/timezone'
 import { Progress } from '@/components/ui/progress'
-import { getCurrentDayAttendance } from '@/lib/actions/attendance'
+
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { toast } from 'react-hot-toast'
@@ -58,6 +58,7 @@ type PayrollEntry = {
   users_id: string
   name: string
   email: string
+  avatar?: string | null
   personnelType?: string
   department?: string | null
   personnelTypeCategory?: 'TEACHING' | 'NON_TEACHING' | null
@@ -97,8 +98,7 @@ export default function PayrollBreakdownDialog({
   const [expandedItems, setExpandedItems] = React.useState<Set<number>>(new Set())
   const [liveDeductions, setLiveDeductions] = React.useState<any[]>([])
   const [liveLoans, setLiveLoans] = React.useState<any[]>([])
-  const [liveAttendance, setLiveAttendance] = React.useState<any[]>([])
-  const [todayAttendanceStatus, setTodayAttendanceStatus] = React.useState<string | null>(null)
+
   const printRef = React.useRef<HTMLDivElement | null>(null)
 
   // Edit mode state
@@ -361,44 +361,6 @@ export default function PayrollBreakdownDialog({
     }
   }, [isOpen])
 
-  // Load today's attendance status (skip for archived entries)
-  React.useEffect(() => {
-    async function loadTodayAttendance() {
-      if (!entry?.users_id) return
-
-      // Skip live data for archived entries
-      if (entry.status === 'Archived') {
-        console.log('⏭️ Skipping live attendance fetch for archived entry')
-        return
-      }
-
-      try {
-        const result = await getCurrentDayAttendance()
-        console.log('🔍 Breakdown Dialog - Fetching attendance for:', entry.name, entry.users_id)
-        console.log('🔍 Total records:', result.attendance?.length)
-        console.log('🔍 All records:', result.attendance?.map((r: any) => ({
-          user: r.users_id,
-          status: r.status
-        })))
-
-        if (result.success && result.attendance) {
-          // getCurrentDayAttendance only returns today's records, so just find by user ID
-          const todayRecord = result.attendance.find((record: any) =>
-            record.users_id === entry.users_id
-          )
-          console.log('🔍 Found record for user:', todayRecord)
-          setTodayAttendanceStatus(todayRecord?.status || null)
-          console.log('🔍 Set status to:', todayRecord?.status || null)
-        }
-      } catch (error) {
-        console.error('Error loading today attendance:', error)
-      }
-    }
-    if (isOpen && entry) {
-      loadTodayAttendance()
-    }
-  }, [isOpen, entry?.users_id, entry?.status])
-
   // Load live deductions for this user to show newly added deductions (skip for archived)
   React.useEffect(() => {
     async function loadLiveDeductions() {
@@ -439,37 +401,7 @@ export default function PayrollBreakdownDialog({
     }
   }, [isOpen, entry?.users_id, entry?.status])
 
-  // Load live attendance data for this user
-  React.useEffect(() => {
-    async function loadLiveAttendance() {
-      if (!entry?.users_id) return
 
-      // Skip live data for archived entries
-      if (entry.status === 'Archived') {
-        console.log('⏭️ Skipping live attendance fetch for archived entry')
-        return
-      }
-
-      console.log('🔍 FETCHING LIVE ATTENDANCE for user:', entry.name, entry.users_id)
-
-      try {
-        const response = await fetch(`/api/admin/attendance/personnel-history?userId=${entry.users_id}&_t=${Date.now()}`)
-        if (response.ok) {
-          const data = await response.json()
-          if (data.success && data.attendance) {
-            console.log('🔍 Live attendance fetched:', data.attendance.length, 'records')
-            setLiveAttendance(data.attendance)
-          }
-        }
-      } catch (error) {
-        console.error('Error loading live attendance:', error)
-      }
-    }
-    if (isOpen && entry) {
-      setLiveAttendance([])
-      loadLiveAttendance()
-    }
-  }, [isOpen, entry?.users_id, entry?.status])
 
   // Load live loans for this user to show all active loans/deductions (skip for archived)
   React.useEffect(() => {
@@ -632,20 +564,15 @@ export default function PayrollBreakdownDialog({
     return `${wholeHours}h ${minutes.toString().padStart(2, '0')}m`
   }
 
-  // Calculate total work hours from attendance details for this period (with null check)
-  // Use live attendance data if available, otherwise fall back to cached data
-  const attendanceDetails = liveAttendance.length > 0 ? liveAttendance : (entry.breakdown?.attendanceDetails || [])
+  // Use only snapshot attendance details from payroll generation time
+  const attendanceDetails = entry.breakdown?.attendanceDetails || []
   const calculatedTotalWorkHours = attendanceDetails.reduce(
     (sum, detail) => sum + (detail.workHours || 0),
     0
   )
 
-  // Add today's live absence deduction if applicable
-  const todayString = new Date().toISOString().split('T')[0]
-  const hasTodayInRecords = attendanceDetails.some(d => d.date.startsWith(todayString))
-  const todayAbsenceDeduction = (todayAttendanceStatus === 'ABSENT' && !hasTodayInRecords)
-    ? (entry.breakdown?.basicSalary || 0) / 11
-    : 0
+  // Today's absence deduction removed — no live attendance data
+  const todayAbsenceDeduction = 0
 
   // Debug: Log all deductions with their isMandatory flag (disabled for performance)
   // console.log('🔍 ALL otherDeductionDetails:', mergedDeductions.map((d: any) => ({
@@ -768,13 +695,6 @@ export default function PayrollBreakdownDialog({
   // Build comprehensive deduction breakdown including all types
   const deductionBreakdown = [
     {
-      label: 'Attendance Deductions',
-      amount: attendanceDeductionsAmount + todayAbsenceDeduction,
-      percentage: totalDeductions > 0 ? ((attendanceDeductionsAmount + todayAbsenceDeduction) / totalDeductions) * 100 : 0,
-      color: 'bg-red-500',
-      description: todayAbsenceDeduction > 0 ? `Late, Absent, Partial Day (includes today: ₱${formatCurrency(todayAbsenceDeduction)})` : 'Late, Absent, Partial Day'
-    },
-    {
       label: 'Loans',
       amount: totalLoanPayments,
       percentage: totalDeductions > 0 ? (totalLoanPayments / totalDeductions) * 100 : 0,
@@ -826,35 +746,52 @@ export default function PayrollBreakdownDialog({
         <div className="sticky top-0 z-10 bg-background border-b px-4 py-3">
           <DialogHeader>
             <div className="flex items-center justify-between">
-              <div>
-                <DialogTitle className="text-xl font-bold">
-                  {entry.name}
-                </DialogTitle>
-                <div className="flex flex-wrap items-center gap-2 mt-2">
-                  <p className="text-sm text-muted-foreground">
-                    {currentPeriod ?
-                      `${formatDateForDisplay(new Date(currentPeriod.periodStart))} - ${formatDateForDisplay(new Date(currentPeriod.periodEnd))}` :
-                      'N/A'
-                    }
-                  </p>
-                  <span className="text-muted-foreground">•</span>
-                  <p className="text-sm text-muted-foreground">ID: {entry.users_id}</p>
-                  {entry.department && (
-                    <>
-                      <span className="text-muted-foreground">•</span>
-                      <Badge variant="outline" className="text-xs">
-                        {entry.department}
-                      </Badge>
-                    </>
+              <div className="flex items-center gap-4">
+                {/* Profile Avatar */}
+                <div className="relative h-14 w-14 rounded-full overflow-hidden bg-muted flex-shrink-0 border-2 border-border">
+                  {entry.avatar ? (
+                    <img
+                      src={entry.avatar}
+                      alt={entry.name}
+                      className="h-full w-full object-cover"
+                    />
+                  ) : (
+                    <div className="h-full w-full flex items-center justify-center bg-primary/10 text-primary font-bold text-xl">
+                      {entry.name?.charAt(0).toUpperCase() || 'U'}
+                    </div>
                   )}
-                  {entry.personnelType && (
-                    <>
-                      <span className="text-muted-foreground">•</span>
-                      <Badge variant="secondary" className="text-xs">
-                        {entry.personnelType}
-                      </Badge>
-                    </>
-                  )}
+                </div>
+                <div>
+                  <DialogTitle className="text-2xl font-bold">
+                    {entry.name}
+                  </DialogTitle>
+                  <p className="text-base text-muted-foreground mt-0.5">{entry.email}</p>
+                  <div className="flex flex-wrap items-center gap-2 mt-1">
+                    <p className="text-sm text-muted-foreground">
+                      {currentPeriod ?
+                        `${formatDateForDisplay(new Date(currentPeriod.periodStart))} - ${formatDateForDisplay(new Date(currentPeriod.periodEnd))}` :
+                        'N/A'
+                      }
+                    </p>
+                    <span className="text-muted-foreground">•</span>
+                    <p className="text-sm text-muted-foreground">ID: {entry.users_id}</p>
+                    {entry.department && (
+                      <>
+                        <span className="text-muted-foreground">•</span>
+                        <Badge variant="outline" className="text-xs">
+                          {entry.department}
+                        </Badge>
+                      </>
+                    )}
+                    {entry.personnelType && (
+                      <>
+                        <span className="text-muted-foreground">•</span>
+                        <Badge variant="secondary" className="text-xs">
+                          {entry.personnelType}
+                        </Badge>
+                      </>
+                    )}
+                  </div>
                 </div>
               </div>
               <div className="flex items-center gap-3">
@@ -863,7 +800,7 @@ export default function PayrollBreakdownDialog({
                 </Badge>
                 {/* Only show Edit button if not already in edit mode and status is Pending */}
                 {entry.status === 'Pending' && !isEditMode && !openInEditMode && (
-                  <Button variant="outline" size="sm" onClick={handleEditToggle} className="gap-2">
+                  <Button size="sm" onClick={handleEditToggle} className="gap-2 bg-green-600 hover:bg-green-700 text-white">
                     <Edit2 className="h-4 w-4" />
                     Edit
                   </Button>
@@ -881,10 +818,6 @@ export default function PayrollBreakdownDialog({
                     </Button>
                   </>
                 )}
-                <Button variant="outline" size="sm" onClick={handlePrint} className="gap-2">
-                  <Printer className="h-4 w-4" />
-                  Print
-                </Button>
                 <Button
                   variant="ghost"
                   size="icon"
@@ -899,14 +832,6 @@ export default function PayrollBreakdownDialog({
         </div>
 
         <div className="px-4 py-4 space-y-4" ref={printRef}>
-          <div>
-            <div className="text-lg font-bold">{entry.name}</div>
-            <div className="muted">
-              {currentPeriod ? `${formatDateForDisplay(new Date(currentPeriod.periodStart))} - ${formatDateForDisplay(new Date(currentPeriod.periodEnd))}` : 'N/A'}
-              {entry.department ? ` • ${entry.department}` : ''}
-              {entry.personnelType ? ` • ${entry.personnelType}` : ''}
-            </div>
-          </div>
           {/* Simplified Salary Summary */}
           <Card>
             <CardHeader className="pb-3">
@@ -1289,7 +1214,7 @@ export default function PayrollBreakdownDialog({
               if (detail.status === 'PENDING') return false
               // Don't show ABSENT records with no deduction (before cutoff)
               // Check both 'deduction' and 'deductions' field names
-              const deductionAmount = detail.deduction || detail.deductions || 0
+              const deductionAmount = (detail as any).deduction || (detail as any).deductions || 0
               if (detail.status === 'ABSENT' && deductionAmount === 0) return false
               return true
             })
@@ -1496,7 +1421,7 @@ export default function PayrollBreakdownDialog({
                                       <div className="text-base font-semibold flex items-center gap-2">
                                         {timeInDate ? (
                                           <>
-                                            {new Date(detail.timeIn).toLocaleTimeString('en-US', {
+                                            {new Date(detail.timeIn!).toLocaleTimeString('en-US', {
                                               timeZone: 'Asia/Manila',
                                               hour: '2-digit',
                                               minute: '2-digit'
@@ -1522,7 +1447,7 @@ export default function PayrollBreakdownDialog({
                                       <div className="text-base font-semibold flex items-center gap-2">
                                         {timeOutDate ? (
                                           <>
-                                            {new Date(detail.timeOut).toLocaleTimeString('en-US', {
+                                            {new Date(detail.timeOut!).toLocaleTimeString('en-US', {
                                               timeZone: 'Asia/Manila',
                                               hour: '2-digit',
                                               minute: '2-digit'

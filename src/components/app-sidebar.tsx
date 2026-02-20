@@ -8,7 +8,7 @@ import {
   Calendar as CalendarIcon,
   BadgeMinus,
   BadgePlus,
-  Receipt,
+  ShieldCheck,
   Clock,
   Archive,
   Banknote,
@@ -173,7 +173,7 @@ export function AppSidebar({ user, ...props }: AppSidebarProps) {
               <SidebarMenuItem>
                 <SidebarMenuButton asChild className="h-10 font-medium [&>svg]:size-[18px]">
                   <Link href="/admin/deductions">
-                    <Receipt />
+                    <ShieldCheck />
                     <span>Mandatory Deductions</span>
                   </Link>
                 </SidebarMenuButton>

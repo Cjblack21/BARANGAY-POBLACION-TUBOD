@@ -496,15 +496,37 @@ export default function PersonalDeductionsPage() {
             </div>
 
             {/* Tabs */}
-            <div className="flex gap-2 border-b overflow-x-auto">
-                <Button variant={activeTab === "active" ? "default" : "ghost"} onClick={() => setActiveTab("active")} className="rounded-b-none">
-                    <DeductionIcon className="h-4 w-4 mr-2" />Active Deductions
-                    {activeCount > 0 && <Badge className="ml-2 bg-red-500 hover:bg-red-600 text-white border-0 h-5 px-1.5">{activeCount}</Badge>}
-                </Button>
-                <Button variant={activeTab === "archived" ? "default" : "ghost"} onClick={() => setActiveTab("archived")} className="rounded-b-none">
-                    <Archive className="h-4 w-4 mr-2" />Archived
-                    {archivedItems.length > 0 && <Badge className="ml-2 bg-gray-500 hover:bg-gray-600 text-white border-0 h-5 px-1.5">{archivedItems.length}</Badge>}
-                </Button>
+            <div className="flex gap-2 flex-wrap">
+                <button
+                    onClick={() => setActiveTab("active")}
+                    className={`flex items-center gap-2 px-4 py-2 rounded-md border-2 font-medium text-sm transition-all
+                        ${activeTab === "active"
+                            ? "bg-primary text-primary-foreground border-primary shadow-sm"
+                            : "bg-background text-muted-foreground border-gray-400 hover:bg-muted"}`}
+                >
+                    <DeductionIcon className="h-4 w-4" />
+                    Active Deductions
+                    {activeCount > 0 && (
+                        <span className={`ml-1 text-xs font-semibold px-1.5 py-0.5 rounded-full ${activeTab === "active" ? "bg-white/20 text-inherit" : "bg-red-100 text-red-700"}`}>
+                            {activeCount}
+                        </span>
+                    )}
+                </button>
+                <button
+                    onClick={() => setActiveTab("archived")}
+                    className={`flex items-center gap-2 px-4 py-2 rounded-md border-2 font-medium text-sm transition-all
+                        ${activeTab === "archived"
+                            ? "bg-primary text-primary-foreground border-primary shadow-sm"
+                            : "bg-background text-muted-foreground border-gray-400 hover:bg-muted"}`}
+                >
+                    <Archive className="h-4 w-4" />
+                    Archived
+                    {archivedItems.length > 0 && (
+                        <span className={`ml-1 text-xs font-semibold px-1.5 py-0.5 rounded-full ${activeTab === "archived" ? "bg-white/20 text-inherit" : "bg-gray-100 text-gray-700"}`}>
+                            {archivedItems.length}
+                        </span>
+                    )}
+                </button>
             </div>
 
             {/* Stats */}

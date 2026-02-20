@@ -116,7 +116,7 @@ export default async function AdminDashboard() {
           const TrendIcon = stat.trend === "up" ? ArrowUpRight : stat.trend === "down" ? ArrowDownRight : null
           return (
             <Link key={stat.title} href={stat.href}>
-              <Card className={`cursor-pointer hover:shadow-xl transition-all duration-300 hover:scale-105 border-l-4 ${stat.borderColor}`}>
+              <Card className={`cursor-pointer hover:shadow-md transition-all duration-150 hover:scale-[1.01] border-l-4 ${stat.borderColor}`}>
                 <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                   <CardTitle className="text-sm font-medium">
                     {stat.title}
