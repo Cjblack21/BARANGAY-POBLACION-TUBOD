@@ -3,16 +3,18 @@ import { getServerSession } from "next-auth"
 import { authOptions } from "@/lib/auth"
 import { prisma } from "@/lib/prisma"
 
+export const dynamic = 'force-dynamic'
+
 export async function GET() {
   try {
     const session = await getServerSession(authOptions)
-    console.log("[Profile API] Session:", { 
-      hasSession: !!session, 
+    console.log("[Profile API] Session:", {
+      hasSession: !!session,
       userId: session?.user?.id,
       userRole: session?.user?.role,
       userName: session?.user?.name
     })
-    
+
     if (!session || session.user.role !== "ADMIN") {
       console.log("[Profile API] Unauthorized access attempt")
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 })

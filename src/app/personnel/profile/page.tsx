@@ -61,7 +61,13 @@ export default function PersonnelProfile() {
   useEffect(() => {
     async function loadProfileData() {
       try {
-        const res = await fetch('/api/personnel/dashboard')
+        const res = await fetch('/api/personnel/dashboard', {
+          headers: {
+            'Cache-Control': 'no-cache, no-store, must-revalidate',
+            'Pragma': 'no-cache',
+            'Expires': '0'
+          }
+        })
         if (res.ok) {
           const dashboardData = await res.json()
           setData(dashboardData)
@@ -77,7 +83,13 @@ export default function PersonnelProfile() {
 
     async function loadSettings() {
       try {
-        const res = await fetch('/api/personnel/settings')
+        const res = await fetch('/api/personnel/settings', {
+          headers: {
+            'Cache-Control': 'no-cache, no-store, must-revalidate',
+            'Pragma': 'no-cache',
+            'Expires': '0'
+          }
+        })
         if (res.ok) {
           const data = await res.json()
           setSettings({

@@ -67,7 +67,13 @@ export default function AdminProfile() {
   useEffect(() => {
     async function loadProfileData() {
       try {
-        const res = await fetch('/api/admin/profile')
+        const res = await fetch('/api/admin/profile', {
+          headers: {
+            'Cache-Control': 'no-cache, no-store, must-revalidate',
+            'Pragma': 'no-cache',
+            'Expires': '0'
+          }
+        })
         if (res.ok) {
           const profileData = await res.json()
           setData(profileData)
@@ -83,7 +89,13 @@ export default function AdminProfile() {
 
     async function loadSettings() {
       try {
-        const res = await fetch('/api/admin/settings')
+        const res = await fetch('/api/admin/settings', {
+          headers: {
+            'Cache-Control': 'no-cache, no-store, must-revalidate',
+            'Pragma': 'no-cache',
+            'Expires': '0'
+          }
+        })
         if (res.ok) {
           const data = await res.json()
           setSettings({
