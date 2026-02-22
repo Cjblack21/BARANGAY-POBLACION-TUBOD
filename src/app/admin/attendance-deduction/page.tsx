@@ -28,7 +28,7 @@ type Personnel = {
 type AttendanceDeduction = {
   deductions_id: string
   users_id: string
-  personnelName: string
+  staffName: string
   deductionType: string
   amount: number
   notes: string
@@ -45,9 +45,12 @@ export default function AttendanceDeductionPage() {
   const [showAddModal, setShowAddModal] = useState(false)
   const [selectedPersonnel, setSelectedPersonnel] = useState<Personnel | null>(null)
   const [showReminderBanner, setShowReminderBanner] = useState(false)
+  const [deductionSearch, setDeductionSearch] = useState('')
   const [showDetailsModal, setShowDetailsModal] = useState(false)
   const [selectedStaffDetails, setSelectedStaffDetails] = useState<any>(null)
   const [loadingDetails, setLoadingDetails] = useState(false)
+  const [showDeleteModal, setShowDeleteModal] = useState(false)
+  const [deductionToDelete, setDeductionToDelete] = useState<string | null>(null)
 
   // Form state
   const [lateHours, setLateHours] = useState('')
@@ -148,25 +151,27 @@ export default function AttendanceDeductionPage() {
     }
   }
 
-  const handleDeleteDeduction = async (deductionId: string) => {
-    if (!confirm('Are you sure you want to delete this deduction?')) return
+  const handleDeleteDeduction = (deductionId: string) => {
+    setDeductionToDelete(deductionId)
+    setShowDeleteModal(true)
+  }
 
+  const confirmDeleteDeduction = async () => {
+    if (!deductionToDelete) return
+    setShowDeleteModal(false)
     try {
       toast.loading('Deleting deduction...', { id: 'delete-deduction' })
-
-      const response = await fetch(`/api/admin/attendance-deductions?id=${deductionId}`, {
+      const response = await fetch(`/api/admin/attendance-deductions?id=${deductionToDelete}`, {
         method: 'DELETE'
       })
-
-      if (!response.ok) {
-        throw new Error('Failed to delete deduction')
-      }
-
+      if (!response.ok) throw new Error('Failed to delete deduction')
       toast.success('Deduction deleted successfully', { id: 'delete-deduction' })
       loadDeductions()
     } catch (error) {
       console.error('Error deleting deduction:', error)
       toast.error('Failed to delete deduction', { id: 'delete-deduction' })
+    } finally {
+      setDeductionToDelete(null)
     }
   }
 
@@ -178,7 +183,7 @@ export default function AttendanceDeductionPage() {
     setSelectedPersonnel(null)
   }
 
-  const handleViewDetails = async (userId: string, staffName: string) => {
+  const handleViewDetails = async (userId: string, staffName: string, avatar?: string | null, email?: string) => {
     try {
       setLoadingDetails(true)
       setShowDetailsModal(true)
@@ -189,7 +194,9 @@ export default function AttendanceDeductionPage() {
         setSelectedStaffDetails({
           ...data,
           staffName,
-          userId
+          userId,
+          avatar,
+          email
         })
       } else {
         toast.error('Failed to load attendance details')
@@ -212,39 +219,6 @@ export default function AttendanceDeductionPage() {
 
   return (
     <div className="p-6 space-y-6">
-      {/* Reminder Banner */}
-      {showReminderBanner && (
-        <div className="bg-gradient-to-r from-green-50 to-blue-50 dark:from-green-950/30 dark:to-blue-950/30 border-2 border-green-500 dark:border-green-700 rounded-xl p-5 shadow-lg animate-in slide-in-from-top-5">
-          <div className="flex items-start gap-4">
-            <div className="p-2 bg-green-600 rounded-lg">
-              <AlertCircle className="h-6 w-6 text-white" />
-            </div>
-            <div className="flex-1">
-              <h3 className="font-bold text-lg text-green-900 dark:text-green-100 mb-1">
-                Deduction Added Successfully!
-              </h3>
-              <p className="text-green-700 dark:text-green-300 mb-3">
-                Don't forget to check the <strong>Release Payroll</strong> page to include this deduction in the next payroll release.
-              </p>
-              <div className="flex items-center gap-3">
-                <Button
-                  onClick={() => router.push('/admin/payroll')}
-                  className="bg-green-600 hover:bg-green-700 shadow-md"
-                >
-                  <Save className="h-4 w-4 mr-2" />
-                  Go to Release Payroll
-                </Button>
-                <Button
-                  variant="outline"
-                  onClick={() => setShowReminderBanner(false)}
-                >
-                  Dismiss
-                </Button>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
 
       {/* Header */}
       <div className="flex items-center justify-between">
@@ -291,16 +265,62 @@ export default function AttendanceDeductionPage() {
             </div>
           </div>
         </CardContent>
-      </Card>
+      </Card >
+
+      {/* Reminder Banner - above Staff Overview */}
+      {
+        showReminderBanner && (
+          <div className="border-2 border-green-400 bg-green-50 dark:bg-green-950/30 dark:border-green-700 rounded-xl p-6 flex items-center justify-between gap-6">
+            <div className="flex items-center gap-4">
+              <div className="p-3 bg-green-600 rounded-lg">
+                <AlertCircle className="h-6 w-6 text-white" />
+              </div>
+              <div>
+                <p className="font-bold text-green-900 dark:text-green-100 text-base">Deduction Added Successfully!</p>
+                <p className="text-green-700 dark:text-green-300 text-sm mt-0.5">Go to <strong>Release Payroll</strong> to include this in the next payroll.</p>
+              </div>
+            </div>
+            <div className="flex items-center gap-3 shrink-0">
+              <Button
+                size="lg"
+                onClick={() => router.push('/admin/payroll')}
+                className="bg-green-600 hover:bg-green-700 text-white"
+              >
+                <Save className="h-5 w-5 mr-2" />
+                Release Payroll
+              </Button>
+              <Button
+                variant="ghost"
+                onClick={() => setShowReminderBanner(false)}
+              >
+                Dismiss
+              </Button>
+            </div>
+          </div>
+        )
+      }
 
       {/* Personnel Overview */}
       <Card>
         <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Users className="h-5 w-5" />
-            Staff Overview
-          </CardTitle>
-          <CardDescription>Summary of staff with attendance deductions</CardDescription>
+          <div className="flex items-center justify-between">
+            <div>
+              <CardTitle className="flex items-center gap-2">
+                <Users className="h-5 w-5" />
+                Staff Overview
+              </CardTitle>
+              <CardDescription>Summary of staff with attendance deductions</CardDescription>
+            </div>
+            <div className="relative w-56">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+              <Input
+                placeholder="Search staff..."
+                value={deductionSearch}
+                onChange={(e) => setDeductionSearch(e.target.value)}
+                className="pl-9 h-9"
+              />
+            </div>
+          </div>
         </CardHeader>
         <CardContent>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
@@ -348,6 +368,7 @@ export default function AttendanceDeductionPage() {
                 <TableHeader>
                   <TableRow className="bg-muted/50">
                     <TableHead>Staff</TableHead>
+                    <TableHead>ID Number</TableHead>
                     <TableHead>Type</TableHead>
                     <TableHead>Notes</TableHead>
                     <TableHead className="text-right">Amount</TableHead>
@@ -356,40 +377,53 @@ export default function AttendanceDeductionPage() {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {deductions.map((deduction) => (
-                    <TableRow key={deduction.deductions_id}>
-                      <TableCell className="font-medium">{deduction.personnelName}</TableCell>
-                      <TableCell>
-                        <Badge variant="destructive">{deduction.deductionType}</Badge>
-                      </TableCell>
-                      <TableCell className="text-sm text-muted-foreground">{deduction.notes}</TableCell>
-                      <TableCell className="text-right font-medium text-red-600">
-                        -₱{deduction.amount.toLocaleString('en-US', { minimumFractionDigits: 2 })}
-                      </TableCell>
-                      <TableCell className="text-sm text-muted-foreground">
-                        {new Date(deduction.appliedAt).toLocaleDateString()}
-                      </TableCell>
-                      <TableCell className="text-right">
-                        <div className="flex items-center justify-end gap-2">
-                          <Button
-                            size="sm"
-                            variant="outline"
-                            onClick={() => handleViewDetails(deduction.users_id, deduction.personnelName)}
-                          >
-                            <Eye className="h-4 w-4 mr-1" />
-                            View Details
-                          </Button>
-                          <Button
-                            size="sm"
-                            variant="ghost"
-                            onClick={() => handleDeleteDeduction(deduction.deductions_id)}
-                          >
-                            <Trash2 className="h-4 w-4 text-red-600" />
-                          </Button>
-                        </div>
-                      </TableCell>
-                    </TableRow>
-                  ))}
+                  {deductions
+                    .filter(d =>
+                      !deductionSearch ||
+                      d.staffName?.toLowerCase().includes(deductionSearch.toLowerCase())
+                    )
+                    .map((deduction) => (
+                      <TableRow key={deduction.deductions_id}>
+                        <TableCell className="font-medium">
+                          {deduction.staffName || <span className="text-muted-foreground italic">Unknown</span>}
+                        </TableCell>
+                        <TableCell>
+                          <span className="inline-block bg-muted text-muted-foreground font-mono px-2 py-0.5 rounded" style={{ fontSize: '11px' }}>{deduction.users_id}</span>
+                        </TableCell>
+                        <TableCell>
+                          <Badge variant="destructive">{deduction.deductionType}</Badge>
+                        </TableCell>
+                        <TableCell className="text-sm text-muted-foreground">{deduction.notes}</TableCell>
+                        <TableCell className="text-right font-medium text-red-600">
+                          -₱{deduction.amount.toLocaleString('en-US', { minimumFractionDigits: 2 })}
+                        </TableCell>
+                        <TableCell className="text-sm text-muted-foreground">
+                          {new Date(deduction.appliedAt).toLocaleDateString()}
+                        </TableCell>
+                        <TableCell className="text-right">
+                          <div className="flex items-center justify-end gap-2">
+                            <Button
+                              size="sm"
+                              className="bg-blue-600 hover:bg-blue-700 text-white"
+                              onClick={() => {
+                                const person = personnel.find(p => p.users_id === deduction.users_id)
+                                handleViewDetails(deduction.users_id, deduction.staffName, person?.avatar, person?.email)
+                              }}
+                            >
+                              <Eye className="h-4 w-4 mr-1" />
+                              View Details
+                            </Button>
+                            <Button
+                              size="sm"
+                              variant="ghost"
+                              onClick={() => handleDeleteDeduction(deduction.deductions_id)}
+                            >
+                              <Trash2 className="h-4 w-4 text-red-600" />
+                            </Button>
+                          </div>
+                        </TableCell>
+                      </TableRow>
+                    ))}
                 </TableBody>
               </Table>
             </div>
@@ -470,7 +504,7 @@ export default function AttendanceDeductionPage() {
                           <span className="font-medium">{person.name}</span>
                         </div>
                       </TableCell>
-                      <TableCell className="font-mono text-sm text-muted-foreground">{person.users_id}</TableCell>
+                      <TableCell><span className="inline-block bg-muted text-muted-foreground font-mono px-2 py-0.5 rounded" style={{ fontSize: '11px' }}>{person.idNumber || person.users_id}</span></TableCell>
                       <TableCell className="text-muted-foreground">{person.email}</TableCell>
                       <TableCell>{blgu}</TableCell>
                       <TableCell>{position}</TableCell>
@@ -499,17 +533,21 @@ export default function AttendanceDeductionPage() {
       <Dialog open={showDetailsModal} onOpenChange={setShowDetailsModal}>
         <DialogContent className="sm:max-w-[800px] max-h-[90vh] flex flex-col gap-0 overflow-hidden">
           <DialogHeader className="px-6 py-4 border-b">
-            <div className="flex items-center gap-3">
-              <div className="p-2 bg-blue-100 dark:bg-blue-900/30 rounded-lg">
-                <Info className="h-5 w-5 text-blue-600 dark:text-blue-400" />
-              </div>
+            <div className="flex items-center gap-4">
+              <Avatar className="h-14 w-14">
+                <AvatarImage src={selectedStaffDetails?.avatar || ''} />
+                <AvatarFallback className="text-lg font-semibold">
+                  {selectedStaffDetails?.staffName?.split(' ').map((n: string) => n.charAt(0)).join('').toUpperCase().slice(0, 2)}
+                </AvatarFallback>
+              </Avatar>
               <div>
                 <DialogTitle className="text-lg font-semibold">
-                  Attendance Details
+                  {selectedStaffDetails?.staffName || 'Attendance Details'}
                 </DialogTitle>
-                <DialogDescription>
-                  {selectedStaffDetails?.staffName || 'Loading...'}
-                </DialogDescription>
+                <p className="text-sm text-muted-foreground mt-0.5">{selectedStaffDetails?.email || ''}</p>
+                <span className="inline-block bg-muted text-muted-foreground font-mono px-2 py-0.5 rounded text-xs mt-1">
+                  ID: {selectedStaffDetails?.userId || '—'}
+                </span>
               </div>
             </div>
           </DialogHeader>
@@ -849,6 +887,30 @@ export default function AttendanceDeductionPage() {
             >
               <Save className="h-4 w-4 mr-2" />
               Save Deduction
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Delete Confirmation Modal */}
+      <Dialog open={showDeleteModal} onOpenChange={setShowDeleteModal}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2 text-red-600">
+              <Trash2 className="h-5 w-5" />
+              Delete Deduction
+            </DialogTitle>
+            <DialogDescription>
+              Are you sure you want to delete this attendance deduction? This action cannot be undone.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter className="gap-2">
+            <Button variant="outline" onClick={() => setShowDeleteModal(false)}>
+              Cancel
+            </Button>
+            <Button variant="destructive" onClick={confirmDeleteDeduction}>
+              <Trash2 className="h-4 w-4 mr-2" />
+              Delete
             </Button>
           </DialogFooter>
         </DialogContent>

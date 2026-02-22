@@ -3816,7 +3816,7 @@ html, body { margin: 0 !important; padding: 0 !important; overflow: hidden !impo
 
       {/* Release Payroll Confirmation Modal */}
       <Dialog open={showReleaseConfirmModal} onOpenChange={setShowReleaseConfirmModal}>
-        <DialogContent className="!max-w-none w-[70vw] h-[90vh] p-0 flex flex-col gap-0 overflow-hidden">
+        <DialogContent className="!max-w-none w-[85vw] h-[90vh] p-0 flex flex-col gap-0 overflow-hidden">
           <DialogHeader className="px-6 py-4 border-b bg-muted/30">
             <div className="flex items-center gap-3">
               <div className="p-2 bg-muted rounded-lg border">
@@ -3903,96 +3903,104 @@ html, body { margin: 0 !important; padding: 0 !important; overflow: hidden !impo
                       </p>
                     </div>
                   </div>
-                  <div className="flex-1 overflow-auto max-h-[calc(90vh-280px)]">
-                    <table className="w-full">
-                      <thead className="sticky top-0 bg-muted/50">
-                        <tr className="border-b">
-                          <th className="text-left py-2.5 px-3 font-semibold text-sm text-muted-foreground">Staff Name</th>
-                          <th className="text-center py-2.5 px-3 font-semibold text-sm text-muted-foreground whitespace-nowrap">Late Time</th>
-                          <th className="text-center py-2.5 px-3 font-semibold text-sm text-muted-foreground whitespace-nowrap">Absent Days</th>
-                          <th className="text-right py-2.5 px-3 font-semibold text-sm text-muted-foreground">Deduction</th>
-                        </tr>
-                      </thead>
-                      <tbody className="divide-y">
-                        {Array.from(new Set(attendanceDeductions.map(d => d.users_id))).map(userId => {
-                          const userDeductions = attendanceDeductions.filter(d => d.users_id === userId)
-                          const totalAmount = userDeductions.reduce((sum, d) => sum + d.amount, 0)
-                          const staffName = userDeductions[0]?.personnelName || 'Unknown'
+                  <div className="relative flex-1">
+                    <div className="overflow-auto max-h-[calc(90vh-360px)]">
+                      <table className="w-full">
+                        <thead className="sticky top-0 bg-muted/50">
+                          <tr className="border-b">
+                            <th className="text-left py-2.5 px-3 font-semibold text-sm text-muted-foreground">Staff Name</th>
+                            <th className="text-left py-2.5 px-3 font-semibold text-sm text-muted-foreground">ID Number</th>
+                            <th className="text-center py-2.5 px-3 font-semibold text-sm text-muted-foreground whitespace-nowrap">Late Time</th>
+                            <th className="text-center py-2.5 px-3 font-semibold text-sm text-muted-foreground whitespace-nowrap">Absent Days</th>
+                            <th className="text-right py-2.5 px-3 font-semibold text-sm text-muted-foreground">Deduction</th>
+                          </tr>
+                        </thead>
+                        <tbody className="divide-y">
+                          {Array.from(new Set(attendanceDeductions.map(d => d.users_id))).map(userId => {
+                            const userDeductions = attendanceDeductions.filter(d => d.users_id === userId)
+                            const totalAmount = userDeductions.reduce((sum, d) => sum + d.amount, 0)
+                            const staffName = userDeductions[0]?.staffName || userDeductions[0]?.personnelName || 'Unknown'
 
-                          // Parse notes to extract late and absent details
-                          const parseNotes = (notes: string) => {
-                            const lateMatch = notes.match(/Late:\s*(\d+)h?\s*(\d+)?m?/i) || notes.match(/Late:\s*(\d+)\s*min/i)
-                            const absentMatch = notes.match(/Absent:\s*(\d+)\s*days?/i)
+                            // Parse notes to extract late and absent details
+                            const parseNotes = (notes: string) => {
+                              const lateMatch = notes.match(/Late:\s*(\d+)h?\s*(\d+)?m?/i) || notes.match(/Late:\s*(\d+)\s*min/i)
+                              const absentMatch = notes.match(/Absent:\s*(\d+)\s*days?/i)
 
-                            let lateHours = 0
-                            let lateMinutes = 0
-                            let absentDays = 0
+                              let lateHours = 0
+                              let lateMinutes = 0
+                              let absentDays = 0
 
-                            if (lateMatch) {
-                              if (lateMatch[2]) {
-                                lateHours = parseInt(lateMatch[1]) || 0
-                                lateMinutes = parseInt(lateMatch[2]) || 0
-                              } else {
-                                const totalMinutes = parseInt(lateMatch[1]) || 0
-                                lateHours = Math.floor(totalMinutes / 60)
-                                lateMinutes = totalMinutes % 60
+                              if (lateMatch) {
+                                if (lateMatch[2]) {
+                                  lateHours = parseInt(lateMatch[1]) || 0
+                                  lateMinutes = parseInt(lateMatch[2]) || 0
+                                } else {
+                                  const totalMinutes = parseInt(lateMatch[1]) || 0
+                                  lateHours = Math.floor(totalMinutes / 60)
+                                  lateMinutes = totalMinutes % 60
+                                }
                               }
+
+                              if (absentMatch) {
+                                absentDays = parseInt(absentMatch[1]) || 0
+                              }
+
+                              return { lateHours, lateMinutes, absentDays }
                             }
 
-                            if (absentMatch) {
-                              absentDays = parseInt(absentMatch[1]) || 0
-                            }
+                            // Calculate total late and absent
+                            let totalLateHours = 0
+                            let totalLateMinutes = 0
+                            let totalAbsentDays = 0
 
-                            return { lateHours, lateMinutes, absentDays }
-                          }
+                            userDeductions.forEach(d => {
+                              const parsed = parseNotes(d.notes || '')
+                              totalLateHours += parsed.lateHours
+                              totalLateMinutes += parsed.lateMinutes
+                              totalAbsentDays += parsed.absentDays
+                            })
 
-                          // Calculate total late and absent
-                          let totalLateHours = 0
-                          let totalLateMinutes = 0
-                          let totalAbsentDays = 0
+                            totalLateHours += Math.floor(totalLateMinutes / 60)
+                            totalLateMinutes = totalLateMinutes % 60
 
-                          userDeductions.forEach(d => {
-                            const parsed = parseNotes(d.notes || '')
-                            totalLateHours += parsed.lateHours
-                            totalLateMinutes += parsed.lateMinutes
-                            totalAbsentDays += parsed.absentDays
-                          })
-
-                          totalLateHours += Math.floor(totalLateMinutes / 60)
-                          totalLateMinutes = totalLateMinutes % 60
-
-                          return (
-                            <tr key={userId} className="hover:bg-muted/30 transition-colors">
-                              <td className="py-3 px-3 font-medium text-sm">{staffName}</td>
-                              <td className="py-3 px-3 text-center text-sm">
-                                {(totalLateHours > 0 || totalLateMinutes > 0) ? (
-                                  <span className="font-medium">
-                                    {totalLateHours > 0 && `${totalLateHours}h `}
-                                    {totalLateMinutes > 0 && `${totalLateMinutes}m`}
-                                  </span>
-                                ) : (
-                                  <span className="text-muted-foreground">-</span>
-                                )}
-                              </td>
-                              <td className="py-3 px-3 text-center text-sm">
-                                {totalAbsentDays > 0 ? (
-                                  <span className="font-medium">{totalAbsentDays} {totalAbsentDays === 1 ? 'day' : 'days'}</span>
-                                ) : (
-                                  <span className="text-muted-foreground">-</span>
-                                )}
-                              </td>
-                              <td className="py-3 px-3 text-right font-semibold text-sm text-red-600">-₱{totalAmount.toFixed(2)}</td>
-                            </tr>
-                          )
-                        })}
-                      </tbody>
-                      <tfoot className="sticky bottom-0 bg-muted/50">
-                        <tr className="border-t">
-                          <td colSpan={3} className="py-3 px-3 text-right font-semibold text-sm">Total Attendance Deductions:</td>
-                          <td className="py-3 px-3 text-right font-bold text-base text-red-600">-₱{attendanceDeductions.reduce((sum, d) => sum + d.amount, 0).toFixed(2)}</td>
-                        </tr>
-                      </tfoot>
-                    </table>
+                            return (
+                              <tr key={userId} className="hover:bg-muted/30 transition-colors">
+                                <td className="py-3 px-3 font-medium text-sm">{staffName}</td>
+                                <td className="py-3 px-3 text-sm">
+                                  <span className="inline-block bg-muted text-muted-foreground font-mono px-2 py-0.5 rounded" style={{ fontSize: '11px' }}>{userId}</span>
+                                </td>
+                                <td className="py-3 px-3 text-center text-sm">
+                                  {(totalLateHours > 0 || totalLateMinutes > 0) ? (
+                                    <span className="font-medium">
+                                      {totalLateHours > 0 && `${totalLateHours}h `}
+                                      {totalLateMinutes > 0 && `${totalLateMinutes}m`}
+                                    </span>
+                                  ) : (
+                                    <span className="text-muted-foreground">-</span>
+                                  )}
+                                </td>
+                                <td className="py-3 px-3 text-center text-sm">
+                                  {totalAbsentDays > 0 ? (
+                                    <span className="font-medium">{totalAbsentDays} {totalAbsentDays === 1 ? 'day' : 'days'}</span>
+                                  ) : (
+                                    <span className="text-muted-foreground">-</span>
+                                  )}
+                                </td>
+                                <td className="py-3 px-3 text-right font-semibold text-sm text-red-600">-₱{totalAmount.toFixed(2)}</td>
+                              </tr>
+                            )
+                          })}
+                        </tbody>
+                        <tfoot className="sticky bottom-0 bg-muted/50">
+                          <tr className="border-t">
+                            <td colSpan={4} className="py-3 px-3 text-right font-semibold text-sm">Total Attendance Deductions:</td>
+                            <td className="py-3 px-3 text-right font-bold text-base text-red-600">-₱{attendanceDeductions.reduce((sum, d) => sum + d.amount, 0).toFixed(2)}</td>
+                          </tr>
+                        </tfoot>
+                      </table>
+                    </div>
+                    {/* Scroll fade indicator */}
+                    <div className="pointer-events-none absolute bottom-0 left-0 right-0 h-8 bg-gradient-to-t from-background/80 to-transparent rounded-b-lg" />
                   </div>
                 </div>
               )}

@@ -178,8 +178,11 @@ export function generatePayslipHTML(
           <div style="margin-bottom: 3px;">
             <strong>BLGU/Position:</strong> ${employee.department || 'BLGU'} / ${employee.position || 'Barangay Staff'}
           </div>
-          <div>
+          <div style="margin-bottom: 3px;">
             <strong>Period:</strong> ${new Date(period.periodStart).toLocaleDateString()} - ${new Date(period.periodEnd).toLocaleDateString()}
+          </div>
+          <div style="margin-top: 2px;">
+            <strong>Status:</strong> RELEASED
           </div>
         </div>
         
@@ -311,9 +314,7 @@ export function generatePayslipHTML(
           </div>
         </div>
         
-        <div style="margin-top: 2px; font-size: 8px; text-align: center; color: #666;">
-          Status: ${employee.released ? 'RELEASED' : 'PENDING'}
-        </div>
+
       </div>
     </div>
   `
