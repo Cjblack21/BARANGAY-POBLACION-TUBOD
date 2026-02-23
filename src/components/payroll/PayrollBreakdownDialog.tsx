@@ -1036,12 +1036,94 @@ export default function PayrollBreakdownDialog({
                 </CardTitle>
               </CardHeader>
               <CardContent className="space-y-3">
+                {/* Attendance Deductions - Per Record */}
+                {(() => {
+                  const attendanceWithDeductions = (entry.breakdown?.attendanceDetails || []).filter(
+                    (d: AttendanceDetail) => d.deduction && d.deduction > 0
+                  )
+                  const totalAttendanceDeduction = attendanceWithDeductions.reduce(
+                    (sum: number, d: AttendanceDetail) => sum + (d.deduction || 0), 0
+                  )
+
+                  if (attendanceWithDeductions.length === 0) return null
+
+                  return (
+                    <div className="rounded-lg border border-red-200 dark:border-red-800 overflow-hidden">
+                      {/* Header */}
+                      <div className="flex items-center justify-between px-4 py-2 bg-red-50 dark:bg-red-950/30">
+                        <div className="flex items-center gap-2">
+                          <Clock className="h-4 w-4 text-red-600" />
+                          <span className="text-sm font-semibold text-red-700 dark:text-red-400">Attendance Deduction</span>
+                          <Badge variant="outline" className="text-xs border-red-300 text-red-600">
+                            {attendanceWithDeductions.length} record{attendanceWithDeductions.length !== 1 ? 's' : ''}
+                          </Badge>
+                        </div>
+                        <span className="text-sm font-bold text-red-700 dark:text-red-400">
+                          -{new Intl.NumberFormat('en-PH', { style: 'currency', currency: 'PHP' }).format(totalAttendanceDeduction)}
+                        </span>
+                      </div>
+                      {/* Per-record rows */}
+                      <div className="divide-y divide-red-100 dark:divide-red-900/30">
+                        {attendanceWithDeductions.map((detail: AttendanceDetail, idx: number) => {
+                          const recordDate = new Date(detail.date)
+                          const timeInStr = detail.timeIn
+                            ? new Date(detail.timeIn).toLocaleTimeString('en-PH', { hour: '2-digit', minute: '2-digit', hour12: true, timeZone: 'Asia/Manila' })
+                            : null
+                          const timeOutStr = detail.timeOut
+                            ? new Date(detail.timeOut).toLocaleTimeString('en-PH', { hour: '2-digit', minute: '2-digit', hour12: true, timeZone: 'Asia/Manila' })
+                            : null
+
+                          const typeLabel = detail.status === 'ABSENT' ? 'Absent'
+                            : detail.status === 'LATE' ? 'Late Arrival'
+                              : !detail.timeOut ? 'Early Time-Out'
+                                : detail.status
+
+                          const typeBg = detail.status === 'ABSENT'
+                            ? 'bg-red-100 text-red-700 dark:bg-red-900/40 dark:text-red-300'
+                            : detail.status === 'LATE'
+                              ? 'bg-orange-100 text-orange-700 dark:bg-orange-900/40 dark:text-orange-300'
+                              : 'bg-yellow-100 text-yellow-700 dark:bg-yellow-900/40 dark:text-yellow-300'
+
+                          return (
+                            <div key={idx} className="flex items-center gap-4 px-4 py-3 bg-white dark:bg-background hover:bg-red-50/50 dark:hover:bg-red-950/10 transition-colors">
+                              {/* Date */}
+                              <div className="flex flex-col items-center min-w-[48px] text-center">
+                                <span className="text-xl font-bold leading-none">{recordDate.getDate().toString().padStart(2, '0')}</span>
+                                <span className="text-[10px] text-muted-foreground uppercase">
+                                  {recordDate.toLocaleDateString('en-US', { month: 'short', year: '2-digit' })}
+                                </span>
+                              </div>
+                              {/* Type badge + times */}
+                              <div className="flex-1 min-w-0">
+                                <span className={`inline-block text-xs font-semibold px-2 py-0.5 rounded-full ${typeBg}`}>
+                                  {typeLabel}
+                                </span>
+                                {(timeInStr || timeOutStr) && (
+                                  <div className="flex items-center gap-3 mt-1 text-xs text-muted-foreground">
+                                    {timeInStr && <span>In: {timeInStr}</span>}
+                                    {timeOutStr && <span>Out: {timeOutStr}</span>}
+                                  </div>
+                                )}
+                              </div>
+                              {/* Amount */}
+                              <span className="text-sm font-bold text-red-600 dark:text-red-400 shrink-0">
+                                -{new Intl.NumberFormat('en-PH', { style: 'currency', currency: 'PHP' }).format(detail.deduction)}
+                              </span>
+                            </div>
+                          )
+                        })}
+                      </div>
+                    </div>
+                  )
+                })()}
+
+                {/* Other Deduction Cards (mandatory, loans, etc.) */}
                 {deductionBreakdown.map((item, index) => (
                   <div key={index} className="p-4 rounded-lg border bg-muted/30 hover:bg-muted/50 transition-colors">
                     <div className="flex items-center justify-between mb-1">
                       <p className="text-sm font-medium">{item.label}</p>
                     </div>
-                    <p className="text-xl font-bold">{formatCurrency(item.amount)}</p>
+                    <p className="text-xl font-bold">{new Intl.NumberFormat('en-PH', { style: 'currency', currency: 'PHP' }).format(item.amount)}</p>
                     {item.description && (
                       <p className="text-xs text-muted-foreground mt-1">{item.description}</p>
                     )}

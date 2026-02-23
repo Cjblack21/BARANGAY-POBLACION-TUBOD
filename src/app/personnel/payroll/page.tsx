@@ -231,7 +231,7 @@ export default function PersonnelPayrollPage() {
     console.log('🔍 Opening payslip for:', payroll)
     console.log('🔍 Payroll user data:', payroll.user)
     console.log('🔍 Payroll users data:', payroll.users)
-    
+
     // If user data is missing, use session data (since user is viewing their own payslip)
     if (!payroll.user && !payroll.users) {
       console.log('⚠️ User data missing, using session data')
@@ -239,7 +239,7 @@ export default function PersonnelPayrollPage() {
       if (response.ok) {
         const session = await response.json()
         console.log('📦 Session data:', session)
-        
+
         // Use session data to populate user info
         payroll.user = {
           users_id: session.user?.id || payroll.users_id,
@@ -249,7 +249,7 @@ export default function PersonnelPayrollPage() {
         console.log('✅ Set user data from session:', payroll.user)
       }
     }
-    
+
     setSelectedPayroll(payroll)
     setDetailsOpen(true)
   }
@@ -388,19 +388,21 @@ export default function PersonnelPayrollPage() {
           }
         }
 
-        // Get the actual monthly basic salary from personnel type
-        const monthlyBasic = Number(latestPayroll.user?.personnelType?.basicSalary || 5000)
-        
+        // Derive basic salary from snapshot (grossPay - totalAdditions)
+        const snapGross = Number(snapshot?.grossPay || snapshot?.periodSalary || 0)
+        const snapAdditions = Number(snapshot?.totalAdditions || 0)
+        const monthlyBasic = snapGross > 0
+          ? (snapGross - snapAdditions)
+          : Number(latestPayroll.basicSalary || latestPayroll.user?.personnelType?.basicSalary || latestPayroll.user?.personnel_types?.basicSalary || 0)
+
         // Period salary is the same as monthly basic for display
         const periodSalary = monthlyBasic
 
         const dbNetPay = Number(latestPayroll.netPay || 0)
         const deductions = Number(latestPayroll.deductions || 0)
 
-        // Use snapshot data directly for additional pay
-        const overloadPay = snapshot?.totalAdditions
-          ? Number(snapshot.totalAdditions)
-          : Math.max(0, dbNetPay - periodSalary + deductions)
+        // Use snapshot totalAdditions directly (no netPay-based fallback)
+        const overloadPay = snapAdditions
 
         console.log('💰 Payroll Data (from snapshot):', {
           monthlyBasic,
@@ -495,39 +497,39 @@ export default function PersonnelPayrollPage() {
             // Current Payroll Tab - Show only the latest released
             currentPayroll ? (
               <div className="space-y-4">
-                <div className="relative overflow-hidden border-2 border-green-200 dark:border-green-800 rounded-xl bg-gradient-to-br from-green-50 to-emerald-50 dark:from-green-950/20 dark:to-emerald-950/20 p-4 sm:p-5 shadow-sm hover:shadow-md transition-all">
-                  <div className="absolute top-0 right-0 w-32 h-32 bg-green-500/10 rounded-full -mr-16 -mt-16"></div>
+                <div className="relative overflow-hidden border-2 border-blue-200 dark:border-blue-800 rounded-xl bg-gradient-to-br from-blue-50 to-blue-100 dark:from-blue-950/20 dark:to-blue-900/20 p-4 sm:p-5 shadow-sm hover:shadow-md transition-all">
+                  <div className="absolute top-0 right-0 w-32 h-32 bg-blue-500/10 rounded-full -mr-16 -mt-16"></div>
                   <div className="relative space-y-4">
                     {/* Header Section */}
                     <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
                       <div className="flex items-center gap-2">
-                        <div className="p-2 bg-green-600 rounded-lg shrink-0">
+                        <div className="p-2 bg-blue-600 rounded-lg shrink-0">
                           <FileText className="h-5 w-5 text-white" />
                         </div>
                         <div className="min-w-0">
-                          <p className="text-xs font-medium text-green-700 dark:text-green-400">Current Period</p>
+                          <p className="text-xs font-medium text-blue-700 dark:text-blue-400">Current Period</p>
                           <p className="text-xs sm:text-sm font-semibold text-gray-900 dark:text-gray-100 truncate">
                             {formatDate(currentPayroll.periodStart)} - {formatDate(currentPayroll.periodEnd)}
                           </p>
                         </div>
                       </div>
-                      <Badge variant="default" className="bg-green-600 shadow-sm self-start sm:self-auto">
+                      <Badge variant="default" className="bg-blue-600 shadow-sm self-start sm:self-auto">
                         {currentPayroll.status}
                       </Badge>
                     </div>
-                    
+
                     {/* Net Pay Section */}
                     <div className="bg-white/50 dark:bg-gray-900/50 rounded-lg p-4 backdrop-blur-sm">
                       <div className="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-4">
                         <div className="flex-1">
                           <p className="text-xs font-medium text-muted-foreground mb-1">Net Pay</p>
-                          <p className="text-3xl sm:text-4xl font-bold text-green-600 dark:text-green-500">
+                          <p className="text-3xl sm:text-4xl font-bold text-blue-600 dark:text-blue-500">
                             {formatCurrency(Number(currentPayroll.netPay))}
                           </p>
                           <p className="text-xs text-muted-foreground mt-1">Take home amount</p>
                         </div>
                         <Button
-                          className="bg-green-600 hover:bg-green-700 shadow-md w-full sm:w-auto"
+                          className="bg-blue-600 hover:bg-blue-700 shadow-md w-full sm:w-auto"
                           size="default"
                           onClick={() => openPayslipDetails(currentPayroll)}
                         >
@@ -537,6 +539,12 @@ export default function PersonnelPayrollPage() {
                       </div>
                     </div>
                   </div>
+                </div>
+                {/* Honorarium Label */}
+                <div className="text-center py-2">
+                  <span className="text-xs font-semibold tracking-widest uppercase text-muted-foreground border border-dashed border-muted-foreground/40 px-4 py-1 rounded-full">
+                    Honorarium
+                  </span>
                 </div>
               </div>
             ) : (
@@ -552,6 +560,16 @@ export default function PersonnelPayrollPage() {
             // Archived Tab - Show all older released payrolls
             archivedPayrolls && archivedPayrolls.length > 0 ? (
               <>
+                {/* Total Payroll Summary */}
+                <div className="mb-4 rounded-xl border border-blue-200 dark:border-blue-800 bg-gradient-to-r from-blue-50 to-blue-100 dark:from-blue-950/30 dark:to-blue-900/20 p-4 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
+                  <div>
+                    <p className="text-xs font-semibold tracking-widest uppercase text-blue-700 dark:text-blue-400">Total Payroll</p>
+                    <p className="text-xs text-muted-foreground">{archivedPayrolls.length} payroll{archivedPayrolls.length !== 1 ? 's' : ''} released</p>
+                  </div>
+                  <p className="text-2xl font-bold text-blue-600 dark:text-blue-400">
+                    {formatCurrency(archivedPayrolls.reduce((sum: number, p: any) => sum + Number(p.netPay || 0), 0))}
+                  </p>
+                </div>
                 <div className="mb-6 flex flex-col sm:flex-row gap-3 items-start sm:items-center bg-muted/50 p-4 rounded-lg border">
                   <div className="flex items-center gap-3">
                     <input
@@ -675,10 +693,14 @@ export default function PersonnelPayrollPage() {
               }
             }
 
-            // Get the actual monthly basic salary from personnel type
-            const monthlyBasic = Number(selectedPayroll.user?.personnelType?.basicSalary || selectedPayroll.user?.personnel_types?.basicSalary || 5000)
-            
-            // Period salary is for calculation purposes only
+            // Derive basic salary from snapshot (saved at release time — most accurate)
+            const snapshotGrossPay = Number(snapshot?.grossPay || snapshot?.periodSalary || 0)
+            const snapshotTotalAdditions = Number(snapshot?.totalAdditions || 0)
+            const monthlyBasic = snapshotGrossPay > 0
+              ? (snapshotGrossPay - snapshotTotalAdditions)
+              : Number(selectedPayroll.basicSalary || selectedPayroll.user?.personnelType?.basicSalary || selectedPayroll.user?.personnel_types?.basicSalary || 0)
+
+            // Period salary for display
             const periodSalary = monthlyBasic
 
             const dbNetPay = Number(selectedPayroll.netPay || 0)
@@ -727,12 +749,12 @@ export default function PersonnelPayrollPage() {
               loanDetails = fetchedDetails.loans
             }
 
-            // Calculate overload pay
+            // Calculate overload pay from snapshot details only (no netPay-based fallback)
             let overloadPay = overloadPayDetails.reduce((sum: number, detail: any) => sum + Number(detail.amount), 0)
 
-            // Fallback: if still 0, calculate from netPay
-            if (overloadPay === 0 && dbNetPay > periodSalary) {
-              overloadPay = dbNetPay - periodSalary + deductions
+            // Only use snapshot totalAdditions as fallback (not netPay arithmetic)
+            if (overloadPay === 0 && snapshotTotalAdditions > 0) {
+              overloadPay = snapshotTotalAdditions
             }
 
             const mandatoryDeductions = deductionDetails.filter((d: any) => d.isMandatory)
@@ -757,18 +779,20 @@ export default function PersonnelPayrollPage() {
                 {/* Header with Logo */}
                 <div className="text-center border-b-2 border-gray-300 dark:border-gray-700 pb-4">
                   <div className="flex justify-center mb-3">
-                    <img src="/brgy-logo-transparent.png" alt="Barangay Logo" className="h-28 w-28 rounded-full object-cover" />
+                    <div className="h-28 w-28 rounded-full overflow-hidden mx-auto">
+                      <img src="/brgy-logo-transparent.png" alt="Barangay Logo" className="w-full h-full object-cover scale-[1.15] -translate-y-1" />
+                    </div>
                   </div>
                   <h3 className="font-bold text-base">TUBOD BARANGAY POBLACION</h3>
                   <p className="text-xs text-muted-foreground">Tubod, Lanao del Norte</p>
                   <p className="text-xs text-muted-foreground">POBLACION - PMS</p>
-                  <h2 className="font-bold text-xl mt-3">PAYROLL DETAILS</h2>
+                  <h2 className="font-bold text-xl mt-3">YOUR PAYROLL DETAILS</h2>
                 </div>
 
                 {/* Staff Information */}
                 <div className="space-y-1 text-sm border-b pb-3">
                   <div className="flex justify-between">
-                    <span className="font-semibold">Staff:</span>
+                    <span className="font-semibold">BRGY STAFF:</span>
                     <span>{selectedPayroll.user?.name || selectedPayroll.users?.name || 'N/A'}</span>
                   </div>
                   <div className="flex justify-between">
@@ -781,7 +805,7 @@ export default function PersonnelPayrollPage() {
                   </div>
                   <div className="flex justify-between">
                     <span className="font-semibold">BLGU:</span>
-                    <span>{selectedPayroll.user?.personnelType?.department || selectedPayroll.user?.personnel_types?.department || selectedPayroll.users?.personnel_types?.department || 'Barangay Officials'}</span>
+                    <span>{selectedPayroll.user?.personnelType?.department || selectedPayroll.user?.personnel_types?.department || selectedPayroll.users?.personnel_types?.department || 'N/A'}</span>
                   </div>
                   <div className="flex justify-between">
                     <span className="font-semibold">Position:</span>
@@ -904,22 +928,20 @@ export default function PersonnelPayrollPage() {
                   {attendanceDeductions.length > 0 && (
                     <>
                       <p className="text-sm font-semibold text-muted-foreground mt-2">Attendance Deductions:</p>
-                      {attendanceDeductions.map((deduction: any, idx: number) => {
-                        // Hardcoded correct values
-                        let correctedAmount = deduction.amount
-                        if (deduction.type === 'Late Arrival') {
-                          correctedAmount = 896.89
-                        } else if (deduction.type === 'Early Time-Out') {
-                          correctedAmount = 6.37
-                        }
-
-                        return (
-                          <div key={idx} className="flex justify-between py-1.5 border-b pl-4">
-                            <span className="text-sm">{deduction.type}</span>
-                            <span className="text-sm text-red-600 font-semibold">-{formatCurrency(correctedAmount)}</span>
+                      {attendanceDeductions.map((deduction: any, idx: number) => (
+                        <div key={idx} className="border-b pl-4 py-1.5">
+                          <div className="flex justify-between">
+                            <span className="text-sm font-medium">{deduction.type || deduction.name || 'Attendance'}</span>
+                            <span className="text-sm text-red-600 font-semibold">-{formatCurrency(Number(deduction.amount))}</span>
                           </div>
-                        )
-                      })}
+                          {(deduction.date || deduction.description || deduction.reason) && (
+                            <div className="text-xs text-muted-foreground mt-0.5 space-y-0.5">
+                              {deduction.date && <div>Date: {new Date(deduction.date).toLocaleDateString('en-PH', { month: 'short', day: '2-digit', year: 'numeric' })}</div>}
+                              {(deduction.description || deduction.reason) && <div>{deduction.description || deduction.reason}</div>}
+                            </div>
+                          )}
+                        </div>
+                      ))}
                     </>
                   )}
 

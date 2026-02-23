@@ -250,7 +250,7 @@ export async function GET(request: NextRequest) {
           personnelType: entry.users.personnel_types,
           personnel_types: entry.users.personnel_types
         } : null
-        
+
         groupedArchived.set(key, {
           periodStart: entry.periodStart,
           periodEnd: entry.periodEnd,
@@ -433,6 +433,7 @@ export async function GET(request: NextRequest) {
       // DIRECT COPY - Return snapshot as-is
       if (breakdownData) {
         console.log('🔥 RETURNING EXACT SNAPSHOT:', breakdownData)
+        const userSource = p.user || p.users
         return {
           payroll_entries_id: p.payroll_entries_id,
           users_id: p.users_id,
@@ -445,18 +446,20 @@ export async function GET(request: NextRequest) {
           status: p.status,
           releasedAt: p.releasedAt,
           breakdownSnapshot: breakdownData, // EXACT COPY - NO MODIFICATION
-          user: p.user ? {
-            name: p.user.name,
-            email: p.user.email,
-            personnel_types: p.user.personnel_types ? {
-              name: p.user.personnel_types.name,
-              basicSalary: Number(p.user.personnel_types.basicSalary)
+          user: userSource ? {
+            name: userSource.name,
+            email: userSource.email,
+            personnel_types: userSource.personnel_types ? {
+              name: userSource.personnel_types.name,
+              department: userSource.personnel_types.department,
+              basicSalary: Number(userSource.personnel_types.basicSalary)
             } : null
           } : null
         }
       }
 
       // Fallback for payroll without snapshot (shouldn't happen for released payroll)
+      const userSourceFallback = p.user || p.users
       return {
         payroll_entries_id: p.payroll_entries_id,
         users_id: p.users_id,
@@ -469,12 +472,13 @@ export async function GET(request: NextRequest) {
         status: p.status,
         releasedAt: p.releasedAt,
         breakdownSnapshot: breakdownData,
-        user: p.user ? {
-          name: p.user.name,
-          email: p.user.email,
-          personnel_types: p.user.personnel_types ? {
-            name: p.user.personnel_types.name,
-            basicSalary: Number(p.user.personnel_types.basicSalary)
+        user: userSourceFallback ? {
+          name: userSourceFallback.name,
+          email: userSourceFallback.email,
+          personnel_types: userSourceFallback.personnel_types ? {
+            name: userSourceFallback.personnel_types.name,
+            department: userSourceFallback.personnel_types.department,
+            basicSalary: Number(userSourceFallback.personnel_types.basicSalary)
           } : null
         } : null
       }
