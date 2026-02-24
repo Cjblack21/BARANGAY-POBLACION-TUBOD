@@ -43,7 +43,7 @@ export function NavUser({
   }
   role?: "personnel" | "admin"
 }) {
-  const { isMobile } = useSidebar()
+  const { isMobile, setOpenMobile } = useSidebar()
   const profilePath = role === "admin" ? "/admin/profile" : "/personnel/profile"
 
   return (
@@ -88,26 +88,26 @@ export function NavUser({
             <DropdownMenuSeparator />
             <DropdownMenuGroup>
               <DropdownMenuItem asChild>
-                <Link href={profilePath}>
+                <Link href={profilePath} onClick={() => setOpenMobile(false)}>
                   <User />
                   Profile Settings
                 </Link>
               </DropdownMenuItem>
               <DropdownMenuItem asChild>
-                <Link href={`${profilePath}?tab=settings`}>
+                <Link href={`${profilePath}?tab=settings`} onClick={() => setOpenMobile(false)}>
                   <Settings />
                   Settings
                 </Link>
               </DropdownMenuItem>
               <DropdownMenuItem asChild>
-                <Link href={`${profilePath}?tab=security`}>
+                <Link href={`${profilePath}?tab=security`} onClick={() => setOpenMobile(false)}>
                   <KeyRound />
                   Change Password
                 </Link>
               </DropdownMenuItem>
             </DropdownMenuGroup>
             <DropdownMenuSeparator />
-            <DropdownMenuItem onClick={() => signOut({ callbackUrl: "/" })}>
+            <DropdownMenuItem onClick={() => { setOpenMobile(false); signOut({ callbackUrl: "/login" }) }}>
               <LogOut />
               Log out
             </DropdownMenuItem>

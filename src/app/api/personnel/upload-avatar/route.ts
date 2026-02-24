@@ -24,9 +24,9 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "File must be an image" }, { status: 400 })
     }
 
-    // Validate file size (5MB)
-    if (file.size > 5 * 1024 * 1024) {
-      return NextResponse.json({ error: "File size must be less than 5MB" }, { status: 400 })
+    // Validate file size (25MB)
+    if (file.size > 25 * 1024 * 1024) {
+      return NextResponse.json({ error: "File size must be less than 25MB" }, { status: 400 })
     }
 
     // Create unique filename
@@ -67,4 +67,11 @@ export async function POST(request: Request) {
       { status: 500 }
     )
   }
+}
+export const config = {
+  api: {
+    bodyParser: {
+      sizeLimit: '30mb',
+    },
+  },
 }
