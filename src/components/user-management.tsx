@@ -54,7 +54,8 @@ import {
   Shield,
   Briefcase,
   UserPlus,
-  EyeOff
+  EyeOff,
+  Printer
 } from 'lucide-react'
 import {
   Tooltip,
@@ -561,6 +562,130 @@ export function UserManagement() {
     setIsDeleteDialogOpen(false)
     setPendingDelete(null)
     setDeleteRecordCounts(null)
+  }
+
+  const handlePrintStaff = (person: User) => {
+    const pt = person.personnelType || person.personnel_types
+    const logoUrl = '/BRGY PICTURE LOG TUBOD.png'
+    const qrUrl = '/QR CODE PMS SYSTEM.png'
+    const printWindow = window.open('', '_blank', 'width=820,height=900')
+    if (!printWindow) return
+    const html = `
+      <!DOCTYPE html>
+      <html>
+      <head>
+        <meta charset="utf-8">
+        <title>Staff Information - ${person.name || person.email}</title>
+        <style>
+          @media print {
+            @page { size: A4; margin: 12mm 14mm; }
+            body { margin: 0; }
+          }
+          * { box-sizing: border-box; }
+          body { font-family: Arial, sans-serif; font-size: 10.5px; color: #000; background: white; margin: 0; padding: 16px 20px; }
+          .header { display: flex; justify-content: space-between; align-items: center; border-bottom: 3px solid #000; padding-bottom: 10px; margin-bottom: 14px; gap: 12px; }
+          .logo { flex-shrink: 0; }
+          .logo img { height: 62px; width: auto; }
+          .header-center { text-align: center; flex: 1; }
+          .header-center h1 { font-size: 15px; font-weight: bold; margin: 0 0 2px 0; text-transform: uppercase; letter-spacing: 1px; }
+          .header-center .address { font-size: 9px; color: #555; margin: 0 0 1px 0; line-height: 1.4; }
+          .header-center .doc-title { font-size: 16px; font-weight: bold; letter-spacing: 3px; margin-top: 5px; border-top: 1.5px solid #000; border-bottom: 1.5px solid #000; padding: 3px 16px; color: #000; }
+          .qr { text-align: center; flex-shrink: 0; }
+          .qr img { height: 62px; width: 62px; object-fit: contain; }
+          .qr-label { font-size: 7px; font-weight: bold; text-align: center; color: #555; letter-spacing: 1px; margin-top: 2px; }
+
+          .content { position: relative; z-index: 1; }
+          .section-title { font-size: 9.5px; font-weight: bold; background: #f0f0f0; border-left: 4px solid #000; padding: 4px 8px; margin: 10px 0 4px 0; text-transform: uppercase; letter-spacing: 1.5px; color: #000; }
+          table { width: 100%; border-collapse: collapse; margin-bottom: 2px; }
+          table td { padding: 4px 8px; border: 1px solid #ddd; font-size: 10px; vertical-align: middle; }
+          table td:first-child { font-weight: bold; background: #f9fafb; width: 32%; color: #374151; }
+          .badge { display: inline-block; padding: 1px 8px; border-radius: 12px; font-size: 9px; font-weight: bold; }
+          .badge-active { background: #dcfce7; color: #15803d; border: 1px solid #86efac; }
+          .badge-inactive { background: #fee2e2; color: #dc2626; border: 1px solid #fca5a5; }
+          .signatures { display: flex; justify-content: space-around; margin-top: 30px; padding-top: 10px; border-top: 1px solid #ccc; }
+          .sig-box { text-align: center; min-width: 150px; }
+          .sig-line { border-top: 1px solid #000; margin: 28px 16px 4px 16px; }
+          .sig-name { font-weight: bold; font-size: 10px; }
+          .sig-role { font-size: 9px; color: #555; margin-top: 1px; }
+          .print-date { text-align: right; font-size: 8.5px; color: #888; margin-top: 8px; }
+        </style>
+      </head>
+      <body>
+
+        <div class="content">
+          <div class="header">
+            <div class="logo"><img src="${logoUrl}" onerror="this.style.display='none'"></div>
+            <div class="header-center">
+              <h1>Barangay Poblacion Tubod</h1>
+              <p class="address">Tubod, Lanao del Norte, Philippines</p>
+              <p class="address">Barangay Local Government Unit (BLGU)</p>
+              <div class="doc-title">STAFF INFORMATION</div>
+            </div>
+            <div class="qr">
+              <img src="${qrUrl}" onerror="this.style.display='none'">
+              <div class="qr-label">SCAN ME</div>
+            </div>
+          </div>
+
+          <div class="section-title">Profile</div>
+          <table>
+            <tr><td>Full Name</td><td>${person.name || 'N/A'}</td></tr>
+            <tr><td>Email Address</td><td>${person.email}</td></tr>
+            <tr><td>Status</td><td><span class="badge ${person.isActive ? 'badge-active' : 'badge-inactive'}">${person.isActive ? 'Active' : 'Inactive'}</span></td></tr>
+          </table>
+
+          <div class="section-title">Account Information</div>
+          <table>
+            <tr><td>Staff ID</td><td>${person.users_id}</td></tr>
+            <tr><td>System Role</td><td>${person.role === 'PERSONNEL' ? 'Staff Member' : 'Administrator'}</td></tr>
+          </table>
+
+          ${pt ? `
+          <div class="section-title">Position &amp; Salary</div>
+          <table>
+            <tr><td>Position</td><td>${pt.name || 'N/A'}</td></tr>
+            <tr><td>Basic Salary</td><td>&#8369;${(pt.basicSalary ?? 0).toLocaleString('en-PH', { minimumFractionDigits: 2 })}</td></tr>
+            ${pt.department ? `<tr><td>BLGU</td><td>${pt.department}</td></tr>` : ''}
+          </table>
+          ` : ''}
+
+          ${(person.streetAddress || person.barangay || person.purok || person.zipCode) ? `
+          <div class="section-title">Address Information</div>
+          <table>
+            ${person.streetAddress ? `<tr><td>Street Address</td><td>${person.streetAddress}</td></tr>` : ''}
+            ${person.barangay ? `<tr><td>Barangay</td><td>${person.barangay}</td></tr>` : ''}
+            ${person.purok ? `<tr><td>Purok</td><td>${person.purok}</td></tr>` : ''}
+            ${person.zipCode ? `<tr><td>Zip Code</td><td>${person.zipCode}</td></tr>` : ''}
+          </table>
+          ` : ''}
+
+          <div class="section-title">Record Info</div>
+          <table>
+            <tr><td>Date Created</td><td>${new Date(person.createdAt).toLocaleDateString('en-GB', { day: '2-digit', month: 'long', year: 'numeric' })}</td></tr>
+            <tr><td>Last Updated</td><td>${new Date(person.updatedAt).toLocaleDateString('en-GB', { day: '2-digit', month: 'long', year: 'numeric' })}</td></tr>
+          </table>
+
+          <div class="signatures">
+            <div class="sig-box">
+              <div class="sig-line"></div>
+              <div class="sig-name">EMMA L. MAGTAO</div>
+              <div class="sig-role">Brgy. Treasurer</div>
+            </div>
+            <div class="sig-box">
+              <div class="sig-line"></div>
+              <div class="sig-name">${person.name || person.email}</div>
+              <div class="sig-role">Staff Signature</div>
+            </div>
+          </div>
+
+          <div class="print-date">Printed: ${new Date().toLocaleDateString('en-GB', { day: '2-digit', month: 'long', year: 'numeric' })}</div>
+        </div>
+        <script>window.onload = function() { window.print(); }<\/script>
+      </body>
+      </html>
+    `
+    printWindow.document.write(html)
+    printWindow.document.close()
   }
 
   return (
@@ -1307,102 +1432,178 @@ export function UserManagement() {
       {/* View Personnel Dialog */}
       < SSRSafe >
         <Dialog open={isViewDialogOpen} onOpenChange={setIsViewDialogOpen}>
-          <DialogContent className="sm:max-w-[600px]">
-            <DialogHeader>
-              <DialogTitle>Staff Details</DialogTitle>
-              <DialogDescription>
-                View detailed information about this staff member.
-              </DialogDescription>
+          <DialogContent className="sm:max-w-[680px] max-h-[90vh] overflow-y-auto">
+            <DialogHeader className="border-b pb-4">
+              <div className="flex items-center gap-3">
+                <div className="h-10 w-10 rounded-full bg-blue-100 flex items-center justify-center">
+                  <Eye className="h-5 w-5 text-blue-600" />
+                </div>
+                <div>
+                  <DialogTitle className="text-xl">Staff Details</DialogTitle>
+                  <DialogDescription className="text-sm">View detailed information about this staff member</DialogDescription>
+                </div>
+              </div>
             </DialogHeader>
             {selectedPersonnel && (
-              <div className="grid gap-4 py-4">
-                {/* Profile Picture Section */}
-                <div className="flex justify-center pb-4 border-b">
-                  <Avatar className="h-24 w-24">
-                    <AvatarImage src={selectedPersonnel.avatar || ''} />
-                    <AvatarFallback className="text-2xl font-medium">
-                      {getInitials(selectedPersonnel.name, selectedPersonnel.email)}
-                    </AvatarFallback>
-                  </Avatar>
-                </div>
-                <div className="grid gap-2">
-                  <Label>Staff ID</Label>
-                  <div className="text-sm text-muted-foreground font-mono">
-                    {selectedPersonnel.users_id}
+              <div className="space-y-6 py-6">
+
+                {/* Profile Section */}
+                <div className="bg-gradient-to-br from-blue-50 to-indigo-50 rounded-lg p-5 border border-blue-100">
+                  <h3 className="text-sm font-semibold text-gray-900 mb-4 flex items-center gap-2">
+                    <User className="h-4 w-4 text-blue-600" />
+                    Profile
+                  </h3>
+                  <div className="flex items-center gap-5">
+                    <Avatar className="h-20 w-20 border-4 border-white shadow-md">
+                      <AvatarImage src={selectedPersonnel.avatar || ''} />
+                      <AvatarFallback className="text-2xl font-semibold bg-blue-100 text-blue-700">
+                        {getInitials(selectedPersonnel.name, selectedPersonnel.email)}
+                      </AvatarFallback>
+                    </Avatar>
+                    <div>
+                      <p className="font-semibold text-gray-900 text-base">{selectedPersonnel.name || 'No name set'}</p>
+                      <p className="text-sm text-gray-500 mt-0.5">{selectedPersonnel.email}</p>
+                      <div className="flex gap-2 mt-2">
+                        <Badge variant={selectedPersonnel.isActive ? 'default' : 'destructive'} className="text-xs">
+                          {selectedPersonnel.isActive ? 'Active' : 'Inactive'}
+                        </Badge>
+                        <Badge variant="secondary" className="text-xs">
+                          {selectedPersonnel.role === 'PERSONNEL' ? 'Staff Member' : 'Administrator'}
+                        </Badge>
+                      </div>
+                    </div>
                   </div>
                 </div>
-                <div className="grid gap-2">
-                  <Label>Email</Label>
-                  <div>{selectedPersonnel.email}</div>
+
+                {/* Account Info Section */}
+                <div className="space-y-3">
+                  <h3 className="text-sm font-semibold text-gray-900 flex items-center gap-2 border-b pb-2">
+                    <Shield className="h-4 w-4 text-blue-600" />
+                    Account Information
+                  </h3>
+                  <div className="grid grid-cols-2 gap-4 text-sm">
+                    <div>
+                      <p className="text-xs text-muted-foreground mb-1">Staff ID</p>
+                      <p className="font-mono font-medium bg-gray-50 border rounded px-2 py-1.5">{selectedPersonnel.users_id}</p>
+                    </div>
+                    <div>
+                      <p className="text-xs text-muted-foreground mb-1">System Role</p>
+                      <p className="font-medium bg-gray-50 border rounded px-2 py-1.5">
+                        {selectedPersonnel.role === 'PERSONNEL' ? 'Staff Member' : 'Administrator'}
+                      </p>
+                    </div>
+                  </div>
                 </div>
-                <div className="grid gap-2">
-                  <Label>Full Name</Label>
-                  <div>{selectedPersonnel.name || 'No name set'}</div>
-                </div>
-                <div className="grid gap-2">
-                  <Label>System Role</Label>
-                  <Badge variant={selectedPersonnel.role === 'ADMIN' ? 'default' : 'secondary'}>
-                    {selectedPersonnel.role === 'PERSONNEL' ? 'STAFF' : selectedPersonnel.role}
-                  </Badge>
-                </div>
-                <div className="grid gap-2">
-                  <Label>Status</Label>
-                  <Badge variant={selectedPersonnel.isActive ? 'default' : 'destructive'}>
-                    {selectedPersonnel.isActive ? 'Active' : 'Inactive'}
-                  </Badge>
-                </div>
-                {/* Address Information */}
-                {(selectedPersonnel.streetAddress || selectedPersonnel.barangay || selectedPersonnel.purok || selectedPersonnel.zipCode) && (
-                  <div className="border-t pt-4 mt-4">
-                    <Label className="text-base font-semibold mb-3 block">Address Information</Label>
-                    <div className="space-y-2">
-                      {selectedPersonnel.streetAddress && (
-                        <div className="grid gap-1">
-                          <Label className="text-xs text-muted-foreground">Street Address</Label>
-                          <div className="text-sm">{selectedPersonnel.streetAddress}</div>
-                        </div>
-                      )}
-                      <div className="grid grid-cols-2 gap-4">
-                        {selectedPersonnel.barangay && (
-                          <div className="grid gap-1">
-                            <Label className="text-xs text-muted-foreground">Barangay</Label>
-                            <div className="text-sm">{selectedPersonnel.barangay}</div>
-                          </div>
-                        )}
-                        {selectedPersonnel.purok && (
-                          <div className="grid gap-1">
-                            <Label className="text-xs text-muted-foreground">Purok</Label>
-                            <div className="text-sm">{selectedPersonnel.purok}</div>
-                          </div>
-                        )}
+
+                {/* Position & Salary Section */}
+                {(selectedPersonnel.personnelType || selectedPersonnel.personnel_types) && (
+                  <div className="space-y-3">
+                    <h3 className="text-sm font-semibold text-gray-900 flex items-center gap-2 border-b pb-2">
+                      <Briefcase className="h-4 w-4 text-blue-600" />
+                      Position & Salary
+                    </h3>
+                    <div className="grid grid-cols-2 gap-4 text-sm">
+                      <div className="col-span-2">
+                        <p className="text-xs text-muted-foreground mb-1">Position</p>
+                        <p className="font-medium bg-gray-50 border rounded px-2 py-1.5">
+                          {(selectedPersonnel.personnelType || selectedPersonnel.personnel_types)?.name || '—'}
+                        </p>
                       </div>
-                      {selectedPersonnel.zipCode && (
-                        <div className="grid gap-1">
-                          <Label className="text-xs text-muted-foreground">Zip Code</Label>
-                          <div className="text-sm">{selectedPersonnel.zipCode}</div>
+                      <div>
+                        <p className="text-xs text-muted-foreground mb-1">Basic Salary</p>
+                        <p className="font-medium bg-gray-50 border rounded px-2 py-1.5">
+                          ₱{((selectedPersonnel.personnelType || selectedPersonnel.personnel_types)?.basicSalary ?? 0).toLocaleString('en-PH', { minimumFractionDigits: 2 })}
+                        </p>
+                      </div>
+                      {(selectedPersonnel.personnelType || selectedPersonnel.personnel_types)?.department && (
+                        <div>
+                          <p className="text-xs text-muted-foreground mb-1">BLGU</p>
+                          <p className="font-medium bg-gray-50 border rounded px-2 py-1.5">
+                            {(selectedPersonnel.personnelType || selectedPersonnel.personnel_types)?.department}
+                          </p>
                         </div>
                       )}
                     </div>
                   </div>
                 )}
-                <div className="grid gap-2 border-t pt-4 mt-4">
-                  <Label>Created</Label>
-                  <div>{new Date(selectedPersonnel.createdAt).toLocaleDateString('en-GB', { day: '2-digit', month: '2-digit', year: 'numeric' })}</div>
+
+                {/* Address Section */}
+                {(selectedPersonnel.streetAddress || selectedPersonnel.barangay || selectedPersonnel.purok || selectedPersonnel.zipCode) && (
+                  <div className="space-y-3">
+                    <h3 className="text-sm font-semibold text-gray-900 flex items-center gap-2 border-b pb-2">
+                      <User className="h-4 w-4 text-blue-600" />
+                      Address Information
+                    </h3>
+                    <div className="grid grid-cols-2 gap-4 text-sm">
+                      {selectedPersonnel.streetAddress && (
+                        <div className="col-span-2">
+                          <p className="text-xs text-muted-foreground mb-1">Street Address</p>
+                          <p className="font-medium bg-gray-50 border rounded px-2 py-1.5">{selectedPersonnel.streetAddress}</p>
+                        </div>
+                      )}
+                      {selectedPersonnel.barangay && (
+                        <div>
+                          <p className="text-xs text-muted-foreground mb-1">Barangay</p>
+                          <p className="font-medium bg-gray-50 border rounded px-2 py-1.5">{selectedPersonnel.barangay}</p>
+                        </div>
+                      )}
+                      {selectedPersonnel.purok && (
+                        <div>
+                          <p className="text-xs text-muted-foreground mb-1">Purok</p>
+                          <p className="font-medium bg-gray-50 border rounded px-2 py-1.5">{selectedPersonnel.purok}</p>
+                        </div>
+                      )}
+                      {selectedPersonnel.zipCode && (
+                        <div>
+                          <p className="text-xs text-muted-foreground mb-1">Zip Code</p>
+                          <p className="font-medium bg-gray-50 border rounded px-2 py-1.5">{selectedPersonnel.zipCode}</p>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                )}
+
+                {/* Timestamps Section */}
+                <div className="space-y-3">
+                  <h3 className="text-sm font-semibold text-gray-900 flex items-center gap-2 border-b pb-2">
+                    <Shield className="h-4 w-4 text-blue-600" />
+                    Record Info
+                  </h3>
+                  <div className="grid grid-cols-2 gap-4 text-sm">
+                    <div>
+                      <p className="text-xs text-muted-foreground mb-1">Created</p>
+                      <p className="font-medium bg-gray-50 border rounded px-2 py-1.5">
+                        {new Date(selectedPersonnel.createdAt).toLocaleDateString('en-GB', { day: '2-digit', month: '2-digit', year: 'numeric' })}
+                      </p>
+                    </div>
+                    <div>
+                      <p className="text-xs text-muted-foreground mb-1">Last Updated</p>
+                      <p className="font-medium bg-gray-50 border rounded px-2 py-1.5">
+                        {new Date(selectedPersonnel.updatedAt).toLocaleDateString('en-GB', { day: '2-digit', month: '2-digit', year: 'numeric' })}
+                      </p>
+                    </div>
+                  </div>
                 </div>
-                <div className="grid gap-2">
-                  <Label>Last Updated</Label>
-                  <div>{new Date(selectedPersonnel.updatedAt).toLocaleDateString('en-GB', { day: '2-digit', month: '2-digit', year: 'numeric' })}</div>
-                </div>
+
               </div>
             )}
-            <DialogFooter>
-              <Button variant="outline" onClick={() => setIsViewDialogOpen(false)}>
+            <DialogFooter className="border-t pt-4 flex gap-2">
+              <Button
+                variant="default"
+                onClick={() => selectedPersonnel && handlePrintStaff(selectedPersonnel)}
+                className="flex items-center gap-2"
+              >
+                <Printer className="h-4 w-4" />
+                Print
+              </Button>
+              <Button variant="destructive" onClick={() => setIsViewDialogOpen(false)}>
                 Close
               </Button>
             </DialogFooter>
           </DialogContent>
         </Dialog>
       </SSRSafe >
+
 
       {/* Delete Confirmation Dialog */}
       < SSRSafe >
