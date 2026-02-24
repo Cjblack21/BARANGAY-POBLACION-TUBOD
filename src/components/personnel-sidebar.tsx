@@ -25,6 +25,7 @@ import {
   SidebarGroup,
   SidebarGroupLabel,
   SidebarGroupContent,
+  useSidebar,
 } from "@/components/ui/sidebar"
 import Link from "next/link"
 
@@ -46,6 +47,7 @@ interface PersonnelSidebarProps extends React.ComponentProps<typeof Sidebar> {
 
 export function PersonnelSidebar({ user, ...props }: PersonnelSidebarProps) {
   const data = getNavData(user)
+  const { setOpenMobile } = useSidebar()
   const [mounted, setMounted] = React.useState(false)
   React.useEffect(() => setMounted(true), [])
   if (!mounted) return null
@@ -86,7 +88,7 @@ export function PersonnelSidebar({ user, ...props }: PersonnelSidebarProps) {
           <SidebarGroupContent className="w-full min-w-0">
             <SidebarMenu>
               <SidebarMenuItem>
-                <SidebarMenuButton asChild className="h-10 font-medium [&>svg]:size-[18px]">
+                <SidebarMenuButton asChild className="h-10 font-medium [&>svg]:size-[18px]" onClick={() => setOpenMobile(false)}>
                   <Link href="/personnel/dashboard">
                     <Home />
                     <span>Dashboard</span>
@@ -105,7 +107,7 @@ export function PersonnelSidebar({ user, ...props }: PersonnelSidebarProps) {
           <SidebarGroupContent className="w-full min-w-0">
             <SidebarMenu key="personnel-menu-fin-v2">
               <SidebarMenuItem>
-                <SidebarMenuButton asChild className="h-10 font-medium [&>svg]:size-[18px]">
+                <SidebarMenuButton asChild className="h-10 font-medium [&>svg]:size-[18px]" onClick={() => setOpenMobile(false)}>
                   <Link href="/personnel/payroll">
                     <span className="flex items-center justify-center w-[18px] h-[18px] text-lg font-normal">₱</span>
                     <span>Payroll</span>
@@ -113,7 +115,7 @@ export function PersonnelSidebar({ user, ...props }: PersonnelSidebarProps) {
                 </SidebarMenuButton>
               </SidebarMenuItem>
               <SidebarMenuItem>
-                <SidebarMenuButton asChild className="h-10 font-medium [&>svg]:size-[18px]">
+                <SidebarMenuButton asChild className="h-10 font-medium [&>svg]:size-[18px]" onClick={() => setOpenMobile(false)}>
                   <Link href="/personnel/loans">
                     <Banknote />
                     <span>Loans</span>
@@ -121,7 +123,7 @@ export function PersonnelSidebar({ user, ...props }: PersonnelSidebarProps) {
                 </SidebarMenuButton>
               </SidebarMenuItem>
               <SidebarMenuItem>
-                <SidebarMenuButton asChild className="h-10 font-medium [&>svg]:size-[18px]">
+                <SidebarMenuButton asChild className="h-10 font-medium [&>svg]:size-[18px]" onClick={() => setOpenMobile(false)}>
                   <Link href="/personnel/deductions">
                     <CreditCard />
                     <span>Deductions</span>
@@ -140,7 +142,7 @@ export function PersonnelSidebar({ user, ...props }: PersonnelSidebarProps) {
           <SidebarGroupContent className="w-full min-w-0">
             <SidebarMenu key="personnel-menu-info-v2">
               <SidebarMenuItem>
-                <SidebarMenuButton asChild className="h-10 font-medium [&>svg]:size-[18px]">
+                <SidebarMenuButton asChild className="h-10 font-medium [&>svg]:size-[18px]" onClick={() => setOpenMobile(false)}>
                   <Link href="/personnel/attendance">
                     <Clock />
                     <span>Attendance</span>
@@ -159,7 +161,7 @@ export function PersonnelSidebar({ user, ...props }: PersonnelSidebarProps) {
           <SidebarGroupContent className="w-full min-w-0">
             <SidebarMenu key="personnel-menu-holidays-v2">
               <SidebarMenuItem>
-                <SidebarMenuButton asChild className="h-10 font-medium [&>svg]:size-[18px]">
+                <SidebarMenuButton asChild className="h-10 font-medium [&>svg]:size-[18px]" onClick={() => setOpenMobile(false)}>
                   <Link href="/personnel/holidays">
                     <Calendar />
                     <span>Holidays</span>

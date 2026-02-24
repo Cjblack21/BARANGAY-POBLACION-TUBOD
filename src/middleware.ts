@@ -17,6 +17,7 @@ export default withAuth(
       pathname.startsWith("/api/personnel") ||
       pathname.startsWith("/auth") ||
       pathname === "/" ||
+      pathname === "/login" ||
       pathname === "/register" ||
       pathname.startsWith("/_next") ||
       pathname.startsWith("/favicon") ||
@@ -34,7 +35,7 @@ export default withAuth(
 
     // Redirect to login if not authenticated
     if (!token) {
-      return NextResponse.redirect(new URL("/", req.url))
+      return NextResponse.redirect(new URL("/login", req.url))
     }
 
     // Role-based access control
@@ -86,6 +87,7 @@ export default withAuth(
           pathname.startsWith("/api/personnel") ||
           pathname.startsWith("/auth") ||
           pathname === "/" ||
+          pathname === "/login" ||
           pathname === "/register" ||
           pathname.startsWith("/_next") ||
           pathname.startsWith("/favicon") ||

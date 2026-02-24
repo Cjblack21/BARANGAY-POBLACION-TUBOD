@@ -37,7 +37,12 @@ export async function POST(request: Request) {
 
     // Ensure uploads directory exists
     const uploadsDir = path.join(process.cwd(), "public", "uploads", "avatars")
-    await mkdir(uploadsDir, { recursive: true })
+    try {
+      await mkdir(uploadsDir, { recursive: true })
+    } catch (mkdirError) {
+      console.error("Failed to create uploads directory:", mkdirError)
+      return NextResponse.json({ error: "Server storage error: could not create upload directory" }, { status: 500 })
+    }
 
     // Save file
     const filepath = path.join(uploadsDir, filename)

@@ -46,6 +46,36 @@ interface FormData {
     zipCode: string
 }
 
+function AutoRedirect({ router }: { router: ReturnType<typeof useRouter> }) {
+    const [count, setCount] = useState(3)
+
+    useEffect(() => {
+        if (count <= 0) {
+            router.push("/login")
+            return
+        }
+        const t = setTimeout(() => setCount(c => c - 1), 1000)
+        return () => clearTimeout(t)
+    }, [count, router])
+
+    return (
+        <div className="min-h-screen flex items-center justify-center bg-gray-100 dark:bg-gray-950 px-4">
+            <div className="w-full max-w-sm text-center space-y-5">
+                <CheckCircle2 className="h-16 w-16 text-green-500 mx-auto" />
+                <div>
+                    <h2 className="text-2xl font-semibold text-gray-900 dark:text-white">Registration Successful</h2>
+                    <p className="text-base text-gray-500 dark:text-gray-400 mt-1">
+                        Your account has been created. Redirecting to login in {count}s...
+                    </p>
+                </div>
+                <Button onClick={() => router.push("/login")} className="w-full h-11 text-base">
+                    Go to Login
+                </Button>
+            </div>
+        </div>
+    )
+}
+
 export function StaffRegistrationForm() {
     const router = useRouter()
     const [personnelTypes, setPersonnelTypes] = useState<PersonnelType[]>([])
@@ -171,20 +201,7 @@ export function StaffRegistrationForm() {
 
     if (submitted) {
         return (
-            <div className="min-h-screen flex items-center justify-center bg-gray-100 dark:bg-gray-950 px-4">
-                <div className="w-full max-w-sm text-center space-y-5">
-                    <CheckCircle2 className="h-16 w-16 text-green-500 mx-auto" />
-                    <div>
-                        <h2 className="text-2xl font-semibold text-gray-900 dark:text-white">Registration Successful</h2>
-                        <p className="text-base text-gray-500 dark:text-gray-400 mt-1">
-                            Your account has been created. You can now log in.
-                        </p>
-                    </div>
-                    <Button onClick={() => router.push("/login")} className="w-full h-11 text-base">
-                        Go to Login
-                    </Button>
-                </div>
-            </div>
+            <AutoRedirect router={router} />
         )
     }
 

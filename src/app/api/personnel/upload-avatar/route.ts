@@ -34,10 +34,15 @@ export async function POST(request: Request) {
     const buffer = Buffer.from(bytes)
     const timestamp = Date.now()
     const filename = `${session.user.id}_${timestamp}${path.extname(file.name)}`
-    
+
     // Ensure uploads directory exists
     const uploadsDir = path.join(process.cwd(), "public", "uploads", "avatars")
-    await mkdir(uploadsDir, { recursive: true })
+    try {
+      await mkdir(uploadsDir, { recursive: true })
+    } catch (mkdirError) {
+      console.error("Failed to create uploads directory:", mkdirError)
+      return NextResponse.json({ error: "Server storage error: could not create upload directory" }, { status: 500 })
+    }
 
     // Save file
     const filepath = path.join(uploadsDir, filename)
@@ -51,9 +56,9 @@ export async function POST(request: Request) {
       data: { avatar: avatarUrl },
     })
 
-    return NextResponse.json({ 
+    return NextResponse.json({
       message: "Avatar uploaded successfully",
-      avatarUrl 
+      avatarUrl
     })
   } catch (error) {
     console.error("Error uploading avatar:", error)
