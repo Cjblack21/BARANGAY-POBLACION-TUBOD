@@ -17,6 +17,7 @@ export default withAuth(
       pathname.startsWith("/api/personnel") ||
       pathname.startsWith("/auth") ||
       pathname === "/" ||
+      pathname === "/register" ||
       pathname.startsWith("/_next") ||
       pathname.startsWith("/favicon") ||
 
@@ -85,6 +86,7 @@ export default withAuth(
           pathname.startsWith("/api/personnel") ||
           pathname.startsWith("/auth") ||
           pathname === "/" ||
+          pathname === "/register" ||
           pathname.startsWith("/_next") ||
           pathname.startsWith("/favicon") ||
 
