@@ -51,7 +51,7 @@ function AutoRedirect({ router }: { router: ReturnType<typeof useRouter> }) {
 
     useEffect(() => {
         if (count <= 0) {
-            router.push("/login")
+            router.push("/")
             return
         }
         const t = setTimeout(() => setCount(c => c - 1), 1000)
@@ -68,7 +68,7 @@ function AutoRedirect({ router }: { router: ReturnType<typeof useRouter> }) {
                         Your account has been created. Redirecting to login in {count}s...
                     </p>
                 </div>
-                <Button onClick={() => router.push("/login")} className="w-full h-11 text-base">
+                <Button onClick={() => router.push("/")} className="w-full h-11 text-base">
                     Go to Login
                 </Button>
             </div>
