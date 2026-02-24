@@ -1,11 +1,10 @@
 "use client"
 
 import { useState, useEffect } from "react"
-import Image from "next/image"
 import { useTheme } from "next-themes"
-import { Sun, Moon, Monitor } from "lucide-react"
-import { Button } from "@/components/ui/button"
+import { Sun, Moon, Monitor, Settings } from "lucide-react"
 import { LoginForm } from "@/components/login-form"
+import { Button } from "@/components/ui/button"
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -22,7 +21,7 @@ export default function Home() {
   }, [])
 
   return (
-    <div className="relative min-h-screen overflow-hidden bg-gradient-to-br from-[#00A3B1] via-[#41BD87] to-[#82D65A]">
+    <div className="relative min-h-screen overflow-hidden flex">
       {/* Theme Toggle */}
       {mounted && (
         <DropdownMenu>
@@ -57,43 +56,72 @@ export default function Home() {
         </DropdownMenu>
       )}
 
-      {/* Main Content */}
-      <div className="relative flex min-h-screen items-center justify-center px-4 py-12">
-        <div className="w-full max-w-md">
-          <div className="flex flex-col items-center space-y-6">
+      {/* Left Side - Login Form */}
+      <div className="flex-1 bg-slate-50 dark:bg-[#0a1628] flex items-center justify-center px-4 py-12 transition-colors duration-500">
+        <div className="w-full max-w-lg -mt-28">
+          <div className="flex flex-col items-center">
             {/* Logo */}
-            <div className="flex justify-center">
-              <div className="w-32 h-32 bg-[#00939d] rounded-2xl flex items-center justify-center transform translate-y-8 shadow-xl">
-                <Image
-                  src="/brgy-logo.png"
-                  alt="Barangay Logo"
-                  width={112}
-                  height={112}
-                  className="h-28 w-28 transform translate-y-2"
-                  unoptimized
-                />
-              </div>
+            <div className="flex justify-center mt-8">
+              <img src="/BRGY PICTURE LOG TUBOD.png" alt="Barangay Logo" className="w-72 h-72 object-contain" />
             </div>
 
             {/* Title */}
-            <div className="text-center space-y-2">
-              <h1 className="text-3xl font-bold text-white">
-                TUBOD BARANGAY POBLACION PMS
+            <div className="text-center -mt-8">
+              <h1 className="text-3xl font-bold text-slate-900 dark:text-white mb-1">
+                BRGY POBLACION PMS
               </h1>
-              <p className="text-sm text-slate-400">
+              <p className="text-sm text-slate-600 dark:text-slate-400 mb-4">
                 Sign in to continue to your account
               </p>
             </div>
 
             {/* Login Card */}
-            <div className="w-full bg-white/10 backdrop-blur-xl rounded-2xl p-8 border border-white/20 shadow-2xl">
+            <div className="w-full bg-white dark:bg-white/10 dark:backdrop-blur-xl rounded-2xl p-10 border border-slate-200 dark:border-white/20 shadow-xl">
               <LoginForm />
             </div>
 
             {/* Footer */}
-            <p className="text-center text-xs text-slate-500">
-              © 2026 PMS. All rights reserved.
+            <p className="text-center text-xs text-slate-500 dark:text-slate-500 mt-6">
+              © 2026 BRGY POBLACION PMS. All rights reserved.
             </p>
+          </div>
+        </div>
+      </div>
+
+      {/* Right Side - Illustration */}
+      <div className="hidden lg:flex flex-1 bg-amber-500 items-center justify-center p-12 relative overflow-hidden">
+        {/* Decorative Circles */}
+        <div className="absolute inset-0 overflow-hidden">
+          <div className="absolute top-20 right-20 w-96 h-96 bg-white/10 rounded-full blur-3xl"></div>
+          <div className="absolute bottom-20 left-20 w-80 h-80 bg-white/10 rounded-full blur-3xl"></div>
+          <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[600px] bg-white/5 rounded-full blur-3xl"></div>
+        </div>
+
+        {/* Content */}
+        <div className="relative z-10 w-full max-w-2xl text-center space-y-8">
+          {/* Animated Gears */}
+          <div className="relative h-64 flex items-center justify-center mb-12">
+            {/* Large Gear - Center */}
+            <Settings className="absolute w-48 h-48 text-white animate-spin-slow drop-shadow-2xl" style={{ animationDuration: '10s' }} />
+            {/* Medium Gear - Top Right */}
+            <Settings className="absolute w-32 h-32 text-white/90 top-4 right-20 animate-spin-slow drop-shadow-xl" style={{ animationDuration: '7s', animationDirection: 'reverse' }} />
+            {/* Small Gear - Bottom Left */}
+            <Settings className="absolute w-24 h-24 text-white/85 bottom-8 left-16 animate-spin-slow drop-shadow-xl" style={{ animationDuration: '6s' }} />
+          </div>
+
+          {/* Text Content */}
+          <div className="space-y-6">
+            <h2 className="text-6xl font-bold text-white leading-tight drop-shadow-lg">
+              BARANGAY POBLACION
+            </h2>
+            <p className="text-3xl font-semibold text-white/95 drop-shadow-md">
+              Tubod, Lanao del Norte
+            </p>
+            <div className="pt-4 border-t-2 border-white/30 mt-8">
+              <p className="text-2xl text-white/90 font-medium drop-shadow-md">
+                Payroll Management System
+              </p>
+            </div>
           </div>
         </div>
       </div>
