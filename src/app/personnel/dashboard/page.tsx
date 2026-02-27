@@ -182,7 +182,7 @@ export default function PersonnelDashboard() {
           </CardHeader>
           <CardContent className="px-4 pb-3">
             <div className="text-xl font-bold">{data.monthlyAttendance.attendanceRate}%</div>
-            <div className="text-xs text-muted-foreground">
+            <div className="text-sm text-muted-foreground">
               {data.monthlyAttendance.presentDays} / {data.monthlyAttendance.totalDays} days
             </div>
           </CardContent>
@@ -190,19 +190,19 @@ export default function PersonnelDashboard() {
 
         {/* Position */}
         <Card
-          className="border-l-4 border-l-purple-500 cursor-pointer hover:shadow-lg transition-all duration-300 hover:scale-105"
+          className="border-l-4 border-l-green-500 cursor-pointer hover:shadow-lg transition-all duration-300 hover:scale-105"
           onClick={() => router.push('/personnel/profile')}
         >
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-1 px-4 pt-4">
             <CardTitle className="text-xs font-medium">Position & BLGU</CardTitle>
-            <User className="h-3.5 w-3.5 text-purple-600" />
+            <User className="h-3.5 w-3.5 text-green-600" />
           </CardHeader>
           <CardContent className="px-4 pb-3">
             <div className="text-xl font-bold">{data.user.position}</div>
-            <div className="text-xs text-muted-foreground">
+            <div className="text-sm text-muted-foreground">
               BLGU: {data.user.department}
             </div>
-            <div className="text-xs text-muted-foreground">
+            <div className="text-sm text-muted-foreground">
               Monthly Salary: ₱{data.user.basicSalary.toLocaleString()}
             </div>
           </CardContent>
@@ -211,7 +211,7 @@ export default function PersonnelDashboard() {
         {/* Current Salary */}
         <Card
           className="border-l-4 border-l-orange-500 cursor-pointer hover:shadow-lg transition-all duration-300 hover:scale-105"
-          onClick={() => router.push('/personnel/payslips')}
+          onClick={() => router.push('/personnel/payroll')}
         >
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-1 px-4 pt-4">
             <CardTitle className="text-xs font-medium">Current Period Salary</CardTitle>
@@ -219,8 +219,16 @@ export default function PersonnelDashboard() {
           </CardHeader>
           <CardContent className="px-4 pb-3">
             <div className="text-xl font-bold">₱{data.currentPayroll.netPay.toLocaleString()}</div>
-            <div className="text-xs text-muted-foreground">
-              Status: <Badge variant={data.currentPayroll.status === 'RELEASED' ? 'default' : 'secondary'}>
+            <div className="text-sm text-muted-foreground">
+              Status: <Badge
+                className={
+                  data.currentPayroll.status === 'RELEASED'
+                    ? 'bg-green-100 text-green-700 border border-green-300'
+                    : data.currentPayroll.status === 'PENDING'
+                      ? 'bg-amber-100 text-amber-700 border border-amber-300'
+                      : 'bg-gray-100 text-gray-600 border border-gray-300'
+                }
+              >
                 {data.currentPayroll.status}
               </Badge>
             </div>

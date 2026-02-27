@@ -125,7 +125,7 @@ export default async function AdminDashboard() {
                 </CardHeader>
                 <CardContent>
                   <div className="text-2xl font-bold">{stat.value}</div>
-                  <p className="text-xs text-muted-foreground flex items-center gap-1">
+                  <p className="text-sm text-muted-foreground flex items-center gap-1">
                     {TrendIcon && <TrendIcon className="h-3 w-3" />}
                     {stat.description}
                   </p>
