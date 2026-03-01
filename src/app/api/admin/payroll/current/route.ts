@@ -60,6 +60,7 @@ export async function GET(request: NextRequest) {
             users_id: true,
             name: true,
             email: true,
+            avatar: true,
             personnel_types: {
               select: {
                 name: true,
@@ -157,6 +158,7 @@ export async function GET(request: NextRequest) {
         users_id: entry.users_id,
         name: entry.users.name || entry.users.email,
         email: entry.users.email,
+        avatar: entry.users.avatar || null,
         personnelType: entry.users.personnel_types?.name || null,
         personnelTypeCategory: entry.users.personnel_types?.type || null,
         department: entry.users.personnel_types?.department || null,

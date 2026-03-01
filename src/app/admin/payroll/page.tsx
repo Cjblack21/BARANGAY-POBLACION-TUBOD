@@ -1785,7 +1785,7 @@ html, body { margin: 0 !important; padding: 0 !important; overflow: hidden !impo
   }, [])
 
   return (
-    <div className="container mx-auto p-6 space-y-6 bg-background">
+    <div className="w-full p-6 space-y-6 bg-background">
       {/* Header */}
       <div className="flex justify-between items-center">
         <div>
@@ -1810,6 +1810,7 @@ html, body { margin: 0 !important; padding: 0 !important; overflow: hidden !impo
             disabled={loading || !hasGeneratedForSettings || currentPeriod?.status === 'Released' || !canRelease}
             aria-disabled
             title={!canRelease && currentPeriod?.periodEnd && payrollReleaseTime ? `Release only available on or after ${formatDateForDisplay(new Date(currentPeriod.periodEnd))} at ${formatTime12Hour(payrollReleaseTime)}` : ''}
+            className="bg-green-600 hover:bg-green-700 text-white"
           >
             <Save className="h-4 w-4 mr-2" />
             {currentPeriod?.status === 'Released' ? 'Payroll Released' : !canRelease ? 'Release (Not Yet Period End)' : 'Release Payroll'}
@@ -1819,60 +1820,45 @@ html, body { margin: 0 !important; padding: 0 !important; overflow: hidden !impo
 
       {/* Release Countdown Timer */}
       {!canRelease && currentPeriod && currentPeriod.status !== 'Released' && timeUntilRelease && hasGeneratedForSettings && (
-        <div className="bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-blue-950/20 dark:to-indigo-950/20 rounded-lg p-8 border border-blue-100 dark:border-blue-900">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-6">
-              <div className="relative">
-                <div className="absolute inset-0 bg-blue-500/20 blur-xl rounded-full"></div>
-                <div className="relative bg-white dark:bg-gray-900 p-4 rounded-full shadow-lg">
-                  <Clock className="h-8 w-8 text-blue-600 dark:text-blue-400" />
-                </div>
-              </div>
-              <div>
-                <h3 className="text-2xl font-semibold text-gray-900 dark:text-white mb-2">Waiting for Release Time</h3>
-                <p className="text-sm text-gray-600 dark:text-gray-400">
-                  {formatDateForDisplay(new Date(currentPeriod.periodEnd))} at {formatTime12Hour(payrollReleaseTime)}
-                </p>
-              </div>
+        <div className="flex items-center justify-between rounded-xl border border-green-200 dark:border-green-900 flex-col md:flex-row dark:bg-transparent px-6 py-5 shadow-sm">
+          <div className="flex items-center gap-4 mb-4 md:mb-0">
+            <div className="p-3 rounded-full">
+              <Clock className="h-7 w-7 text-green-600 dark:text-green-400 flex-shrink-0" />
             </div>
-            <div className="text-right">
-              <p className="text-sm text-gray-500 dark:text-gray-400 mb-2">Time Remaining</p>
-              <div className="text-5xl font-bold text-blue-600 dark:text-blue-400 font-mono">
-                {timeUntilRelease}
-              </div>
+            <div>
+              <p className="text-xl font-bold text-foreground">Waiting for Release Time</p>
+              <p className="text-base text-muted-foreground mt-0.5">
+                {formatDateForDisplay(new Date(currentPeriod.periodEnd))} at {formatTime12Hour(payrollReleaseTime)}
+              </p>
             </div>
+          </div>
+          <div className="text-right w-full md:w-auto text-center md:text-right flex items-center justify-center">
+            <span className="text-4xl font-bold font-mono text-green-600 dark:text-green-400 tracking-tight">{timeUntilRelease}</span>
           </div>
         </div>
       )}
 
       {/* Release Ready Banner */}
       {canRelease && currentPeriod && currentPeriod.status !== 'Released' && (
-        <div className="bg-gradient-to-r from-green-50 to-emerald-50 dark:from-green-950/20 dark:to-emerald-950/20 rounded-lg p-8 border border-green-100 dark:border-green-900">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-6">
-              <div className="relative">
-                <div className="absolute inset-0 bg-green-500/20 blur-xl rounded-full"></div>
-                <div className="relative bg-white dark:bg-gray-900 p-4 rounded-full shadow-lg">
-                  <CheckCircle2 className="h-10 w-10 text-green-600 dark:text-green-400" />
-                </div>
-              </div>
-              <div>
-                <h3 className="text-2xl font-semibold text-gray-900 dark:text-white mb-2">Ready to Release</h3>
-                <p className="text-sm text-gray-600 dark:text-gray-400">
-                  You can now release payroll to all employees
-                </p>
-              </div>
+        <div className="flex flex-col md:flex-row items-center justify-between rounded-xl border border-green-200 dark:border-green-900 bg-green-50 dark:bg-green-950/20 px-6 py-5 shadow-sm">
+          <div className="flex items-center gap-4 mb-4 md:mb-0">
+            <div className="bg-green-100 dark:bg-green-900/50 p-3 rounded-full">
+              <CheckCircle2 className="h-7 w-7 text-green-600 dark:text-green-400 flex-shrink-0" />
             </div>
-            <Button
-              onClick={showReleaseConfirmation}
-              size="lg"
-              className="bg-green-600 hover:bg-green-700 dark:bg-green-600 dark:hover:bg-green-700 text-white px-8 py-6 text-base font-semibold shadow-lg hover:shadow-xl transition-all"
-              disabled={loading}
-            >
-              <Save className="h-5 w-5 mr-2" />
-              Release Payroll
-            </Button>
+            <div>
+              <p className="text-xl font-bold text-foreground">Ready to Release</p>
+              <p className="text-base text-green-700 dark:text-green-400 mt-0.5">Payroll period has ended — you can now release</p>
+            </div>
           </div>
+          <Button
+            onClick={showReleaseConfirmation}
+            size="lg"
+            className="bg-green-600 hover:bg-green-700 text-white shadow-md text-base px-8 py-6 w-full md:w-auto"
+            disabled={loading}
+          >
+            <Save className="h-5 w-5 mr-2" />
+            Release Payroll
+          </Button>
         </div>
       )}
 
@@ -2013,21 +1999,7 @@ html, body { margin: 0 !important; padding: 0 !important; overflow: hidden !impo
           ) : (
             /* Payroll Generated - Show Table */
             <>
-              {/* Search */}
-              <div className="flex justify-between items-center">
-                <div className="relative max-w-sm">
-                  <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                  <Input
-                    placeholder="Search staff..."
-                    value={searchTerm}
-                    onChange={(e) => setSearchTerm(e.target.value)}
-                    className="pl-9"
-                  />
-                </div>
-                <div className="text-sm text-muted-foreground">
-                  {filteredEntries.length} staff found
-                </div>
-              </div>
+
 
               {/* Payroll Table */}
               <Card className="border-0 shadow-lg bg-card">
@@ -2112,6 +2084,22 @@ html, body { margin: 0 !important; padding: 0 !important; overflow: hidden !impo
                   )}
                 </CardHeader>
                 <CardContent className="p-0">
+                  {/* Search Bar - Moved to inside the Card and below Summary */}
+                  <div className="flex justify-between items-center p-6 border-b border-border/50 bg-muted/10">
+                    <div className="relative w-full max-w-md">
+                      <Search className="absolute left-3.5 top-1/2 transform -translate-y-1/2 h-5 w-5 text-muted-foreground" />
+                      <Input
+                        placeholder="Search staff..."
+                        value={searchTerm}
+                        onChange={(e) => setSearchTerm(e.target.value)}
+                        className="pl-11 pr-4 py-5 text-base rounded-xl border border-input bg-background shadow-sm hover:border-slate-300 dark:hover:border-slate-600 focus-visible:ring-1 focus-visible:ring-ring transition-all"
+                      />
+                    </div>
+                    <div className="text-sm font-medium text-muted-foreground bg-secondary/50 px-3 py-1.5 rounded-full">
+                      {filteredEntries.length} staff found
+                    </div>
+                  </div>
+
                   <div className="overflow-x-auto">
                     <Table>
                       <TableHeader>

@@ -15,7 +15,7 @@ export default async function AdminLayout({
   children: React.ReactNode
 }) {
   const session = await getServerSession(authOptions)
-  
+
   if (!session || session.user.role !== "ADMIN") {
     redirect("/")
   }
@@ -25,7 +25,7 @@ export default async function AdminLayout({
       <AppSidebar user={session.user} />
       <SidebarInset>
         <DynamicBreadcrumb />
-        <div className="flex flex-1 flex-col gap-4 p-4 pt-0 overflow-auto">
+        <div className="flex flex-1 flex-col gap-4 p-4 pt-0 overflow-auto min-w-0 overflow-x-hidden">
           <AdminLayoutClient>
             {children}
           </AdminLayoutClient>

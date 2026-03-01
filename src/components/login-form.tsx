@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import Link from "next/link"
 import { signIn } from "next-auth/react"
 import { useRouter } from "next/navigation"
@@ -21,15 +21,30 @@ export function LoginForm({
   const [isLoading, setIsLoading] = useState(false)
   const [showPassword, setShowPassword] = useState(false)
   const [showForgotPasswordModal, setShowForgotPasswordModal] = useState(false)
+  const [rememberMe, setRememberMe] = useState(false)
   const router = useRouter()
 
   const {
     register,
     handleSubmit,
+    setValue,
     formState: { errors },
   } = useForm<LoginInput>({
     resolver: zodResolver(loginSchema),
   })
+
+  // Load saved email and password on mount if remember me was previously checked
+  useEffect(() => {
+    const savedEmail = localStorage.getItem("rememberedEmail")
+    const savedPassword = localStorage.getItem("rememberedPassword")
+    if (savedEmail) {
+      setValue("email", savedEmail)
+      if (savedPassword) {
+        setValue("password", savedPassword)
+      }
+      setRememberMe(true)
+    }
+  }, [setValue])
 
   const onSubmit = async (data: LoginInput) => {
     setIsLoading(true)
@@ -44,6 +59,14 @@ export function LoginForm({
       if (result?.error) {
         toast.error('Invalid email or password')
       } else if (result?.ok) {
+        if (rememberMe) {
+          localStorage.setItem("rememberedEmail", data.email)
+          localStorage.setItem("rememberedPassword", data.password)
+        } else {
+          localStorage.removeItem("rememberedEmail")
+          localStorage.removeItem("rememberedPassword")
+        }
+
         toast.success("Logged in successfully!")
         router.push("/dashboard")
         router.refresh()
@@ -95,7 +118,7 @@ export function LoginForm({
         {/* Email or ID Number */}
         <div className="space-y-2">
           <Label htmlFor="email" className="text-base font-medium text-slate-700 dark:text-slate-300">
-            Email or ID Number
+            Email or ID Number:
           </Label>
           <Input
             id="email"
@@ -113,7 +136,7 @@ export function LoginForm({
         {/* Password */}
         <div className="space-y-2">
           <Label htmlFor="password" className="text-base font-medium text-slate-700 dark:text-slate-300">
-            Password
+            Password:
           </Label>
           <div className="relative">
             <Input
@@ -141,7 +164,12 @@ export function LoginForm({
         {/* Remember Me & Forgot Password */}
         <div className="flex items-center justify-between text-sm">
           <label className="flex items-center gap-2 text-slate-600 dark:text-slate-400 cursor-pointer">
-            <input type="checkbox" className="rounded border-white/30 bg-white/10 text-amber-500 focus:ring-amber-500" />
+            <input
+              type="checkbox"
+              checked={rememberMe}
+              onChange={(e) => setRememberMe(e.target.checked)}
+              className="rounded border-white/30 bg-white/10 text-amber-500 focus:ring-amber-500"
+            />
             <span>Remember Me</span>
           </label>
           <button

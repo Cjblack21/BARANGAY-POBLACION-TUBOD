@@ -28,11 +28,14 @@ export default function Home() {
           <DropdownMenuTrigger asChild>
             <Button
               variant="ghost"
-              size="icon"
-              className="fixed top-6 right-6 z-50 h-10 w-10 rounded-full bg-slate-800/90 hover:bg-slate-700 transition-all duration-300 border border-slate-700"
+              size="sm"
+              className="fixed top-6 right-6 z-50 h-10 px-4 rounded-full bg-slate-800/90 hover:bg-slate-700 transition-all duration-300 border border-slate-700 shadow-sm font-medium"
             >
-              <Sun className="h-4 w-4 rotate-0 scale-100 transition-all duration-300 dark:-rotate-90 dark:scale-0 text-amber-500" />
-              <Moon className="absolute h-4 w-4 rotate-90 scale-0 transition-all duration-300 dark:rotate-0 dark:scale-100 text-slate-400" />
+              <Sun className="h-4 w-4 mr-2 rotate-0 scale-100 transition-all duration-300 dark:-rotate-90 dark:scale-0 text-amber-500 dark:hidden" />
+              <span className="rotate-0 scale-100 transition-all duration-300 dark:-rotate-90 dark:scale-0 text-amber-500 dark:hidden">Light</span>
+
+              <Moon className="h-4 w-4 mr-2 hidden rotate-90 scale-0 transition-all duration-300 dark:rotate-0 dark:scale-100 text-slate-400 dark:block" />
+              <span className="hidden rotate-90 scale-0 transition-all duration-300 dark:rotate-0 dark:scale-100 text-slate-400 dark:block">Dark</span>
               <span className="sr-only">Toggle theme</span>
             </Button>
           </DropdownMenuTrigger>
