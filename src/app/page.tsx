@@ -29,29 +29,29 @@ export default function Home() {
             <Button
               variant="ghost"
               size="sm"
-              className="fixed top-6 right-6 z-50 h-10 px-4 rounded-full bg-slate-800/90 hover:bg-slate-700 transition-all duration-300 border border-slate-700 shadow-sm font-medium"
+              className="fixed top-6 right-6 z-50 h-10 px-4 rounded-full bg-white/90 hover:bg-white dark:bg-slate-800/90 dark:hover:bg-slate-700 transition-all duration-300 border border-slate-200 dark:border-slate-700 shadow-sm font-medium text-slate-800 dark:text-slate-200 focus-visible:ring-0 focus-visible:ring-offset-0 focus-visible:outline-none"
             >
-              <Sun className="h-4 w-4 mr-2 rotate-0 scale-100 transition-all duration-300 dark:-rotate-90 dark:scale-0 text-amber-500 dark:hidden" />
-              <span className="rotate-0 scale-100 transition-all duration-300 dark:-rotate-90 dark:scale-0 text-amber-500 dark:hidden">Light</span>
+              <Sun className="h-4 w-4 mr-2 rotate-0 scale-100 transition-all duration-300 dark:-rotate-90 dark:scale-0 dark:hidden" />
+              <span className="rotate-0 scale-100 transition-all duration-300 dark:-rotate-90 dark:scale-0 dark:hidden">Light</span>
 
               <Moon className="h-4 w-4 mr-2 hidden rotate-90 scale-0 transition-all duration-300 dark:rotate-0 dark:scale-100 text-slate-400 dark:block" />
-              <span className="hidden rotate-90 scale-0 transition-all duration-300 dark:rotate-0 dark:scale-100 text-slate-400 dark:block">Dark</span>
+              <span className="hidden rotate-90 scale-0 transition-all duration-300 dark:rotate-0 dark:scale-100 dark:block">Dark</span>
               <span className="sr-only">Toggle theme</span>
             </Button>
           </DropdownMenuTrigger>
-          <DropdownMenuContent align="end" className="w-40 bg-slate-800/95 backdrop-blur-md border-slate-700">
-            <DropdownMenuItem onClick={() => setTheme("light")} className="cursor-pointer gap-2 text-slate-300">
-              <Sun className="h-4 w-4 text-amber-500" />
+          <DropdownMenuContent align="end" className="w-40 bg-white/95 dark:bg-slate-800/95 backdrop-blur-md border-slate-200 dark:border-slate-700">
+            <DropdownMenuItem onClick={() => setTheme("light")} className="cursor-pointer gap-2 text-slate-800 dark:text-slate-300">
+              <Sun className="h-4 w-4" />
               <span>Light</span>
               {theme === "light" && <span className="ml-auto text-xs">✓</span>}
             </DropdownMenuItem>
-            <DropdownMenuItem onClick={() => setTheme("dark")} className="cursor-pointer gap-2 text-slate-300">
-              <Moon className="h-4 w-4 text-slate-400" />
+            <DropdownMenuItem onClick={() => setTheme("dark")} className="cursor-pointer gap-2 text-slate-800 dark:text-slate-300">
+              <Moon className="h-4 w-4" />
               <span>Dark</span>
               {theme === "dark" && <span className="ml-auto text-xs">✓</span>}
             </DropdownMenuItem>
-            <DropdownMenuItem onClick={() => setTheme("system")} className="cursor-pointer gap-2 text-slate-300">
-              <Monitor className="h-4 w-4 text-slate-500" />
+            <DropdownMenuItem onClick={() => setTheme("system")} className="cursor-pointer gap-2 text-slate-800 dark:text-slate-300">
+              <Monitor className="h-4 w-4" />
               <span>System</span>
               {theme === "system" && <span className="ml-auto text-xs">✓</span>}
             </DropdownMenuItem>
