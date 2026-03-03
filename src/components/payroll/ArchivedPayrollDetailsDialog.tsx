@@ -24,7 +24,7 @@ export default function ArchivedPayrollDetailsDialog({
   const [archivedAttendance, setArchivedAttendance] = useState<any[]>([])
   const printRef = useRef<HTMLDivElement | null>(null)
 
-  const handlePrint = () => {
+  const handlePrint = async () => {
     if (!entry || !period) return
 
     const formatCurrencyPrint = (amount: number) => {
@@ -83,6 +83,18 @@ export default function ArchivedPayrollDetailsDialog({
           </tr>
         ` : '')
 
+    // Fetch attendance deductions fresh right now (don't rely on async state)
+    let freshAttendance: any[] = archivedAttendance
+    if (entry?.users_id && freshAttendance.length === 0) {
+      try {
+        const res = await fetch(`/api/admin/attendance-deductions?archived=true&userId=${entry.users_id}`)
+        if (res.ok) {
+          const data = await res.json()
+          if (data?.deductions?.length > 0) freshAttendance = data.deductions
+        }
+      } catch { }
+    }
+
     // Resolve attendance the same way the dialog view does
     const mandatoryTotal = deductionDetails
       .filter((d: any) => d.isMandatory)
@@ -90,18 +102,22 @@ export default function ArchivedPayrollDetailsDialog({
     const loanTotalPrint = loanDetails.reduce((s: number, l: any) => s + Number(l.amount || l.payment || 0), 0)
     const derivedAttendanceTotal = Math.max(0, deductions - mandatoryTotal - loanTotalPrint)
 
-    const resolvedAttendance: any[] = attendanceDeductionDetails.length > 0
-      ? attendanceDeductionDetails
-      : archivedAttendance.length > 0
-        ? archivedAttendance.map((d: any) => ({
-          type: d.deductionType || 'Attendance Deduction',
-          amount: Number(d.amount),
-          description: d.notes || '',
-          appliedAt: d.appliedAt,
-          notes: d.notes
+    // Prefer freshly-fetched archived attendance (has full notes) over snapshot
+    const resolvedAttendance: any[] = freshAttendance.length > 0
+      ? freshAttendance.map((d: any) => ({
+        type: d.deductionType || 'Attendance Deduction',
+        amount: Number(d.amount),
+        description: d.notes || d.deductionType || '',
+        appliedAt: d.appliedAt,
+        notes: d.notes
+      }))
+      : attendanceDeductionDetails.length > 0
+        ? attendanceDeductionDetails.map((d: any) => ({
+          ...d,
+          notes: d.notes || d.description || ''
         }))
         : derivedAttendanceTotal > 0
-          ? [{ type: 'Attendance Deduction', amount: derivedAttendanceTotal, description: 'Attendance-based deduction for this period', appliedAt: null }]
+          ? [{ type: 'Attendance Deduction', amount: derivedAttendanceTotal, description: '', appliedAt: null, notes: null }]
           : []
 
     const deductionsRows = (() => {
@@ -117,12 +133,35 @@ export default function ArchivedPayrollDetailsDialog({
       const rows: string[] = []
 
       if (resolvedAttendance.length > 0) {
-        rows.push(`<tr><td class="td" colspan="2" style="font-weight:700;font-size:13px;color:#ea580c;background:#fff7ed;padding:8px 10px;letter-spacing:0.5px">ATTENDANCE</td></tr>`)
+        rows.push(`<tr><td class="td" colspan="2" style="font-weight:700;font-size:13px;color:#ea580c;background:#fff7ed;padding:8px 10px;letter-spacing:0.5px">Attendance Deductions:</td></tr>`)
         resolvedAttendance.forEach((d: any) => {
-          const dateStr = d.appliedAt ? new Date(d.appliedAt).toLocaleDateString('en-PH', { month: 'short', day: 'numeric', year: 'numeric' }) : ''
-          const desc = d.description || d.notes || ''
-          rows.push(`<tr><td class="td">${String(d.type || 'Attendance')}${dateStr ? ` <span style="color:#6b7280;font-size:13px">— ${dateStr}</span>` : ''}${desc ? `<br/><span style="color:#6b7280;font-size:12px">${desc}</span>` : ''}</td><td class="td right" style="color:#dc2626">-${formatCurrencyPrint(Number(d.amount || 0))}</td></tr>`)
+          const dateStr = d.appliedAt
+            ? new Date(d.appliedAt).toLocaleDateString('en-PH', { month: 'long', day: 'numeric', year: 'numeric' })
+            : ''
+          // Use only actual notes field — NOT description (which falls back to type name 'Attendance Deduction')
+          const rawNotes = (d.notes || '').trim()
+          // If no notes, derive info from amount (₱1 per minute rate)
+          const fallbackNote = !rawNotes && Number(d.amount) > 0
+            ? (() => {
+              const totalMin = Math.round(Number(d.amount))
+              const h = Math.floor(totalMin / 60)
+              const m = totalMin % 60
+              return h > 0 ? `Late: ${h}h ${m}m` : `Late: ${totalMin}m`
+            })()
+            : rawNotes
+          rows.push(
+            `<tr>
+              <td class="td">
+                <span style="font-weight:600">${String(d.type || 'Attendance Deduction')}</span>
+                ${dateStr ? `<br/><span style="color:#6b7280;font-size:12px">Incident Date: ${dateStr}</span>` : ''}
+                ${fallbackNote ? `<br/><span style="color:#6b7280;font-size:12px">${fallbackNote}</span>` : ''}
+              </td>
+              <td class="td right" style="color:#dc2626;vertical-align:top">-${formatCurrencyPrint(Number(d.amount || 0))}</td>
+            </tr>`
+          )
         })
+        const attTotal = resolvedAttendance.reduce((s: number, d: any) => s + Number(d.amount || 0), 0)
+        rows.push(`<tr><td class="td" style="font-weight:600;font-size:13px">Subtotal:</td><td class="td right" style="color:#dc2626;font-weight:600">-${formatCurrencyPrint(attTotal)}</td></tr>`)
       }
 
       if (mandatory.length > 0) {
@@ -416,19 +455,13 @@ export default function ArchivedPayrollDetailsDialog({
 
     fetchLiveBreakdown()
 
-    // Fetch archived attendance deductions and filter to this payroll period
-    if (entry?.users_id && period?.periodStart && period?.periodEnd) {
-      const start = new Date(period.periodStart).getTime()
-      const end = new Date(period.periodEnd).getTime()
+    // Fetch archived attendance deductions for this user (no date filter — reliable regardless of period format)
+    if (entry?.users_id) {
       fetch(`/api/admin/attendance-deductions?archived=true&userId=${entry.users_id}`)
         .then(res => res.ok ? res.json() : null)
         .then(data => {
-          if (data?.deductions) {
-            const periodFiltered = data.deductions.filter((d: any) => {
-              const appliedAt = new Date(d.appliedAt).getTime()
-              return appliedAt >= start && appliedAt <= end
-            })
-            setArchivedAttendance(periodFiltered)
+          if (data?.deductions && data.deductions.length > 0) {
+            setArchivedAttendance(data.deductions)
           }
         })
         .catch(() => { })
@@ -472,18 +505,18 @@ export default function ArchivedPayrollDetailsDialog({
   const loanTotal = loanDetails.reduce((s: number, l: any) => s + Number(l.amount || l.payment || 0), 0)
   const derivedAttendanceTotal = Math.max(0, deductions - mandatoryTotal - loanTotal)
 
-  const attendanceDeductions: any[] = attendanceDeductionDetails.length > 0
-    ? attendanceDeductionDetails
-    : archivedAttendance.length > 0
-      ? archivedAttendance.map((d: any) => ({
-        type: d.deductionType || 'Attendance Deduction',
-        amount: Number(d.amount),
-        description: d.notes || '',
-        appliedAt: d.appliedAt,
-        notes: d.notes
-      }))
+  const attendanceDeductions: any[] = archivedAttendance.length > 0
+    ? archivedAttendance.map((d: any) => ({
+      type: d.deductionType || 'Attendance Deduction',
+      amount: Number(d.amount),
+      description: d.notes || d.deductionType || 'Attendance Deduction',
+      appliedAt: d.appliedAt,
+      notes: d.notes
+    }))
+    : attendanceDeductionDetails.length > 0
+      ? attendanceDeductionDetails
       : derivedAttendanceTotal > 0
-        ? [{ type: 'Attendance Deduction', amount: derivedAttendanceTotal, description: 'Attendance-based deduction for this period', appliedAt: null, notes: null }]
+        ? [{ type: 'Attendance Deduction', amount: derivedAttendanceTotal, description: `Attendance deduction — ₱${derivedAttendanceTotal.toFixed(2)} total`, appliedAt: null, notes: null }]
         : []
 
   const otherDeductions = deductionDetails.filter((d: any) => {
@@ -643,9 +676,17 @@ export default function ArchivedPayrollDetailsDialog({
                     // Normalize snapshot items to a common shape
                     const snapshotItems = attendanceDeductions.map((d: any) => ({
                       _id: d.deductions_id || null,
-                      type: d.type || 'Attendance',
+                      type: d.type || 'Attendance Deduction',
                       amount: Number(d.amount || 0),
-                      label: d.description || d.notes || d.type || 'Attendance',
+                      label: (() => {
+                        const raw = (d.notes || '').trim()  // Only use actual notes, NOT description fallback
+                        if (raw) return raw
+                        // Derive from amount (₱1/min rate)
+                        const totalMin = Math.round(Number(d.amount || 0))
+                        if (totalMin <= 0) return d.type || 'Attendance Deduction'
+                        const h = Math.floor(totalMin / 60), m = totalMin % 60
+                        return h > 0 ? `Late: ${h}h ${m}m` : `Late: ${totalMin}m`
+                      })(),
                       dateStr: d.appliedAt
                         ? new Date(d.appliedAt).toLocaleDateString('en-PH', { month: 'short', day: 'numeric', year: 'numeric' })
                         : d.date
@@ -657,21 +698,27 @@ export default function ArchivedPayrollDetailsDialog({
                     // Normalize fetched archived API items (richer data)
                     const apiItems = archivedAttendance.map((d: any) => ({
                       _id: d.deductions_id,
-                      type: d.deductionType || 'Attendance',
+                      type: d.deductionType || 'Attendance Deduction',
                       amount: Number(d.amount || 0),
-                      label: d.notes || d.deductionType || 'Attendance',
+                      label: (() => {
+                        const raw = (d.notes || '').trim()  // Only actual notes, not type-name fallback
+                        if (raw) return raw
+                        // Derive from amount (₱1/min rate)
+                        const totalMin = Math.round(Number(d.amount || 0))
+                        if (totalMin <= 0) return d.deductionType || 'Attendance Deduction'
+                        const h = Math.floor(totalMin / 60), m = totalMin % 60
+                        return h > 0 ? `Late: ${h}h ${m}m` : `Late: ${totalMin}m`
+                      })(),
                       dateStr: d.appliedAt
                         ? new Date(d.appliedAt).toLocaleDateString('en-PH', { month: 'short', day: 'numeric', year: 'numeric' })
                         : null,
                       source: 'api'
                     }))
 
-                    // Merge: API items take priority, snapshot fills gaps
-                    const apiIds = new Set(apiItems.map((i: any) => i._id).filter(Boolean))
-                    const merged = [
-                      ...apiItems,
-                      ...snapshotItems.filter((i: any) => !i._id || !apiIds.has(i._id))
-                    ]
+                    // Use snapshot data exclusively when available to avoid duplicates.
+                    // Only fall back to API data when the snapshot has no attendance details.
+                    // Previously both were merged, causing the same record to appear twice (×2).
+                    const merged = snapshotItems.length > 0 ? snapshotItems : apiItems
 
                     if (merged.length === 0) return null
 

@@ -91,16 +91,16 @@ export function AppSidebar({ user, ...props }: AppSidebarProps) {
         <SidebarMenu>
           <SidebarMenuItem>
             <div className="flex items-center gap-2 px-2 pt-7 pb-2 group-data-[collapsible=icon]:justify-center">
-              <div className="flex aspect-square size-16 items-center justify-center rounded-lg">
+              <div className="flex aspect-square w-[72px] h-[72px] items-center justify-center rounded-lg min-w-[72px]">
                 <img
                   src="/BRGY PICTURE LOG TUBOD.png"
                   alt="Barangay Logo"
-                  className="h-16 w-16 object-contain"
+                  className="w-[72px] h-[72px] object-contain"
                 />
               </div>
               <div className="group-data-[collapsible=icon]:hidden flex flex-col gap-0.5 leading-none">
-                <span className="font-bold text-lg">POBLACION - PMS</span>
-                <span className="text-sm text-muted-foreground">Welcome to PMS</span>
+                <span className="font-bold text-[17px] whitespace-nowrap tracking-tight">POBLACION - PMS</span>
+                <span className="text-sm text-muted-foreground whitespace-nowrap">Welcome to PMS</span>
               </div>
             </div>
           </SidebarMenuItem>

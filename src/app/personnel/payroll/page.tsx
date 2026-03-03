@@ -563,7 +563,7 @@ export default function PersonnelPayrollPage() {
                 {/* Total Payroll Summary */}
                 <div className="mb-4 rounded-xl border border-blue-200 dark:border-blue-800 bg-gradient-to-r from-blue-50 to-blue-100 dark:from-blue-950/30 dark:to-blue-900/20 p-4 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
                   <div>
-                    <p className="text-xs font-semibold tracking-widest uppercase text-blue-700 dark:text-blue-400">Total Payroll</p>
+                    <p className="text-xs font-semibold tracking-widest uppercase text-blue-700 dark:text-blue-400">Total Honorarium</p>
                     <p className="text-xs text-muted-foreground">{archivedPayrolls.length} payroll{archivedPayrolls.length !== 1 ? 's' : ''} released</p>
                   </div>
                   <p className="text-2xl font-bold text-blue-600 dark:text-blue-400">

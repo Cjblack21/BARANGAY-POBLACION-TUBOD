@@ -230,14 +230,27 @@ export function generatePayslipHTML(
           ${attendanceDeductions.length > 0 || totalAttendance > 0 ? `
           <div style="padding: 5px; border-radius: 3px; margin-bottom: 4px;">
             <div style="font-size: 10px; font-weight: bold; color: #dc2626; margin-bottom: 3px;">Attendance Deductions:</div>
-            ${attendanceDeductions.map((d: any) => `
+            ${attendanceDeductions.map((d: any) => {
+    const incidentDate = d.appliedAt
+      ? new Date(d.appliedAt).toLocaleDateString('en-PH', { month: 'long', day: 'numeric', year: 'numeric' })
+      : ''
+    // Use real notes; if empty derive from amount (₱1/min)
+    const rawNotes = (d.notes || '').trim()
+    const displayNote = rawNotes || (() => {
+      const totalMin = Math.round(Number(d.amount || 0))
+      if (totalMin <= 0) return ''
+      const h = Math.floor(totalMin / 60), m = totalMin % 60
+      return h > 0 ? `Late: ${h}h ${m}m` : `Late: ${totalMin}m`
+    })()
+    return `
               <div style="margin-bottom: 3px; padding-left: 6px;">
                 <div style="display: flex; justify-content: space-between; font-size: 9px;">
-                  <span style="color: #666;">${d.description || d.type || 'Attendance Deduction'}</span>
+                  <span style="color: #666;">${d.type || 'Attendance Deduction'}${incidentDate ? ` <span style="font-size:8px;color:#999;">— ${incidentDate}</span>` : ''}</span>
                   <span style="color: #dc2626; font-weight: bold;">-₱${(d.amount || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
                 </div>
-              </div>
-            `).join('')}
+                ${displayNote ? `<div style="font-size: 8px; color: #888; padding-left: 4px;">${displayNote}</div>` : ''}
+              </div>`
+  }).join('')}
             ${attendanceDeductions.length === 0 && totalAttendance > 0 ? `
               <div style="display: flex; justify-content: space-between; margin-bottom: 1px; font-size: 9px; padding-left: 6px;">
                 <span style="color: #666;">Attendance Deduction</span>

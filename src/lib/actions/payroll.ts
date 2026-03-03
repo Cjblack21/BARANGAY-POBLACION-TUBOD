@@ -310,22 +310,7 @@ export async function getPayrollSummary(): Promise<{
         const periodDeductions = await prisma.deductions.findMany({
           where: {
             users_id: se.users_id,
-            archivedAt: null, // Exclude archived deductions
-            OR: [
-              // Mandatory deductions - always include
-              {
-                deduction_types: {
-                  isMandatory: true
-                }
-              },
-              // Other deductions - only within period
-              {
-                deduction_types: {
-                  isMandatory: false
-                },
-                appliedAt: { gte: periodStart, lte: periodEnd }
-              }
-            ]
+            archivedAt: null, // Exclude archived deductions — all active ones apply to current payroll
           },
           include: { deduction_types: { select: { name: true, description: true, isMandatory: true } } },
           orderBy: { appliedAt: 'desc' }
@@ -367,15 +352,24 @@ export async function getPayrollSummary(): Promise<{
           }
         }
 
-        // Loans
-        const loans = await prisma.loans.findMany({
-          where: { users_id: se.users_id, status: 'ACTIVE' },
-          select: { amount: true, monthlyPaymentPercent: true }
-        })
-        const loanPayments = loans.reduce((sum, l) => {
-          const monthly = (Number(l.amount) * Number(l.monthlyPaymentPercent)) / 100
-          return sum + monthly * perPayrollFactor
-        }, 0)
+        // Loans: read from stored breakdownSnapshot to avoid double-counting.
+        // se.deductions already includes loanPayments (stored during generatePayroll),
+        // so re-querying the loans table would cause them to appear twice in the breakdown.
+        let loanPayments = 0
+        try {
+          const snap = typeof se.breakdownSnapshot === 'string'
+            ? JSON.parse(se.breakdownSnapshot as string)
+            : (se.breakdownSnapshot as any)
+          if (snap?.loanDeductions != null) {
+            loanPayments = Number(snap.loanDeductions)
+          } else if (Array.isArray(snap?.loanDetails) && snap.loanDetails.length > 0) {
+            loanPayments = snap.loanDetails.reduce(
+              (s: number, l: any) => s + Number(l.payment || l.amount || 0), 0
+            )
+          }
+        } catch {
+          loanPayments = 0
+        }
 
         // No attendance deductions - attendance system removed
 
@@ -1220,7 +1214,7 @@ export async function releasePayrollWithAudit(
     const updateResult = await prisma.$transaction(async (tx) => {
       // FIRST: Update ALL deductions in the breakdown snapshot (including personal deductions added after generation)
       console.log('📋 Updating breakdown snapshots with current deductions...')
-      
+
       for (const entry of entriesToRelease) {
         // Get ALL current non-archived deductions for this user (both attendance and personal)
         const allCurrentDeductions = await tx.deductions.findMany({
@@ -1274,7 +1268,7 @@ export async function releasePayrollWithAudit(
             archivedAt: null
           }
         })
-        
+
         const totalLoanPayments = activeLoans.reduce((sum, loan) => {
           const monthlyPayment = (Number(loan.amount) * Number(loan.monthlyPaymentPercent)) / 100
           return sum + monthlyPayment
@@ -1291,7 +1285,7 @@ export async function releasePayrollWithAudit(
           notes: d.notes,
           isMandatory: d.deduction_types.isMandatory
         }))
-        
+
         // Add attendance deduction details separately for payslip display
         breakdownData.attendanceDeductionDetails = attendanceDeductions.map(d => ({
           type: d.deduction_types.name,
@@ -1300,7 +1294,7 @@ export async function releasePayrollWithAudit(
           appliedAt: d.appliedAt.toISOString(),
           notes: d.notes
         }))
-        
+
         // Add loan details for payslip display
         breakdownData.loanDetails = activeLoans.map(loan => ({
           amount: Number(loan.amount),
@@ -1309,14 +1303,14 @@ export async function releasePayrollWithAudit(
           purpose: loan.purpose,
           balance: Number(loan.balance)
         }))
-        
+
         breakdownData.databaseDeductions = totalPersonalDeductions
         breakdownData.attendanceDeductions = includeAttendanceDeductions ? totalAttendanceDeductions : 0
         breakdownData.loanPayments = totalLoanPayments
-        
+
         // Calculate total deductions based on whether attendance deductions are included
-        const actualDeductionsToApply = includeAttendanceDeductions 
-          ? (totalAttendanceDeductions + totalPersonalDeductions) 
+        const actualDeductionsToApply = includeAttendanceDeductions
+          ? (totalAttendanceDeductions + totalPersonalDeductions)
           : totalPersonalDeductions
         breakdownData.totalDeductions = actualDeductionsToApply + totalLoanPayments
 

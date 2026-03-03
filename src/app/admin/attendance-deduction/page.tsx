@@ -9,7 +9,7 @@ import { Label } from '@/components/ui/label'
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 import { Badge } from '@/components/ui/badge'
-import { ClipboardMinus, Plus, Trash2, Save, Search, AlertCircle, Archive, Users, Eye, Info } from 'lucide-react'
+import { ClipboardMinus, Plus, Trash2, Save, Search, AlertCircle, Archive, Users, Eye, Calendar } from 'lucide-react'
 import { toast } from 'react-hot-toast'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 
@@ -58,6 +58,8 @@ export default function AttendanceDeductionPage() {
   const [absentDays, setAbsentDays] = useState('')
   const [notes, setNotes] = useState('')
   const [deductionRate] = useState(1) // ₱1 per minute
+  const [incidentDate, setIncidentDate] = useState('') // The specific date of absence/lateness
+  const [attendanceType, setAttendanceType] = useState('Absent') // Type: Absent, Late, Early Departure, Partial Day
 
 
   useEffect(() => {
@@ -119,6 +121,21 @@ export default function AttendanceDeductionPage() {
       return
     }
 
+    if (!incidentDate) {
+      toast.error('Please select the date of the incident (when the staff was absent/late)')
+      return
+    }
+
+    // Build notes: prefer the selected type label, then derived from filled fields
+    const lateTotal = (Number(lateHours) * 60) + Number(lateMinutes)
+    const derivedType = attendanceType || (lateTotal > 0 && Number(absentDays) > 0
+      ? 'Late & Absent'
+      : lateTotal > 0 ? 'Late' : 'Absent')
+    const autoNotes = notes || [
+      lateTotal > 0 ? `Late: ${lateHours}h ${lateMinutes}m` : null,
+      Number(absentDays) > 0 ? `Absent: ${absentDays} day(s)` : null
+    ].filter(Boolean).join(', ')
+
     try {
       toast.loading('Adding deduction...', { id: 'add-deduction' })
 
@@ -130,7 +147,9 @@ export default function AttendanceDeductionPage() {
           lateMinutes: (Number(lateHours) * 60) + Number(lateMinutes),
           absentDays: Number(absentDays),
           amount: totalAmount,
-          notes: notes || `Late: ${lateHours}h ${lateMinutes}m, Absent: ${absentDays} days`
+          notes: autoNotes,
+          attendanceType: derivedType, // pass the selected or derived type to the API
+          incidentDate
         })
       })
 
@@ -180,6 +199,8 @@ export default function AttendanceDeductionPage() {
     setLateMinutes('')
     setAbsentDays('')
     setNotes('')
+    setIncidentDate('')
+    setAttendanceType('Absent')
     setSelectedPersonnel(null)
   }
 
@@ -368,11 +389,10 @@ export default function AttendanceDeductionPage() {
                 <TableHeader>
                   <TableRow className="bg-muted/50">
                     <TableHead>Staff</TableHead>
-                    <TableHead>ID Number</TableHead>
                     <TableHead>Type</TableHead>
+                    <TableHead>Incident Date</TableHead>
                     <TableHead>Notes</TableHead>
                     <TableHead className="text-right">Amount</TableHead>
-                    <TableHead>Date Added</TableHead>
                     <TableHead className="text-right">Actions</TableHead>
                   </TableRow>
                 </TableHeader>
@@ -388,17 +408,14 @@ export default function AttendanceDeductionPage() {
                           {deduction.staffName || <span className="text-muted-foreground italic">Unknown</span>}
                         </TableCell>
                         <TableCell>
-                          <span className="inline-block bg-muted text-muted-foreground font-mono px-2 py-0.5 rounded" style={{ fontSize: '11px' }}>{deduction.users_id}</span>
-                        </TableCell>
-                        <TableCell>
                           <Badge variant="destructive">{deduction.deductionType}</Badge>
+                        </TableCell>
+                        <TableCell className="text-sm font-medium">
+                          {new Date(deduction.appliedAt).toLocaleDateString('en-PH', { month: 'short', day: 'numeric', year: 'numeric' })}
                         </TableCell>
                         <TableCell className="text-sm text-muted-foreground">{deduction.notes}</TableCell>
                         <TableCell className="text-right font-medium text-red-600">
                           -₱{deduction.amount.toLocaleString('en-US', { minimumFractionDigits: 2 })}
-                        </TableCell>
-                        <TableCell className="text-sm text-muted-foreground">
-                          {new Date(deduction.appliedAt).toLocaleDateString()}
                         </TableCell>
                         <TableCell className="text-right">
                           <div className="flex items-center justify-end gap-2">
@@ -738,7 +755,101 @@ export default function AttendanceDeductionPage() {
               </div>
             )}
 
-            {/* Deduction Input Section */}
+            {/* Incident Date */}
+            <div className="border-2 rounded-xl p-5 bg-card hover:shadow-md transition-shadow flex flex-col gap-4">
+              <div className="flex items-center gap-3">
+                <div className="p-2.5 bg-blue-100 dark:bg-blue-900/20 rounded-xl">
+                  <Calendar className="h-6 w-6 text-blue-600" />
+                </div>
+                <div>
+                  <h3 className="font-semibold text-base">Date of Incident</h3>
+                  <p className="text-xs text-muted-foreground mt-0.5">When was the staff absent or late?</p>
+                </div>
+              </div>
+
+              <Input
+                type="date"
+                value={incidentDate}
+                onChange={(e) => setIncidentDate(e.target.value)}
+                max={new Date().toISOString().split('T')[0]}
+                className="h-14 text-lg font-semibold border-2 border-gray-300 dark:border-gray-600 focus:border-blue-500 rounded-xl px-4"
+              />
+
+              {incidentDate ? (
+                <div className="flex items-center gap-2">
+                  {(() => {
+                    const d = new Date(incidentDate + 'T00:00:00')
+                    const day = d.toLocaleDateString('en-PH', { day: '2-digit' })
+                    const month = d.toLocaleDateString('en-PH', { month: 'long' })
+                    const year = d.toLocaleDateString('en-PH', { year: 'numeric' })
+                    const weekday = d.toLocaleDateString('en-PH', { weekday: 'long' })
+                    return (
+                      <>
+                        <div className="flex-1 bg-blue-50 dark:bg-blue-950/30 border border-blue-200 dark:border-blue-800 rounded-lg p-3 text-center">
+                          <p className="text-3xl font-bold text-blue-700 dark:text-blue-300 leading-none">{day}</p>
+                          <p className="text-xs text-blue-500 mt-1">{weekday}</p>
+                        </div>
+                        <div className="flex-1 text-center">
+                          <p className="text-base font-semibold">{month}</p>
+                          <p className="text-sm text-muted-foreground">{year}</p>
+                        </div>
+                      </>
+                    )
+                  })()}
+                </div>
+              ) : (
+                <div className="flex items-center justify-center py-3 rounded-lg bg-muted/40 border border-dashed text-muted-foreground text-sm">
+                  No date selected yet
+                </div>
+              )}
+            </div>
+
+            {/* Type of Absence — smart cards that pre-fill the form */}
+            <div className="border-2 rounded-xl p-5 bg-card hover:shadow-md transition-shadow">
+              <div className="flex items-center gap-3 mb-4">
+                <div className="p-2.5 bg-red-100 dark:bg-red-900/20 rounded-xl">
+                  <AlertCircle className="h-6 w-6 text-red-600" />
+                </div>
+                <div>
+                  <h3 className="font-semibold text-base">Type of Absence</h3>
+                  <p className="text-xs text-muted-foreground mt-0.5">
+                    Select a type — it will pre-fill the fields below automatically
+                  </p>
+                </div>
+              </div>
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                {([
+                  { value: 'Absent', label: 'Full Day Absent', detail: '480 min · ₱480.00', hint: 'Sets 1 absent day', color: 'red', fill: () => { setAbsentDays('1'); setLateHours(''); setLateMinutes('') } },
+                  { value: 'Late', label: 'Late / Tardiness', detail: '₱1.00 per minute', hint: 'Enter hours & minutes below', color: 'orange', fill: () => { setAbsentDays('') } },
+                  { value: 'Early Departure', label: 'Early Departure', detail: 'Undertime · ₱1.00/min', hint: 'Enter departure time below', color: 'yellow', fill: () => { setAbsentDays('') } },
+                  { value: 'Half Day', label: 'Half Day', detail: '240 min · ₱240.00', hint: 'Sets 4 h late automatically', color: 'blue', fill: () => { setAbsentDays(''); setLateHours('4'); setLateMinutes('0') } },
+                ] as const).map((opt) => {
+                  const selected = attendanceType === opt.value
+                  const styles: Record<string, string> = {
+                    red: selected ? 'border-red-500 bg-red-50 dark:bg-red-950/30 ring-2 ring-red-400 ring-offset-1' : 'border-border hover:border-red-300 hover:bg-red-50/40',
+                    orange: selected ? 'border-orange-500 bg-orange-50 dark:bg-orange-950/30 ring-2 ring-orange-400 ring-offset-1' : 'border-border hover:border-orange-300 hover:bg-orange-50/40',
+                    yellow: selected ? 'border-yellow-500 bg-yellow-50 dark:bg-yellow-950/30 ring-2 ring-yellow-400 ring-offset-1' : 'border-border hover:border-yellow-300 hover:bg-yellow-50/40',
+                    blue: selected ? 'border-blue-500 bg-blue-50 dark:bg-blue-950/30 ring-2 ring-blue-400 ring-offset-1' : 'border-border hover:border-blue-300 hover:bg-blue-50/40',
+                  }
+                  const textColor: Record<string, string> = {
+                    red: 'text-red-700 dark:text-red-300', orange: 'text-orange-700 dark:text-orange-300',
+                    yellow: 'text-yellow-700 dark:text-yellow-300', blue: 'text-blue-700 dark:text-blue-300',
+                  }
+                  return (
+                    <button key={opt.value} type="button"
+                      onClick={() => { setAttendanceType(opt.value); opt.fill() }}
+                      className={`relative flex flex-col gap-1 rounded-xl border-2 p-4 text-left transition-all duration-150 cursor-pointer ${styles[opt.color]}`}
+                    >
+                      {selected && <span className="absolute top-2 right-2 text-xs font-bold">✓</span>}
+                      <span className={`text-xs font-bold ${selected ? textColor[opt.color] : ''}`}>{opt.label}</span>
+                      <span className={`text-[11px] font-semibold ${selected ? textColor[opt.color] : 'text-muted-foreground'}`}>{opt.detail}</span>
+                      <span className="text-[10px] text-muted-foreground leading-tight mt-0.5">{opt.hint}</span>
+                    </button>
+                  )
+                })}
+              </div>
+            </div>
+
             <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
               {/* Late Time Card */}
               <div className="border rounded-lg p-5 bg-card hover:shadow-md transition-shadow">
@@ -759,7 +870,7 @@ export default function AttendanceDeductionPage() {
                       min="0"
                       max="23"
                       placeholder="0"
-                      className="mt-1 h-12 text-base"
+                      className="mt-1 h-12 text-base border-2 border-gray-300 dark:border-gray-600"
                     />
                   </div>
                   <div>
@@ -772,7 +883,7 @@ export default function AttendanceDeductionPage() {
                       min="0"
                       max="59"
                       placeholder="0"
-                      className="mt-1 h-12 text-base"
+                      className="mt-1 h-12 text-base border-2 border-gray-300 dark:border-gray-600"
                     />
                   </div>
                 </div>
@@ -808,7 +919,7 @@ export default function AttendanceDeductionPage() {
                     min="0"
                     step="1"
                     placeholder="0"
-                    className="mt-1 h-12 text-base"
+                    className="mt-1 h-12 text-base border-2 border-gray-300 dark:border-gray-600"
                   />
                 </div>
                 <div className="bg-muted/50 rounded-lg border p-3">

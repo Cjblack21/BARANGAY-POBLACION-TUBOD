@@ -1810,7 +1810,7 @@ html, body { margin: 0 !important; padding: 0 !important; overflow: hidden !impo
             disabled={loading || !hasGeneratedForSettings || currentPeriod?.status === 'Released' || !canRelease}
             aria-disabled
             title={!canRelease && currentPeriod?.periodEnd && payrollReleaseTime ? `Release only available on or after ${formatDateForDisplay(new Date(currentPeriod.periodEnd))} at ${formatTime12Hour(payrollReleaseTime)}` : ''}
-            className="bg-green-600 hover:bg-green-700 text-white"
+            className="bg-blue-600 hover:bg-blue-700 text-white"
           >
             <Save className="h-4 w-4 mr-2" />
             {currentPeriod?.status === 'Released' ? 'Payroll Released' : !canRelease ? 'Release (Not Yet Period End)' : 'Release Payroll'}
@@ -1820,10 +1820,10 @@ html, body { margin: 0 !important; padding: 0 !important; overflow: hidden !impo
 
       {/* Release Countdown Timer */}
       {!canRelease && currentPeriod && currentPeriod.status !== 'Released' && timeUntilRelease && hasGeneratedForSettings && (
-        <div className="flex items-center justify-between rounded-xl border border-green-200 dark:border-green-900 flex-col md:flex-row dark:bg-transparent px-6 py-5 shadow-sm">
+        <div className="flex items-center justify-between rounded-xl border border-blue-200 dark:border-blue-900 flex-col md:flex-row dark:bg-transparent px-6 py-5 shadow-sm">
           <div className="flex items-center gap-4 mb-4 md:mb-0">
             <div className="p-3 rounded-full">
-              <Clock className="h-7 w-7 text-green-600 dark:text-green-400 flex-shrink-0" />
+              <Clock className="h-7 w-7 text-blue-600 dark:text-blue-400 flex-shrink-0" />
             </div>
             <div>
               <p className="text-xl font-bold text-foreground">Waiting for Release Time</p>
@@ -1833,21 +1833,21 @@ html, body { margin: 0 !important; padding: 0 !important; overflow: hidden !impo
             </div>
           </div>
           <div className="text-right w-full md:w-auto text-center md:text-right flex items-center justify-center">
-            <span className="text-4xl font-bold font-mono text-green-600 dark:text-green-400 tracking-tight">{timeUntilRelease}</span>
+            <span className="text-4xl font-bold font-mono text-blue-600 dark:text-blue-400 tracking-tight">{timeUntilRelease}</span>
           </div>
         </div>
       )}
 
       {/* Release Ready Banner */}
       {canRelease && currentPeriod && currentPeriod.status !== 'Released' && (
-        <div className="flex flex-col md:flex-row items-center justify-between rounded-xl border border-green-200 dark:border-green-900 bg-green-50 dark:bg-green-950/20 px-6 py-5 shadow-sm">
+        <div className="flex flex-col md:flex-row items-center justify-between rounded-xl border border-blue-200 dark:border-blue-900 bg-blue-50 dark:bg-blue-950/20 px-6 py-5 shadow-sm">
           <div className="flex items-center gap-4 mb-4 md:mb-0">
-            <div className="bg-green-100 dark:bg-green-900/50 p-3 rounded-full">
-              <CheckCircle2 className="h-7 w-7 text-green-600 dark:text-green-400 flex-shrink-0" />
+            <div className="bg-blue-100 dark:bg-blue-900/50 p-3 rounded-full">
+              <CheckCircle2 className="h-7 w-7 text-blue-600 dark:text-blue-400 flex-shrink-0" />
             </div>
             <div>
               <p className="text-xl font-bold text-foreground">Ready to Release</p>
-              <p className="text-base text-green-700 dark:text-green-400 mt-0.5">Payroll period has ended — you can now release</p>
+              <p className="text-base text-blue-700 dark:text-blue-400 mt-0.5">Payroll period has ended — you can now release</p>
             </div>
           </div>
           <Button
@@ -2004,7 +2004,7 @@ html, body { margin: 0 !important; padding: 0 !important; overflow: hidden !impo
               {/* Payroll Table */}
               <Card className="border-0 shadow-lg bg-card">
                 <CardHeader className="border-b px-6 py-4">
-                  <CardTitle className="text-xl font-bold">Payroll Summary</CardTitle>
+                  <CardTitle className="text-xl font-bold">Honorarium</CardTitle>
 
                   {/* Total Payroll Summary */}
                   {!liveDataLoaded ? (
@@ -3911,22 +3911,24 @@ html, body { margin: 0 !important; padding: 0 !important; overflow: hidden !impo
 
                             // Parse notes to extract late and absent details
                             const parseNotes = (notes: string) => {
-                              const lateMatch = notes.match(/Late:\s*(\d+)h?\s*(\d+)?m?/i) || notes.match(/Late:\s*(\d+)\s*min/i)
-                              const absentMatch = notes.match(/Absent:\s*(\d+)\s*days?/i)
-
                               let lateHours = 0
                               let lateMinutes = 0
                               let absentDays = 0
 
-                              if (lateMatch) {
-                                if (lateMatch[2]) {
-                                  lateHours = parseInt(lateMatch[1]) || 0
-                                  lateMinutes = parseInt(lateMatch[2]) || 0
-                                } else {
-                                  const totalMinutes = parseInt(lateMatch[1]) || 0
-                                  lateHours = Math.floor(totalMinutes / 60)
-                                  lateMinutes = totalMinutes % 60
-                                }
+                              // Match "Late: 1h 30m" or "Late: 1h m" (minutes empty = 0)
+                              const lateHMMatch = notes.match(/Late:\s*(\d+)h\s*(\d*)m?/i)
+                              // Match "Late: 90 min" (total minutes)
+                              const lateMinMatch = notes.match(/Late:\s*(\d+)\s*min/i)
+                              // Match "Absent: 2 day(s)"
+                              const absentMatch = notes.match(/Absent:\s*(\d+)\s*days?/i)
+
+                              if (lateHMMatch) {
+                                lateHours = parseInt(lateHMMatch[1]) || 0
+                                lateMinutes = lateHMMatch[2] ? parseInt(lateHMMatch[2]) || 0 : 0
+                              } else if (lateMinMatch) {
+                                const totalMinutes = parseInt(lateMinMatch[1]) || 0
+                                lateHours = Math.floor(totalMinutes / 60)
+                                lateMinutes = totalMinutes % 60
                               }
 
                               if (absentMatch) {

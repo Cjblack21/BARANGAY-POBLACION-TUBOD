@@ -478,7 +478,7 @@ export default function PayrollBreakdownDialog({
       const typeName = d.deduction_types.name
       const typeNameLower = typeName.toLowerCase()
 
-      // Skip attendance-related deductions (handled separately)
+      // Skip attendance-related deductions (handled separately in their own section)
       if (
         typeNameLower.includes('late') ||
         typeNameLower.includes('absent') ||
@@ -615,11 +615,29 @@ export default function PayrollBreakdownDialog({
   // console.log('🎯 MANDATORY DEDUCTIONS:', mandatoryDeductions.map((d: any) => d.type))
 
   // Other deductions (excluding mandatory and attendance-related) - using merged data
+  // Attendance deductions — pulled directly from liveDeductions
+  const attendanceDeductionsOnly = liveDeductions.filter((d: any) => {
+    const name = (d.deduction_types?.name || '').toLowerCase()
+    return name.includes('attendance') ||
+      name.includes('late') ||
+      name.includes('absent') ||
+      name.includes('early') ||
+      name.includes('tardiness') ||
+      name.includes('partial')
+  }).map((d: any) => ({
+    type: d.deduction_types?.name || 'Attendance Deduction',
+    amount: parseFloat(d.amount.toString()),
+    notes: d.notes || '',
+    appliedAt: d.appliedAt || ''
+  }))
+  const totalLiveAttendanceDeductions = attendanceDeductionsOnly.reduce((s: number, d: any) => s + d.amount, 0)
+
   const otherDeductionsOnly = mergedDeductions
     .filter((deduction: any) => {
       const type = deduction.type.toLowerCase()
       const isMandatory = isMandatoryDeduction(deduction)
-      const isAttendance = type.includes('late') ||
+      const isAttendance = type.includes('attendance') ||
+        type.includes('late') ||
         type.includes('absent') ||
         type.includes('absence') ||
         type.includes('early') ||
@@ -653,7 +671,7 @@ export default function PayrollBreakdownDialog({
   // Calculate total deductions from all deduction sources (with null checks)
   // Use recalculated attendance deductions instead of cached value
   const totalDeductions =
-    attendanceDeductionsAmount +
+    totalLiveAttendanceDeductions +
     todayAbsenceDeduction +
     totalLoanPayments +
     totalDeductionPayments +
@@ -979,6 +997,61 @@ export default function PayrollBreakdownDialog({
                       <span className="text-sm font-bold text-red-600">-{formatCurrency(attendanceDeductionsAmount + todayAbsenceDeduction)}</span>
                     </div>
                   )} */}
+                  {/* Attendance Deductions — detailed cards */}
+                  {attendanceDeductionsOnly.map((d: any, idx: number) => {
+                    const incidentDateStr = d.appliedAt
+                      ? (() => {
+                        try {
+                          return new Date(d.appliedAt).toLocaleDateString('en-PH', {
+                            year: 'numeric', month: 'long', day: 'numeric'
+                          })
+                        } catch { return '' }
+                      })()
+                      : ''
+                    // Only show parts with a colon — e.g. "Late: 1h m", not bare type echo "Late"
+                    const notesParts = (d.notes || '')
+                      .split(',')
+                      .map((s: string) => s.trim())
+                      .filter((s: string) => s && s.includes(':'))
+                    const typeLower = d.type.toLowerCase()
+                    const badgeColor =
+                      typeLower.includes('absent') ? 'bg-red-100 text-red-700 dark:bg-red-950/40 dark:text-red-300' :
+                        typeLower.includes('late') || typeLower.includes('tardiness') ? 'bg-orange-100 text-orange-700 dark:bg-orange-950/40 dark:text-orange-300' :
+                          typeLower.includes('early') ? 'bg-yellow-100 text-yellow-700 dark:bg-yellow-950/40 dark:text-yellow-300' :
+                            'bg-red-100 text-red-700 dark:bg-red-950/40 dark:text-red-300'
+                    return (
+                      <div key={`att-${idx}`} className="border border-red-200 dark:border-red-800 rounded-lg p-3 pl-4 mb-1 bg-red-50/60 dark:bg-red-950/20">
+                        <div className="flex items-start justify-between gap-2">
+                          <div className="flex flex-col gap-1.5 flex-1 min-w-0">
+                            {/* Type badge */}
+                            <span className={`inline-flex items-center w-fit px-2 py-0.5 rounded-full text-[11px] font-semibold ${badgeColor}`}>
+                              {d.type}
+                            </span>
+                            {/* Incident date */}
+                            {incidentDateStr && (
+                              <span className="text-[11px] text-muted-foreground flex items-center gap-1">
+                                Incident Date: <span className="font-medium text-foreground">{incidentDateStr}</span>
+                              </span>
+                            )}
+                            {/* Notes detail lines */}
+                            {notesParts.length > 0 && (
+                              <div className="flex flex-col gap-0.5 mt-0.5">
+                                {notesParts.map((part: string, i: number) => (
+                                  <span key={i} className="text-[11px] text-muted-foreground">
+                                    <span className="text-red-500 mr-1">›</span>{part}
+                                  </span>
+                                ))}
+                              </div>
+                            )}
+                          </div>
+                          {/* Amount */}
+                          <span className="text-sm font-bold text-red-600 dark:text-red-400 whitespace-nowrap shrink-0">
+                            -{formatCurrency(d.amount)}
+                          </span>
+                        </div>
+                      </div>
+                    )
+                  })}
                   {/* Mandatory Deductions (SSS, PhilHealth, Pag-IBIG, BIR) */}
                   {mandatoryDeductions.map((deduction, idx) => (
                     <div key={idx} className="flex justify-between items-center py-2 border-b pl-3">
@@ -1036,79 +1109,62 @@ export default function PayrollBreakdownDialog({
                 </CardTitle>
               </CardHeader>
               <CardContent className="space-y-3">
-                {/* Attendance Deductions - Per Record */}
-                {(() => {
-                  const attendanceWithDeductions = (entry.breakdown?.attendanceDetails || []).filter(
-                    (d: AttendanceDetail) => d.deduction && d.deduction > 0
-                  )
-                  const totalAttendanceDeduction = attendanceWithDeductions.reduce(
-                    (sum: number, d: AttendanceDetail) => sum + (d.deduction || 0), 0
-                  )
-
-                  if (attendanceWithDeductions.length === 0) return null
-
+                {/* Attendance Deductions — detailed cards in Deduction Breakdown */}
+                {attendanceDeductionsOnly.length > 0 && (() => {
+                  const totalAmt = attendanceDeductionsOnly.reduce((s: number, d: any) => s + d.amount, 0)
                   return (
                     <div className="rounded-lg border border-red-200 dark:border-red-800 overflow-hidden">
                       {/* Header */}
                       <div className="flex items-center justify-between px-4 py-2 bg-red-50 dark:bg-red-950/30">
                         <div className="flex items-center gap-2">
                           <Clock className="h-4 w-4 text-red-600" />
-                          <span className="text-sm font-semibold text-red-700 dark:text-red-400">Attendance Deduction</span>
+                          <span className="text-sm font-semibold text-red-700 dark:text-red-400">Attendance Deductions</span>
                           <Badge variant="outline" className="text-xs border-red-300 text-red-600">
-                            {attendanceWithDeductions.length} record{attendanceWithDeductions.length !== 1 ? 's' : ''}
+                            {attendanceDeductionsOnly.length} record{attendanceDeductionsOnly.length !== 1 ? 's' : ''}
                           </Badge>
                         </div>
                         <span className="text-sm font-bold text-red-700 dark:text-red-400">
-                          -{new Intl.NumberFormat('en-PH', { style: 'currency', currency: 'PHP' }).format(totalAttendanceDeduction)}
+                          -{formatCurrency(totalAmt)}
                         </span>
                       </div>
                       {/* Per-record rows */}
                       <div className="divide-y divide-red-100 dark:divide-red-900/30">
-                        {attendanceWithDeductions.map((detail: AttendanceDetail, idx: number) => {
-                          const recordDate = new Date(detail.date)
-                          const timeInStr = detail.timeIn
-                            ? new Date(detail.timeIn).toLocaleTimeString('en-PH', { hour: '2-digit', minute: '2-digit', hour12: true, timeZone: 'Asia/Manila' })
-                            : null
-                          const timeOutStr = detail.timeOut
-                            ? new Date(detail.timeOut).toLocaleTimeString('en-PH', { hour: '2-digit', minute: '2-digit', hour12: true, timeZone: 'Asia/Manila' })
-                            : null
-
-                          const typeLabel = detail.status === 'ABSENT' ? 'Absent'
-                            : detail.status === 'LATE' ? 'Late Arrival'
-                              : !detail.timeOut ? 'Early Time-Out'
-                                : detail.status
-
-                          const typeBg = detail.status === 'ABSENT'
-                            ? 'bg-red-100 text-red-700 dark:bg-red-900/40 dark:text-red-300'
-                            : detail.status === 'LATE'
-                              ? 'bg-orange-100 text-orange-700 dark:bg-orange-900/40 dark:text-orange-300'
-                              : 'bg-yellow-100 text-yellow-700 dark:bg-yellow-900/40 dark:text-yellow-300'
-
+                        {attendanceDeductionsOnly.map((d: any, idx: number) => {
+                          const incidentDateObj = d.appliedAt ? new Date(d.appliedAt) : null
+                          const typeLower = d.type.toLowerCase()
+                          const typeBg =
+                            typeLower.includes('absent') ? 'bg-red-100 text-red-700 dark:bg-red-900/40 dark:text-red-300' :
+                              typeLower.includes('late') || typeLower.includes('tardiness') ? 'bg-orange-100 text-orange-700 dark:bg-orange-900/40 dark:text-orange-300' :
+                                typeLower.includes('early') ? 'bg-yellow-100 text-yellow-700 dark:bg-yellow-900/40 dark:text-yellow-300' :
+                                  'bg-red-100 text-red-700 dark:bg-red-900/40 dark:text-red-300'
+                          const noteParts = (d.notes || '')
+                            .split(',')
+                            .map((s: string) => s.trim())
+                            .filter((s: string) => s && s.includes(':'))
                           return (
-                            <div key={idx} className="flex items-center gap-4 px-4 py-3 bg-white dark:bg-background hover:bg-red-50/50 dark:hover:bg-red-950/10 transition-colors">
-                              {/* Date */}
-                              <div className="flex flex-col items-center min-w-[48px] text-center">
-                                <span className="text-xl font-bold leading-none">{recordDate.getDate().toString().padStart(2, '0')}</span>
-                                <span className="text-[10px] text-muted-foreground uppercase">
-                                  {recordDate.toLocaleDateString('en-US', { month: 'short', year: '2-digit' })}
-                                </span>
-                              </div>
-                              {/* Type badge + times */}
+                            <div key={idx} className="flex items-start gap-4 px-4 py-3 bg-white dark:bg-background hover:bg-red-50/50 dark:hover:bg-red-950/10 transition-colors">
+                              {/* Date block */}
+                              {incidentDateObj ? (
+                                <div className="flex flex-col items-center min-w-[48px] text-center shrink-0">
+                                  <span className="text-xl font-bold leading-none">{incidentDateObj.getDate().toString().padStart(2, '0')}</span>
+                                  <span className="text-[10px] text-muted-foreground uppercase">
+                                    {incidentDateObj.toLocaleDateString('en-US', { month: 'short', year: '2-digit' })}
+                                  </span>
+                                </div>
+                              ) : <div className="min-w-[48px]" />}
+                              {/* Type badge + notes */}
                               <div className="flex-1 min-w-0">
-                                <span className={`inline-block text-xs font-semibold px-2 py-0.5 rounded-full ${typeBg}`}>
-                                  {typeLabel}
-                                </span>
-                                {(timeInStr || timeOutStr) && (
-                                  <div className="flex items-center gap-3 mt-1 text-xs text-muted-foreground">
-                                    {timeInStr && <span>In: {timeInStr}</span>}
-                                    {timeOutStr && <span>Out: {timeOutStr}</span>}
+                                <span className={`inline-block text-xs font-semibold px-2 py-0.5 rounded-full ${typeBg}`}>{d.type}</span>
+                                {noteParts.length > 0 && (
+                                  <div className="mt-1 flex flex-col gap-0.5">
+                                    {noteParts.map((p: string, i: number) => (
+                                      <span key={i} className="text-xs text-muted-foreground"><span className="text-red-400 mr-1">›</span>{p}</span>
+                                    ))}
                                   </div>
                                 )}
                               </div>
                               {/* Amount */}
-                              <span className="text-sm font-bold text-red-600 dark:text-red-400 shrink-0">
-                                -{new Intl.NumberFormat('en-PH', { style: 'currency', currency: 'PHP' }).format(detail.deduction)}
-                              </span>
+                              <span className="text-sm font-bold text-red-600 dark:text-red-400 shrink-0">-{formatCurrency(d.amount)}</span>
                             </div>
                           )
                         })}

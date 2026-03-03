@@ -84,7 +84,7 @@ export async function POST(request: NextRequest) {
     }
 
     const body = await request.json()
-    const { users_id, lateMinutes, absentDays, amount, notes } = body
+    const { users_id, lateMinutes, absentDays, amount, notes, attendanceType, incidentDate } = body
 
     if (!users_id || (lateMinutes === 0 && absentDays === 0)) {
       return NextResponse.json(
@@ -93,18 +93,28 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    // Get or create "Attendance Deduction" deduction type
+    // Determine the deduction type name based on the type of absence
+    const typeName = attendanceType || 'Attendance Deduction'
+
+    // Get or create the appropriate deduction type
     let deductionType = await prisma.deduction_types.findFirst({
-      where: { name: 'Attendance Deduction' }
+      where: { name: typeName }
     })
+
+    if (!deductionType) {
+      // Also try the legacy generic name as a fallback
+      deductionType = await prisma.deduction_types.findFirst({
+        where: { name: 'Attendance Deduction' }
+      })
+    }
 
     if (!deductionType) {
       // Create the deduction type if it doesn't exist
       deductionType = await prisma.deduction_types.create({
         data: {
-          deduction_types_id: `DT-ATTENDANCE-${Date.now()}`,
-          name: 'Attendance Deduction',
-          description: 'Deductions for late arrivals and absences',
+          deduction_types_id: `DT-ATT-${typeName.replace(/\s+/g, '-').toUpperCase()}-${Date.now()}`,
+          name: typeName,
+          description: 'Deductions for attendance issues (late arrivals, absences, early departures)',
           amount: 0, // Variable amount
           isMandatory: false,
           isActive: true,
@@ -114,6 +124,10 @@ export async function POST(request: NextRequest) {
       })
     }
 
+    // Use the incident date (when the staff was absent/late) as appliedAt
+    // This ensures the payroll breakdown shows the correct date of the incident
+    const appliedAt = incidentDate ? new Date(incidentDate) : new Date()
+
     // Create the deduction
     const deduction = await prisma.deductions.create({
       data: {
@@ -121,15 +135,15 @@ export async function POST(request: NextRequest) {
         users_id: users_id,
         deduction_types_id: deductionType.deduction_types_id,
         amount: amount,
-        notes: notes || `Late: ${lateMinutes} min, Absent: ${absentDays} days`,
-        appliedAt: new Date(),
+        notes: notes || `${typeName}: Late: ${lateMinutes} min, Absent: ${absentDays} days`,
+        appliedAt: appliedAt,
         archivedAt: null,
         createdAt: new Date(),
         updatedAt: new Date()
       }
     })
 
-    console.log(`✅ Created attendance deduction for user ${users_id}: ₱${amount}`)
+    console.log(`✅ Created ${typeName} deduction for user ${users_id} on ${appliedAt.toDateString()}: ₱${amount}`)
 
     return NextResponse.json({
       success: true,

@@ -199,9 +199,36 @@ async function handlePayslipGeneration(periodStart: string | null, periodEnd: st
           description: d.notes || d.deduction_types.description || d.deduction_types.name
         }))
         totalAttendanceDeductions = allAttendanceDeductionRecords.reduce((sum: number, d: any) => sum + Number(d.amount), 0)
+      } else {
+        // RELEASED/ARCHIVED: fetch archived attendance deductions from DB — they have full notes/appliedAt
+        const archivedAttDeductions = await prisma.deductions.findMany({
+          where: {
+            users_id: entry.users_id,
+            archivedAt: { not: null }, // Only archived ones
+            deduction_types: {
+              OR: [
+                { name: { contains: 'Attendance' } },
+                { name: { contains: 'Late' } },
+                { name: { contains: 'Absent' } },
+                { name: { contains: 'Early' } },
+                { name: { contains: 'Partial' } },
+                { name: { contains: 'Tardiness' } }
+              ]
+            }
+          },
+          include: { deduction_types: true }
+        })
+        if (archivedAttDeductions.length > 0) {
+          liveAttendanceDeductionDetails = archivedAttDeductions.map((d: any) => ({
+            type: d.deduction_types.name,
+            amount: Number(d.amount),
+            notes: d.notes || '',
+            appliedAt: d.appliedAt ? d.appliedAt.toISOString() : null,
+            description: d.notes || d.deduction_types.name
+          }))
+          totalAttendanceDeductions = archivedAttDeductions.reduce((sum: number, d: any) => sum + Number(d.amount), 0)
+        }
       }
-      // For RELEASED/ARCHIVED, liveAttendanceDeductionDetails stays empty
-      // and we use storedAttendanceDeductionDetails from breakdownSnapshot below
 
       // Calculate total work hours from attendance records
       const totalWorkHours = attendanceRecords.reduce((sum, record) => {
@@ -218,13 +245,13 @@ async function handlePayslipGeneration(periodStart: string | null, periodEnd: st
       const storedLoanDetails = storedBreakdown?.loanDetails || []
       const storedOtherDeductionDetails = storedBreakdown?.deductionDetails || []
 
-      // For released/archived, use snapshot; for pending, use live data
-      const attendanceDeductionDetails = entry.status === 'PENDING'
-        ? (liveAttendanceDeductionDetails.length > 0 ? liveAttendanceDeductionDetails : storedAttendanceDeductionDetails)
-        : storedAttendanceDeductionDetails
+      // Always prefer live DB data (populated for both PENDING and RELEASED above) over snapshot
+      const attendanceDeductionDetails = liveAttendanceDeductionDetails.length > 0
+        ? liveAttendanceDeductionDetails
+        : (storedAttendanceDeductionDetails.length > 0 ? storedAttendanceDeductionDetails : [])
 
-      // Recalculate totalAttendanceDeductions from snapshot for released entries
-      const finalTotalAttendanceDeductions = entry.status === 'PENDING'
+      // Use live total if available, otherwise snapshot
+      const finalTotalAttendanceDeductions = totalAttendanceDeductions > 0
         ? totalAttendanceDeductions
         : (storedBreakdown?.attendanceDeductions || 0)
 
