@@ -308,10 +308,10 @@ const Payslip: React.FC<PayslipProps> = ({ employee, period, headerSettings }) =
                 {breakdown.loanDetails.map((loan: any, index: number) => (
                   <View key={index} style={{ flexDirection: 'row', justifyContent: 'space-between', marginBottom: 0.5 }}>
                     <Text style={{ fontSize: 5, maxWidth: '65%', color: '#666' }}>
-                      {loan.description || loan.type || 'Loan Payment'}
+                      {loan.purpose || loan.description || loan.type || 'Loan Payment'}
                     </Text>
                     <Text style={{ fontSize: 5, fontWeight: 'bold', color: '#d97706' }}>
-                      -₱{(loan.amount || 0).toLocaleString(undefined, { maximumFractionDigits: 2 })}
+                      -₱{(loan.payment !== undefined ? loan.payment : loan.amount || 0).toLocaleString(undefined, { maximumFractionDigits: 2 })}
                     </Text>
                   </View>
                 ))}

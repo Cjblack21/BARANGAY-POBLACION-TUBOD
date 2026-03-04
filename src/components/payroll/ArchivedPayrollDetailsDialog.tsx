@@ -530,8 +530,8 @@ export default function ArchivedPayrollDetailsDialog({
       !type.includes('attendance')
   })
 
-  const actualLoans = loanDetails.filter((l: any) => !l.type?.startsWith('[DEDUCTION]'))
-  const deductionPayments = loanDetails.filter((l: any) => l.type?.startsWith('[DEDUCTION]'))
+  const actualLoans = loanDetails.filter((l: any) => !(l.type || l.purpose || 'Loan').startsWith('[DEDUCTION]'))
+  const deductionPayments = loanDetails.filter((l: any) => (l.type || l.purpose || 'Loan').startsWith('[DEDUCTION]'))
 
   const grossPay = periodSalary + overloadPay
   const netPay = grossPay - deductions
@@ -799,8 +799,8 @@ export default function ArchivedPayrollDetailsDialog({
                       </div>
                       {actualLoans.map((loan: any, idx: number) => (
                         <div key={idx} className="flex justify-between items-center py-2 border-b pl-4">
-                          <span className="text-xs font-medium text-red-600">• {(loan.type || 'Loan').split('(')[0].trim()}</span>
-                          <span className="text-sm font-bold text-red-600">-{formatCurrency(loan.amount)}</span>
+                          <span className="text-xs font-medium text-red-600">• {(loan.type || loan.purpose || 'Loan').split('(')[0].trim()}</span>
+                          <span className="text-sm font-bold text-red-600">-{formatCurrency(loan.payment !== undefined ? loan.payment : loan.amount)}</span>
                         </div>
                       ))}
                     </>
@@ -815,8 +815,8 @@ export default function ArchivedPayrollDetailsDialog({
                       </div>
                       {deductionPayments.map((deduction: any, idx: number) => (
                         <div key={idx} className="flex justify-between items-center py-2 border-b pl-4">
-                          <span className="text-xs font-medium text-red-600">• {(deduction.type || 'Deduction').replace(/^\[DEDUCTION\]\s*/i, '').split('(')[0].trim()}</span>
-                          <span className="text-sm font-bold text-red-600">-{formatCurrency(deduction.amount)}</span>
+                          <span className="text-xs font-medium text-red-600">• {(deduction.type || deduction.purpose || 'Deduction').replace(/^\[DEDUCTION\]\s*/i, '').split('(')[0].trim()}</span>
+                          <span className="text-sm font-bold text-red-600">-{formatCurrency(deduction.payment !== undefined ? deduction.payment : deduction.amount)}</span>
                         </div>
                       ))}
                     </>

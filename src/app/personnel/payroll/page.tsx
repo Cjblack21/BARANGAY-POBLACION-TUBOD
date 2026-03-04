@@ -768,8 +768,8 @@ export default function PersonnelPayrollPage() {
             })
 
             // Separate loans from deduction payments
-            const actualLoans = loanDetails.filter((l: any) => !l.type?.startsWith('[DEDUCTION]'))
-            const deductionPayments = loanDetails.filter((l: any) => l.type?.startsWith('[DEDUCTION]'))
+            const actualLoans = loanDetails.filter((l: any) => !(l.type || l.purpose || 'Loan').startsWith('[DEDUCTION]'))
+            const deductionPayments = loanDetails.filter((l: any) => (l.type || l.purpose || 'Loan').startsWith('[DEDUCTION]'))
 
             const grossPay = periodSalary + overloadPay
             const netPay = grossPay - deductions
@@ -865,15 +865,15 @@ export default function PersonnelPayrollPage() {
                       {actualLoans.map((loan: any, idx: number) => (
                         <div key={idx} className="border-b pl-4 py-1.5">
                           <div className="flex justify-between">
-                            <span className="text-sm">{loan.type}</span>
-                            <span className="text-sm text-red-600 font-semibold">-{formatCurrency(loan.amount)}</span>
+                            <span className="text-sm">{loan.type || loan.purpose || 'Loan'}</span>
+                            <span className="text-sm text-red-600 font-semibold">-{formatCurrency(loan.payment !== undefined ? loan.payment : loan.amount)}</span>
                           </div>
                           <div className="text-xs text-muted-foreground mt-0.5 space-y-0.5">
-                            {loan.originalAmount && (
-                              <div>Total Amount: {formatCurrency(loan.originalAmount)}</div>
+                            {loan.amount && loan.payment !== undefined && (
+                              <div>Total Amount: {formatCurrency(loan.amount)}</div>
                             )}
-                            {loan.remainingBalance > 0 && (
-                              <div>Remaining Balance: {formatCurrency(loan.remainingBalance)}</div>
+                            {(loan.remainingBalance || loan.balance) > 0 && (
+                              <div>Remaining Balance: {formatCurrency(loan.remainingBalance || loan.balance)}</div>
                             )}
                           </div>
                         </div>
@@ -885,22 +885,26 @@ export default function PersonnelPayrollPage() {
                   {deductionPayments.length > 0 && (
                     <>
                       <p className="text-sm font-semibold text-muted-foreground mt-2">Deduction Payments:</p>
-                      {deductionPayments.map((deduction: any, idx: number) => (
-                        <div key={idx} className="border-b pl-4 py-1.5">
-                          <div className="flex justify-between">
-                            <span className="text-sm">{deduction.type?.replace('[DEDUCTION] ', '') || deduction.type}</span>
-                            <span className="text-sm text-red-600 font-semibold">-{formatCurrency(deduction.amount)}</span>
+                      {deductionPayments.map((deduction: any, idx: number) => {
+                        const displayName = (deduction.type || deduction.purpose || 'Deduction').replace('[DEDUCTION] ', '')
+                        const deductionAmount = deduction.payment !== undefined ? deduction.payment : deduction.amount
+                        return (
+                          <div key={idx} className="border-b pl-4 py-1.5">
+                            <div className="flex justify-between">
+                              <span className="text-sm">{displayName}</span>
+                              <span className="text-sm text-red-600 font-semibold">-{formatCurrency(deductionAmount)}</span>
+                            </div>
+                            <div className="text-xs text-muted-foreground mt-0.5 space-y-0.5">
+                              {deduction.amount && deduction.payment !== undefined && (
+                                <div>Total Amount: {formatCurrency(deduction.amount)}</div>
+                              )}
+                              {(deduction.remainingBalance || deduction.balance) > 0 && (
+                                <div>Remaining Balance: {formatCurrency(deduction.remainingBalance || deduction.balance)}</div>
+                              )}
+                            </div>
                           </div>
-                          <div className="text-xs text-muted-foreground mt-0.5 space-y-0.5">
-                            {deduction.originalAmount && (
-                              <div>Total Amount: {formatCurrency(deduction.originalAmount)}</div>
-                            )}
-                            {deduction.remainingBalance > 0 && (
-                              <div>Remaining Balance: {formatCurrency(deduction.remainingBalance)}</div>
-                            )}
-                          </div>
-                        </div>
-                      ))}
+                        )
+                      })}
                     </>
                   )}
 

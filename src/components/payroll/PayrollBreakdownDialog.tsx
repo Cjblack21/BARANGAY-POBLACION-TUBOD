@@ -511,14 +511,18 @@ export default function PayrollBreakdownDialog({
 
     const loansMap = new Map()
 
-    // Add cached loans from payroll (with null check)
+    // Add cached loans from payroll
     const loanDetails = entry.breakdown?.loanDetails || []
     console.log('🔍 CACHED LOAN DETAILS from payroll:', loanDetails)
     loanDetails.forEach((item: any) => {
-      loansMap.set(item.type, {
-        type: item.type,
-        amount: item.amount,
-        remainingBalance: item.remainingBalance
+      // Handle both preview data (type, amount) and generated data (purpose, payment)
+      const loanType = item.type || item.purpose || 'Loan'
+      const loanAmount = item.payment !== undefined ? item.payment : item.amount
+
+      loansMap.set(loanType, {
+        type: loanType,
+        amount: loanAmount,
+        remainingBalance: item.remainingBalance || item.balance
       })
     })
 
