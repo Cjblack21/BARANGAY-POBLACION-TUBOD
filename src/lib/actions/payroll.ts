@@ -453,39 +453,9 @@ export async function getPayrollSummary(): Promise<{
           console.log(`  - ${d.deduction_types.name}: ₱${d.amount} (Mandatory: ${d.deduction_types.isMandatory}, Applied: ${d.appliedAt.toISOString()})`)
         })
 
-        // Get all active mandatory deduction types
-        const activeMandatoryTypes = await prisma.deduction_types.findMany({
-          where: {
-            isMandatory: true,
-            isActive: true
-          }
-        })
-
-        console.log(`🔍 Found ${activeMandatoryTypes.length} active mandatory deduction types`)
-
-        // For each active mandatory type, ensure it's in deductionDetails
-        for (const mandatoryType of activeMandatoryTypes) {
-          const exists = deductionDetails.find(d => d.deduction_types_id === mandatoryType.deduction_types_id)
-          if (!exists) {
-            // Add it automatically
-            console.log(`  ✅ AUTO-ADDING ${mandatoryType.name} (₱${mandatoryType.amount}) to ${user.name}`)
-            deductionDetails.push({
-              deductions_id: 'auto-' + mandatoryType.deduction_types_id,
-              users_id: user.users_id,
-              deduction_types_id: mandatoryType.deduction_types_id,
-              amount: mandatoryType.amount,
-              appliedAt: new Date(),
-              notes: 'Auto-applied mandatory deduction',
-              createdAt: new Date(),
-              updatedAt: new Date(),
-              deduction_types: {
-                name: mandatoryType.name,
-                description: mandatoryType.description,
-                isMandatory: true
-              }
-            } as any)
-          }
-        }
+        // NOTE: Mandatory deductions are driven solely by actual rows in the deductions table.
+        // We do NOT auto-inject missing mandatory types here — if an admin deleted a user's
+        // mandatory deduction entry, that decision must be respected in the payroll calculation.
 
         // FORCE: Always fetch ALL overload pays and sum by user
         const allOverloadPays = await prisma.overload_pays.findMany({

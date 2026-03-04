@@ -1810,7 +1810,7 @@ html, body { margin: 0 !important; padding: 0 !important; overflow: hidden !impo
             disabled={loading || !hasGeneratedForSettings || currentPeriod?.status === 'Released' || !canRelease}
             aria-disabled
             title={!canRelease && currentPeriod?.periodEnd && payrollReleaseTime ? `Release only available on or after ${formatDateForDisplay(new Date(currentPeriod.periodEnd))} at ${formatTime12Hour(payrollReleaseTime)}` : ''}
-            className="bg-blue-600 hover:bg-blue-700 text-white"
+            className="bg-green-600 hover:bg-green-700 text-white"
           >
             <Save className="h-4 w-4 mr-2" />
             {currentPeriod?.status === 'Released' ? 'Payroll Released' : !canRelease ? 'Release (Not Yet Period End)' : 'Release Payroll'}
@@ -2305,7 +2305,7 @@ html, body { margin: 0 !important; padding: 0 !important; overflow: hidden !impo
                             <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                             <Input
                               placeholder="Search staff..."
-                              className="pl-9 h-9"
+                              className="pl-9 h-9 bg-muted/50"
                               value={personnelSearchTerm}
                               onChange={(e) => setPersonnelSearchTerm(e.target.value)}
                             />
@@ -2378,23 +2378,35 @@ html, body { margin: 0 !important; padding: 0 !important; overflow: hidden !impo
                                       setArchivedPersonnelList(personnelPeriods)
                                     }}
                                     className={`
-                                          p-3 rounded-md border cursor-pointer transition-all
+                                          rounded-lg border-2 cursor-pointer transition-all overflow-hidden shadow-sm
                                           ${isSelected
-                                        ? 'bg-blue-50 dark:bg-blue-950/20 border-blue-500'
-                                        : 'bg-background border-border hover:border-blue-300'
+                                        ? 'border-blue-500 bg-blue-50 dark:bg-blue-950/20'
+                                        : 'border-border hover:border-blue-400 hover:shadow-md bg-card'
                                       }
                                         `}
                                   >
-                                    <div className="flex items-center justify-between gap-3">
-                                      <div className="flex-1">
-                                        <p className="font-semibold text-sm">{person.user?.name || 'N/A'}</p>
-                                        <p className="text-xs text-muted-foreground">{person.user?.personnelType?.department || 'N/A'}</p>
-                                      </div>
-                                      <div className="text-right">
-                                        <p className="text-sm font-bold text-green-600 dark:text-green-400">
-                                          {formatCurrency(totalNetPay)}
-                                        </p>
-                                        <p className="text-xs text-muted-foreground">Total Net Pay</p>
+                                    <div className="flex items-stretch">
+                                      <div className={`w-1 flex-shrink-0 rounded-l-lg ${isSelected ? 'bg-blue-500' : 'bg-muted-foreground/20'}`} />
+                                      <div className="flex items-center justify-between gap-3 flex-1 p-3">
+                                        <div className="flex-1 min-w-0">
+                                          <p className="font-semibold text-sm truncate">{person.user?.name || 'N/A'}</p>
+                                          {person.user?.personnelType?.department && (
+                                            <p className="text-xs text-muted-foreground mt-0.5 truncate">
+                                              {person.user.personnelType.department}
+                                            </p>
+                                          )}
+                                          {person.user?.personnelType?.name && (
+                                            <span className="inline-block mt-1 text-[10px] font-medium px-1.5 py-0.5 rounded bg-primary/10 text-primary truncate max-w-full">
+                                              {person.user.personnelType.name}
+                                            </span>
+                                          )}
+                                        </div>
+                                        <div className="text-right flex-shrink-0">
+                                          <p className="text-sm font-bold text-green-600 dark:text-green-400">
+                                            {formatCurrency(totalNetPay)}
+                                          </p>
+                                          <p className="text-xs text-muted-foreground">Total Net Pay</p>
+                                        </div>
                                       </div>
                                     </div>
                                   </div>
@@ -2445,7 +2457,7 @@ html, body { margin: 0 !important; padding: 0 !important; overflow: hidden !impo
                                 <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                                 <Input
                                   placeholder="Search periods..."
-                                  className="pl-9 h-9"
+                                  className="pl-9 h-9 bg-muted/50"
                                   value={periodSearchTerm}
                                   onChange={(e) => setPeriodSearchTerm(e.target.value)}
                                 />
@@ -2953,9 +2965,9 @@ html, body { margin: 0 !important; padding: 0 !important; overflow: hidden !impo
 
                 {/* Manual Payroll Release */}
                 {hasGeneratedForSettings && currentPeriod?.status !== 'Released' && (
-                  <div className="bg-gradient-to-br from-blue-50 to-indigo-50 dark:from-blue-950/20 dark:to-indigo-950/20 p-6 rounded-xl border-2 border-blue-200 dark:border-blue-800 shadow-sm">
+                  <div className="bg-gradient-to-br from-green-50 to-emerald-50 dark:from-green-950/20 dark:to-emerald-950/20 p-6 rounded-xl border-2 border-green-200 dark:border-green-800 shadow-sm">
                     <div className="flex items-start gap-3 mb-4">
-                      <div className="h-10 w-10 rounded-full bg-blue-600 flex items-center justify-center flex-shrink-0">
+                      <div className="h-10 w-10 rounded-full bg-green-600 flex items-center justify-center flex-shrink-0">
                         <Save className="h-5 w-5 text-white" />
                       </div>
                       <div className="flex-1">
@@ -2971,7 +2983,7 @@ html, body { margin: 0 !important; padding: 0 !important; overflow: hidden !impo
                     <Button
                       onClick={showReleaseConfirmation}
                       disabled={loading}
-                      className="bg-blue-600 hover:bg-blue-700 text-white w-full h-12 text-base font-semibold shadow-md hover:shadow-lg transition-all"
+                      className="bg-green-600 hover:bg-green-700 text-white w-full h-12 text-base font-semibold shadow-md hover:shadow-lg transition-all"
                     >
                       <Save className="h-5 w-5 mr-2" />
                       Release Payroll Now
@@ -3211,8 +3223,25 @@ html, body { margin: 0 !important; padding: 0 !important; overflow: hidden !impo
                 </div>
               )}
             </div>
-            <div className="bg-blue-50 dark:bg-blue-900/20 p-3 rounded-lg border border-blue-200 dark:border-blue-800 text-blue-700 dark:text-blue-300 text-sm font-medium">
-              Check "Archived Payrolls" for payslips.
+            <div className="flex flex-col gap-3">
+              <Button
+                className="w-full bg-green-600 hover:bg-green-700 text-white font-semibold h-11"
+                onClick={() => {
+                  setShowPrintModal(false)
+                  setActiveTab('archived')
+                  clearArchiveNotification()
+                }}
+              >
+                <Archive className="h-4 w-4 mr-2" />
+                Go to Archive
+              </Button>
+              <Button
+                variant="outline"
+                className="w-full"
+                onClick={() => setShowPrintModal(false)}
+              >
+                Close
+              </Button>
             </div>
           </div>
         </DialogContent>
