@@ -90,7 +90,7 @@ export function AppSidebar({ user, ...props }: AppSidebarProps) {
       <SidebarHeader>
         <SidebarMenu>
           <SidebarMenuItem>
-            <div className="flex items-center gap-2 px-2 pt-7 pb-2 group-data-[collapsible=icon]:justify-center">
+            <div className="flex items-center gap-2 px-2 pt-4 pb-0 group-data-[collapsible=icon]:justify-center">
               <div className="flex aspect-square w-[72px] h-[72px] items-center justify-center rounded-lg min-w-[72px]">
                 <img
                   src="/BRGY PICTURE LOG TUBOD.png"
@@ -98,14 +98,14 @@ export function AppSidebar({ user, ...props }: AppSidebarProps) {
                   className="w-[72px] h-[72px] object-contain"
                 />
               </div>
-              <div className="group-data-[collapsible=icon]:hidden flex flex-col gap-0.5 leading-none">
-                <span className="font-bold text-[17px] whitespace-nowrap tracking-tight">POBLACION - PMS</span>
-                <span className="text-sm text-muted-foreground whitespace-nowrap">Welcome to PMS</span>
+              <div className="group-data-[collapsible=icon]:hidden flex flex-col gap-1 leading-none justify-center text-white">
+                <span className="font-bold text-[16px] whitespace-nowrap tracking-tight">BRGY POBLACION</span>
+                <span className="text-xs font-medium text-white/70 whitespace-nowrap tracking-wide">PMS SYSTEM</span>
               </div>
             </div>
           </SidebarMenuItem>
         </SidebarMenu>
-        <div className="group-data-[collapsible=icon]:hidden px-3 py-2 mt-2">
+        <div className="group-data-[collapsible=icon]:hidden px-3 py-1 mt-0">
           <p className="text-xs font-medium text-muted-foreground">Account</p>
         </div>
         <SSRSafe>

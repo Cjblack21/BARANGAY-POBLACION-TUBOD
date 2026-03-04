@@ -1808,9 +1808,8 @@ html, body { margin: 0 !important; padding: 0 !important; overflow: hidden !impo
           <Button
             onClick={showReleaseConfirmation}
             disabled={loading || !hasGeneratedForSettings || currentPeriod?.status === 'Released' || !canRelease}
-            aria-disabled
             title={!canRelease && currentPeriod?.periodEnd && payrollReleaseTime ? `Release only available on or after ${formatDateForDisplay(new Date(currentPeriod.periodEnd))} at ${formatTime12Hour(payrollReleaseTime)}` : ''}
-            className="bg-green-600 hover:bg-green-700 text-white"
+            className="bg-green-600 hover:bg-green-700 text-white disabled:bg-green-600/60 disabled:text-white"
           >
             <Save className="h-4 w-4 mr-2" />
             {currentPeriod?.status === 'Released' ? 'Payroll Released' : !canRelease ? 'Release (Not Yet Period End)' : 'Release Payroll'}
@@ -2983,7 +2982,7 @@ html, body { margin: 0 !important; padding: 0 !important; overflow: hidden !impo
                     <Button
                       onClick={showReleaseConfirmation}
                       disabled={loading}
-                      className="bg-green-600 hover:bg-green-700 text-white w-full h-12 text-base font-semibold shadow-md hover:shadow-lg transition-all"
+                      className="bg-green-600 hover:bg-green-700 text-white w-full h-12 text-base font-semibold shadow-md hover:shadow-lg transition-all disabled:bg-green-600/60 disabled:text-white"
                     >
                       <Save className="h-5 w-5 mr-2" />
                       Release Payroll Now
