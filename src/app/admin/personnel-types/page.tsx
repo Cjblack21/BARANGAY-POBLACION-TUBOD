@@ -396,6 +396,7 @@ export default function PersonnelTypesPage() {
                                                             <SelectItem value="Barangay Kagawad">Barangay Kagawad</SelectItem>
                                                             <SelectItem value="Barangay Secretary">Barangay Secretary</SelectItem>
                                                             <SelectItem value="Barangay Treasurer">Barangay Treasurer</SelectItem>
+                                                            <SelectItem value="Brgy SK CHAIRMAN">Brgy SK CHAIRMAN</SelectItem>
                                                         </>
                                                     )}
                                                     {office === "Barangay Staff" && (
@@ -601,6 +602,7 @@ export default function PersonnelTypesPage() {
                                                         <SelectItem value="Barangay Kagawad">Barangay Kagawad</SelectItem>
                                                         <SelectItem value="Barangay Secretary">Barangay Secretary</SelectItem>
                                                         <SelectItem value="Barangay Treasurer">Barangay Treasurer</SelectItem>
+                                                        <SelectItem value="Brgy SK CHAIRMAN">Brgy SK CHAIRMAN</SelectItem>
                                                     </>
                                                 )}
                                                 {office === "Barangay Staff" && (
