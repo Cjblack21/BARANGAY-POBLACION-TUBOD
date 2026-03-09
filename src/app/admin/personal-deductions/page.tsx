@@ -324,15 +324,15 @@ export default function PersonalDeductionsPage() {
                             <DeductionIcon className="h-6 w-6 text-red-600" />
                         </div>
                         <div>
-                            <h2 className="text-2xl md:text-3xl font-bold tracking-tight">Staff Deductions</h2>
-                            <p className="text-sm text-muted-foreground">Manage individual staff deductions (non-mandatory)</p>
+                            <h2 className="text-2xl md:text-3xl font-bold tracking-tight">Custom Staff Deduction</h2>
+                            <p className="text-sm text-muted-foreground">Manage individual custom staff deductions (non-mandatory)</p>
                         </div>
                     </div>
                 </div>
                 <Dialog open={open} onOpenChange={(v) => { setOpen(v); if (v) { loadUsers(); setUserSearch("") } }}>
                     <DialogTrigger asChild>
                         <Button className="bg-red-600 hover:bg-red-700 text-white gap-2">
-                            <Plus className="h-4 w-4" />Add Staff Deduction
+                            <Plus className="h-4 w-4" />Add Custom Deduction
                         </Button>
                     </DialogTrigger>
                     <DialogContent className="w-full sm:max-w-6xl max-h-[90vh] overflow-y-auto" style={{ width: "95vw", maxWidth: "1200px" }}>
@@ -531,7 +531,7 @@ export default function PersonalDeductionsPage() {
 
             {/* Stats */}
             <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-                <Card className="cursor-pointer hover:shadow-xl transition-all duration-300 hover:scale-105 border-l-4 border-l-red-500">
+                <Card className="cursor-pointer hover:shadow-md transition-all duration-150 hover:scale-[1.01] border-l-4 border-l-red-500">
                     <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                         <CardTitle className="text-sm font-medium">Active Deductions</CardTitle>
                         <DeductionIcon className="h-4 w-4 text-red-600" />
@@ -541,7 +541,7 @@ export default function PersonalDeductionsPage() {
                         <p className="text-xs text-muted-foreground">Currently active</p>
                     </CardContent>
                 </Card>
-                <Card className="cursor-pointer hover:shadow-xl transition-all duration-300 hover:scale-105 border-l-4 border-l-green-500">
+                <Card className="cursor-pointer hover:shadow-md transition-all duration-150 hover:scale-[1.01] border-l-4 border-l-green-500">
                     <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                         <CardTitle className="text-sm font-medium">Completed</CardTitle>
                         <CheckCircle className="h-4 w-4 text-green-600" />
@@ -551,7 +551,7 @@ export default function PersonalDeductionsPage() {
                         <p className="text-xs text-muted-foreground">Fully paid off</p>
                     </CardContent>
                 </Card>
-                <Card className="cursor-pointer hover:shadow-xl transition-all duration-300 hover:scale-105 border-l-4 border-l-orange-500">
+                <Card className="cursor-pointer hover:shadow-md transition-all duration-150 hover:scale-[1.01] border-l-4 border-l-orange-500">
                     <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                         <CardTitle className="text-sm font-medium">Outstanding Balance</CardTitle>
                         <TrendingUp className="h-4 w-4 text-orange-600" />
@@ -561,7 +561,7 @@ export default function PersonalDeductionsPage() {
                         <p className="text-xs text-muted-foreground">Remaining to be paid</p>
                     </CardContent>
                 </Card>
-                <Card className="cursor-pointer hover:shadow-xl transition-all duration-300 hover:scale-105 border-l-4 border-l-pink-500">
+                <Card className="cursor-pointer hover:shadow-md transition-all duration-150 hover:scale-[1.01] border-l-4 border-l-pink-500">
                     <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                         <CardTitle className="text-sm font-medium">Per Payroll Collection</CardTitle>
                         <CreditCard className="h-4 w-4 text-pink-600" />

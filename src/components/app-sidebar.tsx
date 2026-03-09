@@ -167,7 +167,7 @@ export function AppSidebar({ user, ...props }: AppSidebarProps) {
                 <SidebarMenuButton asChild className="h-10 font-medium [&>svg]:size-[18px]" onClick={() => setOpenMobile(false)}>
                   <Link href="/admin/personal-deductions">
                     <BadgeMinus />
-                    <span>Staff Deductions</span>
+                    <span>Custom Staff Deduction</span>
                   </Link>
                 </SidebarMenuButton>
               </SidebarMenuItem>

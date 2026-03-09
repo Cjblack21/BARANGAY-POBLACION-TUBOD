@@ -793,7 +793,7 @@ export default function LoansPage() {
 
       {/* Statistics Cards */}
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        <Card className="cursor-pointer hover:shadow-xl transition-all duration-300 hover:scale-105 border-l-4 border-l-blue-500">
+        <Card className="cursor-pointer hover:shadow-md transition-all duration-150 hover:scale-[1.01] border-l-4 border-l-blue-500">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Active Loans</CardTitle>
             <User className="h-4 w-4 text-blue-600" />
@@ -804,7 +804,7 @@ export default function LoansPage() {
           </CardContent>
         </Card>
 
-        <Card className="cursor-pointer hover:shadow-xl transition-all duration-300 hover:scale-105 border-l-4 border-l-yellow-500">
+        <Card className="cursor-pointer hover:shadow-md transition-all duration-150 hover:scale-[1.01] border-l-4 border-l-yellow-500">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Pending Requests</CardTitle>
             <Clock className="h-4 w-4 text-yellow-600" />
@@ -815,7 +815,7 @@ export default function LoansPage() {
           </CardContent>
         </Card>
 
-        <Card className="cursor-pointer hover:shadow-xl transition-all duration-300 hover:scale-105 border-l-4 border-l-green-500">
+        <Card className="cursor-pointer hover:shadow-md transition-all duration-150 hover:scale-[1.01] border-l-4 border-l-green-500">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Total Disbursed</CardTitle>
             <Banknote className="h-4 w-4 text-green-600" />
@@ -826,7 +826,7 @@ export default function LoansPage() {
           </CardContent>
         </Card>
 
-        <Card className="cursor-pointer hover:shadow-xl transition-all duration-300 hover:scale-105 border-l-4 border-l-purple-500">
+        <Card className="cursor-pointer hover:shadow-md transition-all duration-150 hover:scale-[1.01] border-l-4 border-l-purple-500">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Per Payroll</CardTitle>
             <CreditCard className="h-4 w-4 text-purple-600" />

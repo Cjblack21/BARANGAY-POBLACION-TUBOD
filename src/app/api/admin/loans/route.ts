@@ -85,81 +85,54 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Invalid input values' }, { status: 400 })
     }
 
-    // Get user's monthly salary
+    // Get user info + salary
     const user = await prisma.users.findUnique({
       where: { users_id },
       select: {
         name: true,
         personnel_types: {
-          select: {
-            basicSalary: true
-          }
+          select: { basicSalary: true }
         }
       }
     })
 
-    if (!user || !user.personnel_types) {
-      return NextResponse.json({ error: 'User not found or has no salary information' }, { status: 404 })
+    if (!user) {
+      return NextResponse.json({ error: 'User not found' }, { status: 404 })
     }
 
-    const monthlySalary = Number(user.personnel_types.basicSalary)
+    const monthlySalary = Number(user.personnel_types?.basicSalary || 0)
 
-    // Calculate monthly payment for this new loan
-    const newLoanMonthlyPayment = (amt * monthlyPercent) / 100
+    if (monthlySalary > 0) {
+      // Calculate monthly payment for this new loan
+      const newLoanMonthlyPayment = (amt * monthlyPercent) / 100
 
-    // Get existing active loans for this user
-    const existingLoans = await prisma.loans.findMany({
-      where: {
-        users_id,
-        status: 'ACTIVE',
-        archivedAt: null
+      // Get existing active loans for this user
+      const existingLoans = await prisma.loans.findMany({
+        where: { users_id, status: 'ACTIVE', archivedAt: null }
+      })
+
+      const existingLoanPayments = existingLoans.reduce((sum, loan) => {
+        return sum + (Number(loan.amount) * Number(loan.monthlyPaymentPercent)) / 100
+      }, 0)
+
+      // Get existing deductions for this user
+      const existingDeductions = await prisma.deductions.findMany({
+        where: { users_id, archivedAt: null }
+      })
+
+      const totalExistingDeductions = existingDeductions.reduce((sum, d) => {
+        return sum + Number(d.amount)
+      }, 0)
+
+      const totalMonthlyObligations = existingLoanPayments + totalExistingDeductions + newLoanMonthlyPayment
+
+      // Block if total would exceed 100% of salary (can't deduct more than they earn)
+      if (totalMonthlyObligations > monthlySalary) {
+        const available = monthlySalary - (existingLoanPayments + totalExistingDeductions)
+        return NextResponse.json({
+          error: `Cannot add loan/deduction. Total monthly deductions (₱${totalMonthlyObligations.toFixed(2)}) would exceed the staff's monthly salary (₱${monthlySalary.toFixed(2)}). Available: ₱${Math.max(0, available).toFixed(2)}`
+        }, { status: 400 })
       }
-    })
-
-    // Calculate total existing loan payments
-    const existingLoanPayments = existingLoans.reduce((sum, loan) => {
-      const monthlyPayment = (Number(loan.amount) * Number(loan.monthlyPaymentPercent)) / 100
-      return sum + monthlyPayment
-    }, 0)
-
-    // Get existing deductions for this user
-    const existingDeductions = await prisma.deductions.findMany({
-      where: {
-        users_id,
-        archivedAt: null
-      }
-    })
-
-    // Calculate total existing deductions
-    const totalExistingDeductions = existingDeductions.reduce((sum, deduction) => {
-      return sum + Number(deduction.amount)
-    }, 0)
-
-    // Calculate total monthly obligations
-    const totalMonthlyObligations = existingLoanPayments + totalExistingDeductions + newLoanMonthlyPayment
-
-    // Validate: total obligations cannot exceed 80% of monthly salary (must keep at least 20% net pay)
-    const maxAllowedDeductions = monthlySalary * 0.8 // 80% max
-    const minimumNetPay = monthlySalary * 0.2 // 20% min
-    
-    if (totalMonthlyObligations > maxAllowedDeductions) {
-      const available = maxAllowedDeductions - (existingLoanPayments + totalExistingDeductions)
-      const projectedNetPay = monthlySalary - totalMonthlyObligations
-      
-      return NextResponse.json({ 
-        error: `Cannot add loan. Total monthly deductions (₱${totalMonthlyObligations.toFixed(2)}) would exceed the maximum allowed (₱${maxAllowedDeductions.toFixed(2)}). Staff must keep at least 20% of salary (₱${minimumNetPay.toFixed(2)}) as net pay. Available for new loans/deductions: ₱${Math.max(0, available).toFixed(2)}`,
-        details: {
-          monthlySalary,
-          maxAllowedDeductions,
-          minimumNetPay,
-          existingLoanPayments,
-          existingDeductions: totalExistingDeductions,
-          newLoanPayment: newLoanMonthlyPayment,
-          totalObligations: totalMonthlyObligations,
-          projectedNetPay,
-          available: Math.max(0, available)
-        }
-      }, { status: 400 })
     }
 
     // Calculate start and end dates

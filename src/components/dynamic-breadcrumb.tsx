@@ -19,7 +19,7 @@ export function DynamicBreadcrumb() {
       '/admin/user-management': 'Staff Management',
       '/admin/personnel-types': 'Brgy Position',
       '/admin/loans': 'Loan Management',
-      '/admin/personal-deductions': 'Staff Deductions',
+      '/admin/personal-deductions': 'Custom Staff Deduction',
       '/admin/profile': 'Profile',
       '/admin/header-settings': 'Header Settings',
       '/admin/holidays': 'Holidays',

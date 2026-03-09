@@ -11,7 +11,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Switch } from "@/components/ui/switch"
 import { Command, CommandEmpty, CommandGroup, CommandItem, CommandList } from "@/components/ui/command"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
-import { Plus, CheckSquare, Square, Trash2, BadgeMinus, CheckCheck, Pencil, AlertCircle } from "lucide-react"
+import { Plus, CheckSquare, Square, Trash2, BadgeMinus, CheckCheck, Pencil, AlertCircle, Search } from "lucide-react"
 import { toast } from "react-hot-toast"
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
 
@@ -118,11 +118,32 @@ export default function DeductionsPage() {
   const [showDeleteDeductionModal, setShowDeleteDeductionModal] = useState(false)
   const [deductionToDelete, setDeductionToDelete] = useState<string>('')
 
+  // Table search states
+  const [mandatorySearch, setMandatorySearch] = useState("")
+  const [currentDeductionSearch, setCurrentDeductionSearch] = useState("")
+
   const filteredEmployees = useMemo(() => {
     if (!employeeSearch) return personnel
     const q = employeeSearch.toLowerCase()
     return personnel.filter(p => p.name?.toLowerCase().includes(q) || p.email.toLowerCase().includes(q))
   }, [personnel, employeeSearch])
+
+  const filteredMandatoryTypes = useMemo(() => {
+    const mandatory = types.filter(t => t.isMandatory)
+    if (!mandatorySearch) return mandatory
+    const q = mandatorySearch.toLowerCase()
+    return mandatory.filter(t => t.name.toLowerCase().includes(q) || (t.description || '').toLowerCase().includes(q))
+  }, [types, mandatorySearch])
+
+  const filteredCurrentDeductions = useMemo(() => {
+    if (!currentDeductionSearch) return deductions
+    const q = currentDeductionSearch.toLowerCase()
+    return deductions.filter(d =>
+      (d.users.name || d.users.email).toLowerCase().includes(q) ||
+      d.deduction_types.name.toLowerCase().includes(q) ||
+      (d.users.personnel_types?.name || '').toLowerCase().includes(q)
+    )
+  }, [deductions, currentDeductionSearch])
 
   const filteredApplyPersonnel = useMemo(() => {
     if (!applyPersonnelSearch) return personnel
@@ -442,15 +463,26 @@ export default function DeductionsPage() {
       {/* ── Mandatory Deduction Types Table ── */}
       <Card className="shadow-sm">
         <CardHeader className="border-b bg-muted/30 px-5 py-4">
-          <div className="flex items-center justify-between">
-            <CardTitle className="flex items-center gap-2 text-base font-semibold">
-              <BadgeMinus className="h-4 w-4 text-blue-600" />Mandatory Deductions
-            </CardTitle>
-            {selectedMandatoryTypesForDelete.length > 0 && (
-              <Button variant="destructive" size="sm" onClick={promptDeleteMandatory} className="h-8 gap-1 text-xs">
-                <Trash2 className="h-3 w-3" />Delete Selected ({selectedMandatoryTypesForDelete.length})
-              </Button>
-            )}
+          <div className="flex flex-col gap-3">
+            <div className="flex items-center justify-between">
+              <CardTitle className="flex items-center gap-2 text-base font-semibold">
+                <BadgeMinus className="h-4 w-4 text-blue-600" />Mandatory Deductions
+              </CardTitle>
+              {selectedMandatoryTypesForDelete.length > 0 && (
+                <Button variant="destructive" size="sm" onClick={promptDeleteMandatory} className="h-8 gap-1 text-xs">
+                  <Trash2 className="h-3 w-3" />Delete Selected ({selectedMandatoryTypesForDelete.length})
+                </Button>
+              )}
+            </div>
+            <div className="relative w-full sm:max-w-xs">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+              <Input
+                placeholder="Search mandatory deductions..."
+                value={mandatorySearch}
+                onChange={e => setMandatorySearch(e.target.value)}
+                className="pl-9 h-9 text-sm"
+              />
+            </div>
           </div>
         </CardHeader>
         <CardContent className="p-0">
@@ -474,7 +506,7 @@ export default function DeductionsPage() {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {types.filter(t => t.isMandatory).map(t => (
+                  {filteredMandatoryTypes.map(t => (
                     <TableRow key={t.deduction_types_id} className="hover:bg-muted/20">
                       <TableCell>
                         <Button variant="ghost" size="sm" onClick={() => toggleMandatoryTypeForDelete(t.deduction_types_id)} className="h-8 w-8 p-0">
@@ -500,8 +532,8 @@ export default function DeductionsPage() {
                       </TableCell>
                     </TableRow>
                   ))}
-                  {types.filter(t => t.isMandatory).length === 0 && (
-                    <TableRow><TableCell colSpan={6} className="py-10 text-center text-muted-foreground text-sm">No mandatory deductions found. Click "Add Mandatory Deduction" to create them.</TableCell></TableRow>
+                  {filteredMandatoryTypes.length === 0 && (
+                    <TableRow><TableCell colSpan={6} className="py-10 text-center text-muted-foreground text-sm">{mandatorySearch ? 'No results found.' : 'No mandatory deductions found. Click "Add Mandatory Deduction" to create them.'}</TableCell></TableRow>
                   )}
                 </TableBody>
               </Table>
@@ -513,16 +545,27 @@ export default function DeductionsPage() {
       {/* ── Current Deductions Table ── */}
       <Card className="shadow-sm">
         <CardHeader className="border-b bg-muted/30 px-5 py-4">
-          <div className="flex items-center justify-between">
-            <CardTitle className="flex items-center gap-2 text-base font-semibold">
-              <BadgeMinus className="h-4 w-4 text-green-600" />Current Deductions
-              <Badge variant="secondary" className="ml-1">{deductions.length}</Badge>
-            </CardTitle>
-            {selectedDeductions.length > 0 && (
-              <Button variant="destructive" size="sm" onClick={promptDeleteDeductions} className="h-8 gap-1 text-xs">
-                <Trash2 className="h-3 w-3" />Delete Selected ({selectedDeductions.length})
-              </Button>
-            )}
+          <div className="flex flex-col gap-3">
+            <div className="flex items-center justify-between">
+              <CardTitle className="flex items-center gap-2 text-base font-semibold">
+                <BadgeMinus className="h-4 w-4 text-green-600" />Current Deductions
+                <Badge variant="secondary" className="ml-1">{deductions.length}</Badge>
+              </CardTitle>
+              {selectedDeductions.length > 0 && (
+                <Button variant="destructive" size="sm" onClick={promptDeleteDeductions} className="h-8 gap-1 text-xs">
+                  <Trash2 className="h-3 w-3" />Delete Selected ({selectedDeductions.length})
+                </Button>
+              )}
+            </div>
+            <div className="relative w-full sm:max-w-xs">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+              <Input
+                placeholder="Search by staff, deduction..."
+                value={currentDeductionSearch}
+                onChange={e => setCurrentDeductionSearch(e.target.value)}
+                className="pl-9 h-9 text-sm"
+              />
+            </div>
           </div>
         </CardHeader>
         <CardContent className="p-0">
@@ -550,7 +593,7 @@ export default function DeductionsPage() {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {deductions.map(d => (
+                  {filteredCurrentDeductions.map(d => (
                     <TableRow key={d.deductions_id} className="hover:bg-muted/20">
                       <TableCell>
                         <Button variant="ghost" size="sm" onClick={() => toggleDeduction(d.deductions_id)} className="h-8 w-8 p-0">
@@ -584,8 +627,8 @@ export default function DeductionsPage() {
                       </TableCell>
                     </TableRow>
                   ))}
-                  {deductions.length === 0 && (
-                    <TableRow><TableCell colSpan={10} className="py-10 text-center text-muted-foreground text-sm">No deductions found.</TableCell></TableRow>
+                  {filteredCurrentDeductions.length === 0 && (
+                    <TableRow><TableCell colSpan={10} className="py-10 text-center text-muted-foreground text-sm">{currentDeductionSearch ? 'No results found.' : 'No deductions found.'}</TableCell></TableRow>
                   )}
                 </TableBody>
               </Table>
