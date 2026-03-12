@@ -571,9 +571,9 @@ export default function LoansPage() {
                                 setCustomTerm('')
                                 setForm(f => ({ ...f, termMonths: months.toString() }))
                               }}
-                              className={(!isCustomTerm && Number(form.termMonths) === months) ? "bg-blue-600 hover:bg-blue-700" : ""}
+                              className={`${(!isCustomTerm && Number(form.termMonths) === months) ? "bg-blue-600 hover:bg-blue-700" : ""} ${months === 1 ? "col-span-3 text-sm" : ""}`}
                             >
-                              {months} {months === 1 ? 'Month' : 'Months'}
+                              {months === 1 ? '1 Month (per payroll)' : `${months} Months`}
                             </Button>
                           ))}
                           <Button

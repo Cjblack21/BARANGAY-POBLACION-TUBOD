@@ -403,8 +403,8 @@ export default function PersonalDeductionsPage() {
                                             {[1, 3, 6, 12, 18, 24].map(m => (
                                                 <Button key={m} type="button" variant={!isCustomTerm && Number(form.termMonths) === m ? "default" : "outline"}
                                                     onClick={() => { setIsCustomTerm(false); setCustomTerm(""); setForm(f => ({ ...f, termMonths: m.toString() })) }}
-                                                    className={!isCustomTerm && Number(form.termMonths) === m ? "bg-red-600 hover:bg-red-700" : ""}>
-                                                    {m} {m === 1 ? "Month" : "Months"}
+                                                    className={`${!isCustomTerm && Number(form.termMonths) === m ? "bg-red-600 hover:bg-red-700" : ""} ${m === 1 ? "col-span-3 text-sm" : ""}`}>
+                                                    {m === 1 ? "1 Month (per payroll)" : `${m} Months`}
                                                 </Button>
                                             ))}
                                             <Button type="button" variant={isCustomTerm ? "default" : "outline"} onClick={() => setIsCustomTerm(true)}

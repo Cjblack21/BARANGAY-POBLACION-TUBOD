@@ -157,17 +157,9 @@ export function AppSidebar({ user, ...props }: AppSidebarProps) {
               </SidebarMenuItem>
               <SidebarMenuItem>
                 <SidebarMenuButton asChild className="h-10 font-medium [&>svg]:size-[18px]" onClick={() => setOpenMobile(false)}>
-                  <Link href="/admin/loans">
-                    <Banknote />
-                    <span>Loans</span>
-                  </Link>
-                </SidebarMenuButton>
-              </SidebarMenuItem>
-              <SidebarMenuItem>
-                <SidebarMenuButton asChild className="h-10 font-medium [&>svg]:size-[18px]" onClick={() => setOpenMobile(false)}>
-                  <Link href="/admin/personal-deductions">
-                    <BadgeMinus />
-                    <span>Custom Staff Deduction</span>
+                  <Link href="/admin/add-pay">
+                    <BadgePlus />
+                    <span>Add Pay</span>
                   </Link>
                 </SidebarMenuButton>
               </SidebarMenuItem>
@@ -181,9 +173,9 @@ export function AppSidebar({ user, ...props }: AppSidebarProps) {
               </SidebarMenuItem>
               <SidebarMenuItem>
                 <SidebarMenuButton asChild className="h-10 font-medium [&>svg]:size-[18px]" onClick={() => setOpenMobile(false)}>
-                  <Link href="/admin/add-pay">
-                    <BadgePlus />
-                    <span>Add Pay</span>
+                  <Link href="/admin/personal-deductions">
+                    <BadgeMinus />
+                    <span>Custom Staff Deduction</span>
                   </Link>
                 </SidebarMenuButton>
               </SidebarMenuItem>
@@ -192,6 +184,14 @@ export function AppSidebar({ user, ...props }: AppSidebarProps) {
                   <Link href="/admin/attendance-deduction">
                     <ClipboardMinus />
                     <span>Attendance Deduction</span>
+                  </Link>
+                </SidebarMenuButton>
+              </SidebarMenuItem>
+              <SidebarMenuItem>
+                <SidebarMenuButton asChild className="h-10 font-medium [&>svg]:size-[18px]" onClick={() => setOpenMobile(false)}>
+                  <Link href="/admin/loans">
+                    <Banknote />
+                    <span>Loans</span>
                   </Link>
                 </SidebarMenuButton>
               </SidebarMenuItem>
