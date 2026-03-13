@@ -164,22 +164,7 @@ export async function POST(req: NextRequest) {
         // Calculate total obligations including new deduction
         const totalMonthlyObligations = existingLoanPayments + totalExistingDeductions + newDeductionAmount
 
-        // Validate: total obligations cannot exceed 80% of monthly salary (must keep at least 20% net pay)
-        const maxAllowedDeductions = monthlySalary * 0.8 // 80% max
-        const minimumNetPay = monthlySalary * 0.2 // 20% min
-
-        if (totalMonthlyObligations > maxAllowedDeductions) {
-          const available = maxAllowedDeductions - (existingLoanPayments + totalExistingDeductions)
-          const projectedNetPay = monthlySalary - totalMonthlyObligations
-
-          validationErrors.push(
-            `${user.name || eid}: Cannot add deduction of ₱${newDeductionAmount.toFixed(2)}. ` +
-            `Total monthly obligations (₱${totalMonthlyObligations.toFixed(2)}) would exceed the maximum allowed (₱${maxAllowedDeductions.toFixed(2)}). ` +
-            `Staff must keep at least 20% of salary (₱${minimumNetPay.toFixed(2)}) as net pay. ` +
-            `Available: ₱${Math.max(0, available).toFixed(2)}`
-          )
-          return null
-        }
+        // No net pay minimum restriction — admin can add deductions freely
 
         return prisma.deductions.create({
           data: {
