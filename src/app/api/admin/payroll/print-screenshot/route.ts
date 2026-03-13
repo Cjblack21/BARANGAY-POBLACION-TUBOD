@@ -360,10 +360,16 @@ export async function POST(request: NextRequest) {
       const loanDetails = loanRecords.map(loan => {
         const monthlyPayment = Number(loan.amount) * Number(loan.monthlyPaymentPercent) / 100
         const periodPayment = monthlyPayment * loanFactor
+        const isDeduction = loan.purpose?.toUpperCase().startsWith('[DEDUCTION]') ?? false
+        const displayName = isDeduction
+          ? (loan.purpose ?? '').replace(/^\[DEDUCTION\]\s*/i, '').trim() || 'Custom Deduction'
+          : loan.purpose || 'Loan Payment'
         return {
           type: loan.purpose || 'Loan Payment',
+          displayName,
+          isDeduction,
           amount: periodPayment,
-          description: `${loan.purpose || 'Loan'} (${loan.monthlyPaymentPercent}% of ₱${Number(loan.amount).toLocaleString()})`,
+          description: `${displayName} (${loan.monthlyPaymentPercent}% of ₱${Number(loan.amount).toLocaleString()})`,
           originalAmount: Number(loan.amount),
           remainingBalance: Number(loan.balance || loan.amount),
           loanId: loan.loans_id
@@ -451,7 +457,7 @@ export async function POST(request: NextRequest) {
                 <div class="school-address">${headerSettings?.schoolAddress || ''}</div>
                 <div class="system-name">${headerSettings?.systemName || ''}</div>
                 ${headerSettings?.customText ? `<div class="custom-text">${headerSettings.customText}</div>` : ''}
-                <div class="payslip-title">PAYSLIP</div>
+                <div class="payslip-title">HONORARIUM</div>
               </div>
               <div style="text-align: right;">
                 <img src="/QR CODE PMS SYSTEM.png" alt="QR Code" style="width: 60px; height: 60px; object-fit: contain;" onerror="this.style.display='none'">
@@ -567,10 +573,10 @@ export async function POST(request: NextRequest) {
             ` : ''}
             
             ${(() => {
-          // Separate actual loans from [DEDUCTION] items
+          // Use the isDeduction flag set at data-build time for reliable separation
           const allLoans = breakdown.loanDetails || []
-          const actualLoans = allLoans.filter((loan: any) => !loan.type?.includes('[DEDUCTION]') && !loan.description?.includes('[DEDUCTION]'))
-          const deductionLoans = allLoans.filter((loan: any) => loan.type?.includes('[DEDUCTION]') || loan.description?.includes('[DEDUCTION]'))
+          const actualLoans = allLoans.filter((loan: any) => !loan.isDeduction)
+          const customDeductions = allLoans.filter((loan: any) => loan.isDeduction)
 
           let html = ''
 
@@ -580,8 +586,7 @@ export async function POST(request: NextRequest) {
                   <div class="deduction-section">
                     <div class="deduction-title">Loan Payments: (${actualLoans.length} loan${actualLoans.length > 1 ? 's' : ''})</div>
                     ${actualLoans.map((loan: any) => {
-              // Clean up loan name - remove percentage details
-              const loanName = (loan.description || loan.type || 'Loan Payment').split('(')[0].trim();
+              const loanName = loan.displayName || (loan.description || loan.type || 'Loan Payment').split('(')[0].trim();
               return `
                       <div style="margin-bottom: 4px;">
                         <div class="detail-row deduction-detail">
@@ -600,24 +605,28 @@ export async function POST(request: NextRequest) {
                 `
           }
 
-          // Show [DEDUCTION] items under Deduction Payments
-          if (deductionLoans.length > 0) {
+          // Custom deductions shown in their own separate section
+          if (customDeductions.length > 0) {
+            const deductionsTotal = customDeductions.reduce((sum: number, d: any) => sum + d.amount, 0);
             html += `
                   <div class="deduction-section">
-                    <div class="deduction-title">Deduction Payments:</div>
-                    ${deductionLoans.map((loan: any) => {
-              // Clean up deduction name - remove [DEDUCTION] prefix and percentage details
-              let deductionName = (loan.description || loan.type || 'Deduction').replace(/^\[DEDUCTION\]\s*/i, '').split('(')[0].trim();
+                    <div class="deduction-title" style="color: #b45309;">Custom Deductions: (${customDeductions.length} item${customDeductions.length > 1 ? 's' : ''})</div>
+                    ${customDeductions.map((d: any) => {
+              const dedName = d.displayName || (d.description || d.type || 'Deduction').replace(/^\[DEDUCTION\]\s*/i, '').split('(')[0].trim();
               return `
                       <div style="margin-bottom: 4px;">
                         <div class="detail-row deduction-detail">
-                          <span style="font-weight: 500;">${deductionName}</span>
-                          <span class="deduction" style="font-weight: bold;">-₱${loan.amount.toLocaleString(undefined, { maximumFractionDigits: 2 })}</span>
+                          <span style="font-weight: 500;">${dedName}</span>
+                          <span class="deduction" style="font-weight: bold;">-₱${d.amount.toLocaleString(undefined, { maximumFractionDigits: 2 })}</span>
                         </div>
-                        ${loan.originalAmount ? `<div style="font-size: 7px; color: #999; margin-left: 12px;">Total Amount: ₱${loan.originalAmount.toLocaleString(undefined, { maximumFractionDigits: 2 })}</div>` : ''}
-                        ${loan.remainingBalance && loan.remainingBalance > 0 ? `<div style="font-size: 7px; color: #999; margin-left: 12px;">Remaining Balance: ₱${loan.remainingBalance.toLocaleString(undefined, { maximumFractionDigits: 2 })}</div>` : ''}
+                        ${d.originalAmount ? `<div style="font-size: 7px; color: #999; margin-left: 12px;">Total Amount: ₱${d.originalAmount.toLocaleString(undefined, { maximumFractionDigits: 2 })}</div>` : ''}
+                        ${d.remainingBalance && d.remainingBalance > 0 ? `<div style="font-size: 7px; color: #999; margin-left: 12px;">Remaining Balance: ₱${d.remainingBalance.toLocaleString(undefined, { maximumFractionDigits: 2 })}</div>` : ''}
                       </div>
                     `}).join('')}
+                    <div class="detail-row deduction-detail" style="border-top: 1px solid #ddd; margin-top: 2px; padding-top: 2px; font-weight: bold;">
+                      <span>Subtotal:</span>
+                      <span class="deduction">-₱${deductionsTotal.toLocaleString(undefined, { maximumFractionDigits: 2 })}</span>
+                    </div>
                   </div>
                 `
           }

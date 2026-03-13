@@ -369,7 +369,7 @@ export default function PersonnelPayrollPage() {
         <div>
           <h1 className="text-3xl font-bold tracking-tight flex items-center gap-3">
             <FileText className="h-8 w-8 text-blue-600" />
-            My Payroll
+            My Payroll (Honorarium)
           </h1>
           <p className="text-muted-foreground">View your payroll information and breakdowns</p>
         </div>
@@ -398,11 +398,37 @@ export default function PersonnelPayrollPage() {
         // Period salary is the same as monthly basic for display
         const periodSalary = monthlyBasic
 
-        const dbNetPay = Number(latestPayroll.netPay || 0)
-        const deductions = Number(latestPayroll.deductions || 0)
+        // Calculate additions and deductions reliably from snapshot details
+        let overloadPay = 0
+        let deductions = Number(latestPayroll.deductions || 0)
 
-        // Use snapshot totalAdditions directly (no netPay-based fallback)
-        const overloadPay = snapAdditions
+        if (snapshot) {
+          // Additional Pay
+          const additionDetails = snapshot.overloadPayDetails || snapshot.additionalPay || []
+          if (additionDetails.length > 0) {
+            overloadPay = additionDetails.reduce((sum: number, detail: any) => sum + Number(detail.amount || 0), 0)
+          } else if (snapshot.totalAdditions) {
+            overloadPay = Number(snapshot.totalAdditions)
+          }
+
+          // Deductions
+          const deductionDetails = [
+            ...(snapshot.deductionDetails || []),
+            ...(snapshot.attendanceDeductionDetails || [])
+          ]
+          const loans = snapshot.loanDetails || []
+          
+          const sumDet = deductionDetails.reduce((sum: number, d: any) => sum + Number(d.amount || 0), 0)
+          const sumLoans = loans.reduce((sum: number, l: any) => sum + Number(l.payment !== undefined ? l.payment : l.amount || 0), 0)
+          
+          if (sumDet > 0 || sumLoans > 0) {
+            deductions = sumDet + sumLoans
+          } else if (snapshot.totalDeductions) {
+            deductions = Number(snapshot.totalDeductions)
+          }
+        }
+
+        const dbNetPay = Number(latestPayroll.netPay || 0)
 
         console.log('💰 Payroll Data (from snapshot):', {
           monthlyBasic,
@@ -463,7 +489,7 @@ export default function PersonnelPayrollPage() {
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <FileText className="h-5 w-5" />
-            Current Payroll
+            Current Payroll (Honorarium)
           </CardTitle>
           <CardDescription>
             View your current and archived payrolls
@@ -479,7 +505,7 @@ export default function PersonnelPayrollPage() {
                   : 'text-muted-foreground hover:text-foreground'
                   }`}
               >
-                Current Payroll
+                Current Payroll (Honorarium)
               </button>
               <button
                 onClick={() => setArchiveOpen(true)}
@@ -488,7 +514,7 @@ export default function PersonnelPayrollPage() {
                   : 'text-muted-foreground hover:text-foreground'
                   }`}
               >
-                Archived Payrolls
+                Archived Payrolls (Honorarium)
               </button>
             </div>
           </div>
@@ -497,18 +523,17 @@ export default function PersonnelPayrollPage() {
             // Current Payroll Tab - Show only the latest released
             currentPayroll ? (
               <div className="space-y-4">
-                <div className="relative overflow-hidden border-2 border-blue-200 dark:border-blue-800 rounded-xl bg-gradient-to-br from-blue-50 to-blue-100 dark:from-blue-950/20 dark:to-blue-900/20 p-4 sm:p-5 shadow-sm hover:shadow-md transition-all">
-                  <div className="absolute top-0 right-0 w-32 h-32 bg-blue-500/10 rounded-full -mr-16 -mt-16"></div>
+                <div className="relative overflow-hidden border rounded-xl bg-card p-4 sm:p-5 shadow-sm transition-all">
                   <div className="relative space-y-4">
                     {/* Header Section */}
                     <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
                       <div className="flex items-center gap-2">
-                        <div className="p-2 bg-blue-600 rounded-lg shrink-0">
-                          <FileText className="h-5 w-5 text-white" />
+                        <div className="p-2 bg-blue-100 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 rounded-lg shrink-0">
+                          <FileText className="h-5 w-5" />
                         </div>
                         <div className="min-w-0">
-                          <p className="text-xs font-medium text-blue-700 dark:text-blue-400">Current Period</p>
-                          <p className="text-xs sm:text-sm font-semibold text-gray-900 dark:text-gray-100 truncate">
+                          <p className="text-xs font-medium text-muted-foreground">Current Period</p>
+                          <p className="text-xs sm:text-sm font-semibold truncate">
                             {formatDate(currentPayroll.periodStart)} - {formatDate(currentPayroll.periodEnd)}
                           </p>
                         </div>
@@ -519,7 +544,7 @@ export default function PersonnelPayrollPage() {
                     </div>
 
                     {/* Net Pay Section */}
-                    <div className="bg-white/50 dark:bg-gray-900/50 rounded-lg p-4 backdrop-blur-sm">
+                    <div className="bg-muted/50 rounded-lg p-4">
                       <div className="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-4">
                         <div className="flex-1">
                           <p className="text-xs font-medium text-muted-foreground mb-1">Net Pay</p>
@@ -529,7 +554,7 @@ export default function PersonnelPayrollPage() {
                           <p className="text-xs text-muted-foreground mt-1">Take home amount</p>
                         </div>
                         <Button
-                          className="bg-blue-600 hover:bg-blue-700 shadow-md w-full sm:w-auto"
+                          className="w-full sm:w-auto bg-blue-600 hover:bg-blue-700 text-white shadow-sm"
                           size="default"
                           onClick={() => openPayslipDetails(currentPayroll)}
                         >
@@ -570,39 +595,12 @@ export default function PersonnelPayrollPage() {
                     {formatCurrency(archivedPayrolls.reduce((sum: number, p: any) => sum + Number(p.netPay || 0), 0))}
                   </p>
                 </div>
-                <div className="mb-6 flex flex-col sm:flex-row gap-3 items-start sm:items-center bg-muted/50 p-4 rounded-lg border">
-                  <div className="flex items-center gap-3">
-                    <input
-                      type="checkbox"
-                      checked={selectAll}
-                      onChange={handleSelectAll}
-                      className="cursor-pointer h-5 w-5 rounded border-gray-300"
-                    />
-                    <span className="text-sm font-medium">Select All ({archivedPayrolls.length})</span>
-                  </div>
-                  <Button
-                    variant="destructive"
-                    size="sm"
-                    onClick={deleteSelectedPayrolls}
-                    disabled={selectedPayrolls.length === 0}
-                    className="w-full sm:w-auto shadow-sm"
-                  >
-                    <Trash2 className="h-4 w-4 mr-2" />
-                    Delete Selected ({selectedPayrolls.length})
-                  </Button>
-                </div>
+                {/* Removed Select All / Bulk Delete completely */}
                 <div className="space-y-3">
                   {archivedPayrolls.map((payroll: any) => (
-                    <div key={payroll.payroll_entries_id} className="group relative overflow-hidden border rounded-xl bg-card hover:shadow-lg transition-all duration-200 hover:border-primary/50">
-                      <div className="absolute inset-0 bg-gradient-to-r from-blue-500/5 to-purple-500/5 opacity-0 group-hover:opacity-100 transition-opacity"></div>
+                    <div key={payroll.payroll_entries_id} className="relative overflow-hidden border rounded-xl bg-card">
                       <div className="relative p-4">
                         <div className="flex items-start gap-3 mb-3">
-                          <input
-                            type="checkbox"
-                            checked={selectedPayrolls.includes(payroll.payroll_entries_id)}
-                            onChange={() => handleSelectPayroll(payroll.payroll_entries_id)}
-                            className="cursor-pointer mt-1 h-5 w-5 rounded border-gray-300"
-                          />
                           <div className="flex-1">
                             <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 mb-3">
                               <div className="flex items-center gap-2">
@@ -624,7 +622,7 @@ export default function PersonnelPayrollPage() {
                             <div className="bg-muted/50 rounded-lg p-3 flex items-center justify-between">
                               <div>
                                 <p className="text-xs text-muted-foreground mb-0.5">Net Pay</p>
-                                <p className="text-xl sm:text-2xl font-bold text-green-600 dark:text-green-500">
+                                <p className="text-xl sm:text-2xl font-bold text-blue-600 dark:text-blue-500">
                                   {formatCurrency(Number(payroll.netPay))}
                                 </p>
                               </div>
@@ -670,7 +668,7 @@ export default function PersonnelPayrollPage() {
 
       {/* Digital Payslip Dialog */}
       <Dialog open={detailsOpen} onOpenChange={setDetailsOpen}>
-        <DialogContent className="max-w-[1200px] w-[95vw] max-h-[95vh] overflow-y-auto">
+        <DialogContent className="w-[95vw] sm:max-w-[600px] md:max-w-[800px] lg:max-w-[1000px] max-h-[95vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>{selectedPayroll?.status === 'Released' ? 'Payroll Details' : 'Released Payslip'}</DialogTitle>
           </DialogHeader>
@@ -786,7 +784,7 @@ export default function PersonnelPayrollPage() {
                   <h3 className="font-bold text-base">TUBOD BARANGAY POBLACION</h3>
                   <p className="text-xs text-muted-foreground">Tubod, Lanao del Norte</p>
                   <p className="text-xs text-muted-foreground">POBLACION - PMS</p>
-                  <h2 className="font-bold text-xl mt-3">YOUR PAYROLL DETAILS</h2>
+                  <h2 className="font-bold text-xl mt-3">HONORARIUM</h2>
                 </div>
 
                 {/* Staff Information */}

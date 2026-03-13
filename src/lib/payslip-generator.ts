@@ -84,10 +84,18 @@ export function generatePayslipHTML(
   ) || []
 
   const attendanceDeductions = breakdown.attendanceDeductionDetails || []
-  const loanDeductions = breakdown.loanDetails || []
+  const allLoanDeductions = breakdown.loanDetails || []
+  // Separate actual loans from [DEDUCTION] custom deductions based on purpose prefix
+  const loanDeductions = allLoanDeductions.filter((loan: any) =>
+    !String(loan.purpose || loan.type || '').toUpperCase().startsWith('[DEDUCTION]')
+  )
+  const customDeductionItems = allLoanDeductions.filter((loan: any) =>
+    String(loan.purpose || loan.type || '').toUpperCase().startsWith('[DEDUCTION]')
+  )
 
   const totalMandatory = mandatoryDeductions.reduce((sum: number, d: any) => sum + (d.amount || 0), 0)
-  const totalLoans = breakdown.loanPayments || 0
+  const totalLoans = loanDeductions.reduce((sum: number, loan: any) => sum + (loan.payment || loan.amount || 0), 0)
+  const totalCustomDeductions = customDeductionItems.reduce((sum: number, d: any) => sum + (d.payment || d.amount || 0), 0)
 
   // Calculate attendance deductions: if not explicitly provided, derive from total deductions
   let totalAttendance = breakdown.attendanceDeductions || 0
@@ -154,7 +162,7 @@ export function generatePayslipHTML(
               ${headerSettings?.systemName || 'Payroll Management System'}
             </div>
             <div style="font-weight: bold; font-size: 16px; letter-spacing: 2px;">
-              PAYSLIP
+              HONORARIUM
             </div>
           </div>
           <!-- QR code right -->
@@ -273,7 +281,7 @@ export function generatePayslipHTML(
             ${loanDeductions.map((loan: any) => `
               <div style="margin-bottom: 2px; font-size: 9px; padding-left: 6px;">
                 <div style="display: flex; justify-content: space-between;">
-                  <span style="color: #666;">${loan.purpose || 'Loan Payment'}</span>
+                  <span style="color: #666;">${loan.purpose || loan.type || 'Loan Payment'}</span>
                   <span style="color: #d97706; font-weight: bold;">-₱${(loan.payment || loan.amount || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
                 </div>
                 ${loan.remainingBalance ? `
@@ -293,6 +301,35 @@ export function generatePayslipHTML(
               <div style="display: flex; justify-content: space-between; font-size: 10px; font-weight: bold;">
                 <span>Subtotal:</span>
                 <span style="color: #d97706;">-₱${totalLoans.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+              </div>
+            </div>
+          </div>
+          ` : ''}
+
+          <!-- Custom Deductions (separated from loans) -->
+          ${customDeductionItems.length > 0 ? `
+          <div style="padding: 5px; border-radius: 3px; margin-bottom: 4px;">
+            <div style="font-size: 10px; font-weight: bold; color: #b45309; margin-bottom: 3px;">Custom Deductions:</div>
+            ${customDeductionItems.map((d: any) => {
+              const rawName = String(d.purpose || d.type || 'Deduction')
+              const displayName = rawName.replace(/^\[DEDUCTION\]\s*/i, '').trim() || 'Custom Deduction'
+              return `
+              <div style="margin-bottom: 2px; font-size: 9px; padding-left: 6px;">
+                <div style="display: flex; justify-content: space-between;">
+                  <span style="color: #666;">${displayName}</span>
+                  <span style="color: #b45309; font-weight: bold;">-₱${(d.payment || d.amount || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+                </div>
+                ${d.remainingBalance ? `
+                <div style="font-size: 8px; color: #666; margin-top: 1px;">
+                  Balance: ₱${(d.remainingBalance || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                </div>
+                ` : ''}
+              </div>
+            `}).join('')}
+            <div style="border-top: 1px solid #ddd; margin-top: 3px; padding-top: 3px;">
+              <div style="display: flex; justify-content: space-between; font-size: 10px; font-weight: bold;">
+                <span>Subtotal:</span>
+                <span style="color: #b45309;">-₱${totalCustomDeductions.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
               </div>
             </div>
           </div>

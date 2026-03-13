@@ -100,7 +100,10 @@ export function AppSidebar({ user, ...props }: AppSidebarProps) {
               </div>
               <div className="group-data-[collapsible=icon]:hidden flex flex-col gap-1 leading-none justify-center text-white">
                 <span className="font-bold text-[16px] whitespace-nowrap tracking-tight">BRGY POBLACION</span>
-                <span className="text-xs font-medium text-white/70 whitespace-nowrap tracking-wide">PMS SYSTEM</span>
+                <div className="flex items-center gap-1.5">
+                  <span className="text-xs font-medium text-white/70 whitespace-nowrap tracking-wide">PMS SYSTEM</span>
+                  <span className="text-[10px] font-medium text-white/40">v1.0.0</span>
+                </div>
               </div>
             </div>
           </SidebarMenuItem>
@@ -264,6 +267,24 @@ export function AppSidebar({ user, ...props }: AppSidebarProps) {
           </SidebarGroupContent>
         </SidebarGroup>
 
+        <SidebarSeparator />
+
+        {/* Analytics */}
+        <SidebarGroup>
+          <SidebarGroupLabel className="text-sm font-semibold text-sidebar-foreground/80">Analytics</SidebarGroupLabel>
+          <SidebarGroupContent className="w-full min-w-0">
+            <SidebarMenu>
+              <SidebarMenuItem>
+                <SidebarMenuButton asChild className="h-10 font-medium [&>svg]:size-[18px]" onClick={() => setOpenMobile(false)}>
+                  <Link href="/admin/statistics">
+                    <BarChart3 />
+                    <span>Statistics</span>
+                  </Link>
+                </SidebarMenuButton>
+              </SidebarMenuItem>
+            </SidebarMenu>
+          </SidebarGroupContent>
+        </SidebarGroup>
 
       </SidebarContent>
       <SidebarFooter>

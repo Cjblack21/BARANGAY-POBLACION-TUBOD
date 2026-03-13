@@ -169,9 +169,9 @@ export default function PersonnelProfile() {
       return
     }
 
-    // Validate file size (max 5MB)
-    if (file.size > 5 * 1024 * 1024) {
-      toast.error('Image size must be less than 5MB')
+    // Validate file size (max 35MB)
+    if (file.size > 35 * 1024 * 1024) {
+      toast.error('Image size must be less than 35MB')
       return
     }
 
@@ -334,7 +334,7 @@ export default function PersonnelProfile() {
                 </Avatar>
                 <div className="space-y-2 flex-1">
                   <p className="text-sm text-muted-foreground break-words">
-                    Upload a new profile picture. Recommended size: 400x400px (Max: 5MB)
+                    Upload a new profile picture. Recommended size: 400x400px (Max: 35MB)
                   </p>
                   <div className="flex flex-wrap gap-2">
                     <input
@@ -520,18 +520,6 @@ export default function PersonnelProfile() {
                       className="h-4 w-4"
                       checked={settings.payrollNotifications}
                       onChange={(e) => setSettings({ ...settings, payrollNotifications: e.target.checked })}
-                    />
-                  </div>
-                  <div className="flex items-center justify-between p-4 border rounded-lg">
-                    <div>
-                      <div className="font-medium">Attendance Reminders</div>
-                      <div className="text-sm text-muted-foreground">Get reminders about time-in and time-out</div>
-                    </div>
-                    <input
-                      type="checkbox"
-                      className="h-4 w-4"
-                      checked={settings.attendanceReminders}
-                      onChange={(e) => setSettings({ ...settings, attendanceReminders: e.target.checked })}
                     />
                   </div>
                 </div>

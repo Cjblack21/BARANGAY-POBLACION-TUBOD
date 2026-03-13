@@ -173,7 +173,7 @@ export default function PersonnelDashboard() {
 
         {/* Attendance This Month */}
         <Card
-          className="border-l-4 border-l-blue-500 cursor-pointer hover:shadow-lg transition-all duration-300 hover:scale-105"
+          className="border-l-4 border-l-blue-500 cursor-pointer hover:shadow-md transition-all duration-150 hover:scale-[1.01]"
           onClick={() => router.push('/personnel/attendance')}
         >
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-1 px-4 pt-4">
@@ -190,7 +190,7 @@ export default function PersonnelDashboard() {
 
         {/* Position */}
         <Card
-          className="border-l-4 border-l-green-500 cursor-pointer hover:shadow-lg transition-all duration-300 hover:scale-105"
+          className="border-l-4 border-l-green-500 cursor-pointer hover:shadow-md transition-all duration-150 hover:scale-[1.01]"
           onClick={() => router.push('/personnel/profile')}
         >
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-1 px-4 pt-4">
@@ -210,7 +210,7 @@ export default function PersonnelDashboard() {
 
         {/* Current Salary */}
         <Card
-          className="border-l-4 border-l-orange-500 cursor-pointer hover:shadow-lg transition-all duration-300 hover:scale-105"
+          className="border-l-4 border-l-orange-500 cursor-pointer hover:shadow-md transition-all duration-150 hover:scale-[1.01]"
           onClick={() => router.push('/personnel/payroll')}
         >
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-1 px-4 pt-4">
@@ -238,7 +238,7 @@ export default function PersonnelDashboard() {
 
       {/* Active Loans */}
       <Card
-        className="cursor-pointer hover:shadow-lg transition-all duration-300 hover:scale-[1.02]"
+        className="cursor-pointer hover:shadow-md transition-all duration-150 hover:scale-[1.01]"
         onClick={() => router.push('/personnel/loans')}
       >
         <CardHeader>
@@ -275,7 +275,7 @@ export default function PersonnelDashboard() {
 
       {/* Active Deductions */}
       <Card
-        className="cursor-pointer hover:shadow-lg transition-all duration-300 hover:scale-[1.02]"
+        className="cursor-pointer hover:shadow-md transition-all duration-150 hover:scale-[1.01]"
         onClick={() => router.push('/personnel/deductions')}
       >
         <CardHeader>

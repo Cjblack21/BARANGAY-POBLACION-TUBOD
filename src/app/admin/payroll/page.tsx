@@ -1219,7 +1219,17 @@ html, body { margin: 0 !important; padding: 0 !important; overflow: hidden !impo
       }
       const rawHtml = await response.text()
       const htmlContent = injectPreviewStyles(sanitizeForPreview(rawHtml))
+
+      // Extract staff count so iframe height is calculated correctly
+      let staffCount = 0
+      const patterns = [/class="payslip"/g, /class='payslip'/g, /Staff ID:/g]
+      for (const pattern of patterns) {
+        const matches = htmlContent.match(pattern)
+        if (matches && matches.length > 0) { staffCount = matches.length; break }
+      }
+
       setPreviewHtml(htmlContent)
+      setPreviewStaffCount(staffCount)
       setShowPreviewModal(true)
       toast.dismiss('preview-archived')
     } catch (e) {
@@ -1229,6 +1239,7 @@ html, body { margin: 0 !important; padding: 0 !important; overflow: hidden !impo
       setLoading(false)
     }
   }
+
 
   // Save payroll period settings
   const handleSavePeriod = async () => {
@@ -3269,6 +3280,7 @@ html, body { margin: 0 !important; padding: 0 !important; overflow: hidden !impo
               </div>
             </div>
 
+
             {/* Enhanced Controls */}
             <div className="flex items-center gap-3 pt-2 flex-wrap">
               {/* View Mode */}
@@ -3406,7 +3418,7 @@ html, body { margin: 0 !important; padding: 0 !important; overflow: hidden !impo
                   className="w-full border-2 border-border rounded-xl shadow-2xl bg-white"
                   style={{
                     width: '1200px',
-                    height: '1600px',
+                    height: `${Math.max(1600, Math.ceil((previewStaffCount || 1) / 2) * 1100)}px`,
                     display: 'block',
                     pointerEvents: 'none'
                   }}
