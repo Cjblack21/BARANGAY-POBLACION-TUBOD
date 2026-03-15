@@ -359,18 +359,21 @@ export default function PersonalDeductionsPage() {
                                         <div className="border rounded-md max-h-[160px] overflow-y-auto">
                                             {users.filter(u => {
                                                 const q = userSearch.toLowerCase()
-                                                return (u.name || "").toLowerCase().includes(q) || u.email.toLowerCase().includes(q)
+                                                return (u.name || "").toLowerCase().includes(q) || 
+                                                       u.email.toLowerCase().includes(q) ||
+                                                       u.users_id.toLowerCase().includes(q)
                                             }).map(u => (
                                                 <div key={u.users_id} onClick={() => setForm(f => ({ ...f, users_id: u.users_id }))}
                                                     className={`p-3 cursor-pointer hover:bg-muted transition-colors border-b last:border-b-0 ${form.users_id === u.users_id ? "bg-red-50 dark:bg-red-900/20" : ""}`}>
                                                     <div className="flex items-center justify-between">
-                                                        <div className="flex items-center gap-2">
-                                                            <Avatar className="h-8 w-8">
-                                                                <AvatarFallback className="bg-red-100 text-red-700 text-xs font-bold">{initials(u.name, u.email)}</AvatarFallback>
+                                                        <div className="flex items-center gap-3">
+                                                            <Avatar className="h-10 w-10">
+                                                                <AvatarFallback className="bg-red-100 text-red-700 text-sm font-bold">{initials(u.name, u.email)}</AvatarFallback>
                                                             </Avatar>
                                                             <div>
-                                                                <p className="font-medium text-sm">{u.name || u.email}</p>
-                                                                <p className="text-xs text-muted-foreground">{u.email}</p>
+                                                                <p className="font-bold text-base uppercase">{u.name || u.email}</p>
+                                                                <p className="text-sm text-foreground font-medium">ID Number: <span className="text-muted-foreground font-normal">{u.users_id}</span></p>
+                                                                <p className="text-sm text-muted-foreground">{u.email}</p>
                                                             </div>
                                                         </div>
                                                         {form.users_id === u.users_id && <CheckCircle className="h-5 w-5 text-red-600" />}
@@ -381,15 +384,15 @@ export default function PersonalDeductionsPage() {
                                     </div>
                                     <div className="space-y-2">
                                         <label className="text-base flex items-center gap-2 font-medium">
-                                            <span className="font-bold">₱</span>Deduction Amount
-                                        </label>
-                                        <Input type="number" min="1" step="0.01" value={form.amount} onChange={e => setForm(f => ({ ...f, amount: e.target.value }))} placeholder="0.00" className="h-11 text-base" />
-                                    </div>
-                                    <div className="space-y-2">
-                                        <label className="text-base flex items-center gap-2 font-medium">
                                             <FileText className="h-4 w-4" />Purpose
                                         </label>
                                         <Input value={form.purpose} onChange={e => setForm(f => ({ ...f, purpose: e.target.value }))} placeholder="e.g. Uniform, Lost Equipment" className="h-11 text-base" />
+                                    </div>
+                                    <div className="space-y-2">
+                                        <label className="text-base flex items-center gap-2 font-medium">
+                                            <span className="font-bold">₱</span>Deduction Amount
+                                        </label>
+                                        <Input type="number" min="1" step="0.01" value={form.amount} onChange={e => setForm(f => ({ ...f, amount: e.target.value }))} placeholder="0.00" className="h-11 text-base" />
                                     </div>
                                 </div>
                                 <Separator />
@@ -449,7 +452,7 @@ export default function PersonalDeductionsPage() {
                                                         <Calendar className="h-4 w-4 text-purple-600" />
                                                         <span className="text-sm font-medium text-muted-foreground">Term</span>
                                                     </div>
-                                                    <span className="text-lg font-bold text-purple-600">{form.termMonths} months</span>
+                                                    <span className="text-lg font-bold text-purple-600">{form.termMonths} {Number(form.termMonths) === 1 ? 'month' : 'months'}</span>
                                                 </div>
                                                 <Separator />
                                                 <div className="flex items-center justify-between p-3 bg-green-50 rounded-lg border border-green-200">

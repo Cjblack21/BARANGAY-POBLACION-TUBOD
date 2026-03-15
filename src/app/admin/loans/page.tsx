@@ -26,7 +26,8 @@ import {
   CheckCircle,
   Clock,
   AlertCircle,
-  PlusCircle
+  PlusCircle,
+  MoreHorizontal
 } from "lucide-react"
 import { format } from "date-fns"
 import { toast } from "react-hot-toast"
@@ -496,7 +497,9 @@ export default function LoansPage() {
                             {users
                               .filter(u => {
                                 const q = userSearch.toLowerCase()
-                                return (u.name || '').toLowerCase().includes(q) || u.email.toLowerCase().includes(q)
+                                return (u.name || '').toLowerCase().includes(q) || 
+                                       u.email.toLowerCase().includes(q) ||
+                                       u.users_id.toLowerCase().includes(q)
                               })
                               .map(u => (
                                 <div
@@ -506,9 +509,15 @@ export default function LoansPage() {
                                     }`}
                                 >
                                   <div className="flex items-center justify-between">
-                                    <div>
-                                      <p className="font-medium text-foreground">{u.name || u.email}</p>
-                                      <p className="text-sm text-muted-foreground">{u.email}</p>
+                                    <div className="flex items-center gap-3">
+                                      <Avatar className="h-10 w-10">
+                                        <AvatarFallback className="bg-blue-100 text-blue-700 text-sm font-bold">{initials(u.name, u.email)}</AvatarFallback>
+                                      </Avatar>
+                                      <div>
+                                        <p className="font-bold text-base uppercase">{u.name || u.email}</p>
+                                        <p className="text-sm text-foreground font-medium">ID Number: <span className="text-muted-foreground font-normal">{u.users_id}</span></p>
+                                        <p className="text-sm text-muted-foreground">{u.email}</p>
+                                      </div>
                                     </div>
                                     {form.users_id === u.users_id && (
                                       <CheckCircle className="h-5 w-5 text-blue-600" />
@@ -518,6 +527,19 @@ export default function LoansPage() {
                               ))}
                           </div>
                         </div>
+                      </div>
+
+                      <div className="space-y-2">
+                        <label className="text-base flex items-center gap-2 font-medium">
+                          <FileText className="h-4 w-4" />
+                          Purpose
+                        </label>
+                        <Input
+                          value={form.purpose}
+                          onChange={(e) => setForm(f => ({ ...f, purpose: e.target.value }))}
+                          placeholder="e.g. Personal Loan"
+                          className="h-11 text-base"
+                        />
                       </div>
 
                       <div className="space-y-2">
@@ -532,19 +554,6 @@ export default function LoansPage() {
                           value={form.amount}
                           onChange={(e) => setForm(f => ({ ...f, amount: e.target.value }))}
                           placeholder="e.g. 5000"
-                          className="h-11 text-base"
-                        />
-                      </div>
-
-                      <div className="space-y-2">
-                        <label className="text-base flex items-center gap-2 font-medium">
-                          <FileText className="h-4 w-4" />
-                          Purpose
-                        </label>
-                        <Input
-                          value={form.purpose}
-                          onChange={(e) => setForm(f => ({ ...f, purpose: e.target.value }))}
-                          placeholder="e.g. Personal Loan"
                           className="h-11 text-base"
                         />
                       </div>
@@ -1070,7 +1079,7 @@ export default function LoansPage() {
                       </div>
                       <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2 overflow-hidden">
                         <div
-                          className="bg-gradient-to-r from-blue-500 to-green-500 h-full rounded-full transition-all duration-500"
+                          className="bg-blue-600 h-full rounded-full transition-all duration-500"
                           style={{ width: `${Math.min(100, ((item.amount - item.balance) / item.amount) * 100)}%` }}
                         />
                       </div>
@@ -1091,7 +1100,7 @@ export default function LoansPage() {
                         <DropdownMenu>
                           <DropdownMenuTrigger asChild>
                             <Button variant="ghost" size="icon" className="h-8 w-8">
-                              <TrendingUp className="h-4 w-4" />
+                              <MoreHorizontal className="h-4 w-4" />
                             </Button>
                           </DropdownMenuTrigger>
                           <DropdownMenuContent align="end">
@@ -1415,6 +1424,84 @@ export default function LoansPage() {
               <Button variant="destructive" onClick={confirmBulkDelete} disabled={isDeleting}>
                 <Trash2 className="h-4 w-4 mr-2" />
                 {isDeleting ? 'Deleting...' : `Delete ${selectedIds.length} Loan(s)`}
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+      {/* Edit Loan Dialog */}
+      <Dialog open={editOpen} onOpenChange={setEditOpen}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <FileText className="h-5 w-5 text-blue-600" />
+              Edit Loan
+            </DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4 mt-2">
+            <div className="space-y-2">
+              <label className="text-sm font-medium">Loan Amount</label>
+              <Input
+                type="number"
+                min="1"
+                step="0.01"
+                value={editForm.amount}
+                onChange={(e) => setEditForm(f => ({ ...f, amount: Number(e.target.value) }))}
+              />
+            </div>
+            <div className="space-y-2">
+              <label className="text-sm font-medium">Purpose</label>
+              <Input
+                value={editForm.purpose}
+                onChange={(e) => setEditForm(f => ({ ...f, purpose: e.target.value }))}
+              />
+            </div>
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <label className="text-sm font-medium">Term (Months)</label>
+                <Input
+                  type="number"
+                  min="1"
+                  value={editForm.termMonths}
+                  onChange={(e) => setEditForm(f => ({ ...f, termMonths: Number(e.target.value) }))}
+                />
+              </div>
+              <div className="space-y-2">
+                <label className="text-sm font-medium">Monthly Pay %</label>
+                <Input
+                  type="number"
+                  min="1"
+                  max="100"
+                  step="0.01"
+                  value={editForm.monthlyPaymentPercent}
+                  onChange={(e) => setEditForm(f => ({ ...f, monthlyPaymentPercent: Number(e.target.value) }))}
+                />
+              </div>
+            </div>
+            <div className="space-y-2">
+              <label className="text-sm font-medium">Status</label>
+              <Select
+                value={editForm.status}
+                onValueChange={(val) => setEditForm(f => ({ ...f, status: val }))}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Select status" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="ACTIVE">ACTIVE</SelectItem>
+                  <SelectItem value="PENDING">PENDING</SelectItem>
+                  <SelectItem value="COMPLETED">COMPLETED</SelectItem>
+                  <SelectItem value="REJECTED">REJECTED</SelectItem>
+                  <SelectItem value="DEFAULTED">DEFAULTED</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="flex justify-end gap-2 mt-4">
+              <Button variant="outline" onClick={() => setEditOpen(false)}>
+                Cancel
+              </Button>
+              <Button className="bg-blue-600 hover:bg-blue-700" onClick={submitEdit} disabled={editSaving}>
+                {editSaving ? 'Saving...' : 'Save Changes'}
               </Button>
             </div>
           </div>

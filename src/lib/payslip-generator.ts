@@ -116,7 +116,7 @@ export function generatePayslipHTML(
       padding: 8px;
       box-sizing: border-box;
       font-family: Arial, sans-serif;
-      font-size: 10px;
+      font-size: 12px;
       line-height: 1.2;
       page-break-inside: avoid;
       overflow: hidden;
@@ -141,108 +141,86 @@ export function generatePayslipHTML(
       </div>
 
       <!-- Content (above watermark) -->
-      <div style="position: relative; z-index: 1;">
+      <div style="position: relative; z-index: 1; padding: 0 24px;">
         <!-- Header -->
         <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px; border-bottom: 2px solid #000; padding-bottom: 4px;">
           <!-- Logo left -->
-          <div style="min-width: 50px;">
+          <div style="min-width: 65px;">
             ${headerSettings?.showLogo !== false ? `
-              <img src="${logoUrl}" alt="Logo" style="height: 50px; width: auto;" onerror="this.src='/BRGY PICTURE LOG TUBOD.png'">
+              <img src="${logoUrl}" alt="Logo" style="height: 65px; width: auto;" onerror="this.src='/BRGY PICTURE LOG TUBOD.png'">
             ` : ''}
           </div>
           <!-- Center text -->
           <div style="text-align: center; flex: 1;">
-            <div style="font-weight: bold; font-size: 13px; margin-bottom: 2px;">
+            <div style="font-weight: bold; font-size: 12px; margin-bottom: 2px;">
               ${headerSettings?.schoolName || 'BARANGAY POBLACION TUBOD'}
             </div>
-            <div style="font-size: 9px; color: #666; margin-bottom: 1px;">
+            <div style="font-size: 12px; color: #666; margin-bottom: 1px;">
               ${headerSettings?.schoolAddress || ''}
             </div>
-            <div style="font-size: 9px; color: #666; margin-bottom: 2px;">
+            <div style="font-size: 12px; color: #666; margin-bottom: 2px;">
               ${headerSettings?.systemName || 'Payroll Management System'}
             </div>
-            <div style="font-weight: bold; font-size: 16px; letter-spacing: 2px;">
+            <div style="font-weight: bold; font-size: 12px; letter-spacing: 2px;">
               HONORARIUM
             </div>
           </div>
           <!-- QR code right -->
-          <div style="min-width: 50px; text-align: right;">
-            <img src="/QR CODE PMS SYSTEM.png" alt="QR Code" style="height: 50px; width: 50px; object-fit: contain;" onerror="this.style.display='none'">
-            <div style="font-size: 7px; font-weight: bold; color: #555; text-align: center; margin-top: 2px; letter-spacing: 1px;">SCAN ME</div>
+          <div style="min-width: 65px; text-align: right;">
+            <img src="/QR CODE PMS SYSTEM.png" alt="QR Code" style="height: 65px; width: 65px; object-fit: contain;" onerror="this.style.display='none'">
+            <div style="font-size: 12px; font-weight: bold; color: #555; text-align: center; margin-top: 2px; letter-spacing: 1px;">SCAN ME</div>
           </div>
         </div>
         
-        <!-- Staff Information -->
-        <div style="margin-bottom: 4px; font-size: 10px; line-height: 1.3;">
-          <div style="margin-bottom: 3px;">
-            <strong>Brgy Staff:</strong> ${employee.name || employee.email}
-          </div>
-          <div style="margin-bottom: 3px;">
-            <strong>Brgy Staff ID:</strong> ${employee.users_id}
-          </div>
-          <div style="margin-bottom: 3px;">
-            <strong>Email:</strong> ${employee.email}
-          </div>
-          <div style="margin-bottom: 3px;">
-            <strong>BLGU/Position:</strong> ${employee.department || 'BLGU'} / ${employee.position || 'Barangay Staff'}
-          </div>
-          <div style="margin-bottom: 3px;">
-            <strong>Period:</strong> ${new Date(period.periodStart).toLocaleDateString()} - ${new Date(period.periodEnd).toLocaleDateString()}
-          </div>
-          <div style="margin-top: 2px;">
-            <strong>Status:</strong> RELEASED
-          </div>
+        <!-- Staff Information: 2-column grid -->
+        <div style="margin-bottom: 3px; font-size: 12px; display: grid; grid-template-columns: 1fr 1fr; gap: 0 8px; padding-bottom: 3px;">
+          <div style="margin-bottom: 2px;"><strong>Brgy Staff:</strong> ${employee.name || employee.email}</div>
+          <div style="margin-bottom: 2px;"><strong>Period:</strong> ${new Date(period.periodStart).toLocaleDateString()} - ${new Date(period.periodEnd).toLocaleDateString()}</div>
+          <div style="margin-bottom: 2px;"><strong>Brgy Staff ID:</strong> ${employee.users_id}</div>
+          <div style="margin-bottom: 2px;"><strong>Status:</strong> RELEASED</div>
+          <div style="margin-bottom: 2px;"><strong>Email:</strong> ${employee.email}</div>
+          <div style="margin-bottom: 2px;"><strong>BLGU/Position:</strong> ${employee.position || 'Barangay Staff'}</div>
         </div>
         
-        <!-- HONORARIUM SECTION -->
-        <div style="margin: 6px 0; border-top: 1px solid #ccc; padding-top: 6px;">
-          <div style="font-weight: bold; font-size: 13px; margin-bottom: 3px; color: #16a34a;">HONORARIUM</div>
-          <div style="padding: 5px; border-radius: 3px;">
-            <div style="display: flex; justify-content: space-between; margin-bottom: 3px; font-size: 10px;">
-              <span>Monthly Salary:</span>
-              <span style="font-weight: bold; color: #16a34a;">₱${biweeklySalary.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
-            </div>
-            ${honorarium > 0 ? `
-            <div style="display: flex; justify-content: space-between; margin-bottom: 3px; font-size: 10px;">
-              <span>Additional Pay:</span>
-              <span style="font-weight: bold; color: #16a34a;">₱${honorarium.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
-            </div>
-            ` : ''}
+        <!-- SALARY SECTION (no header label) -->
+        <div style="margin: 3px 0; border-top: 1px solid #e5e7eb; padding-top: 3px;">
+          <div style="display: flex; justify-content: space-between; margin-bottom: 2px; font-size: 12px; padding-right: 15%;">
+            <span>Monthly Salary:</span>
+            <span style="font-weight: bold; color: #000;">₱${biweeklySalary.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
           </div>
+          ${honorarium > 0 ? `
+          <div style="display: flex; justify-content: space-between; margin-bottom: 2px; font-size: 12px; padding-right: 15%;">
+            <span>Additional Pay:</span>
+            <span style="font-weight: bold; color: #000;">₱${honorarium.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+          </div>
+          ` : ''}
         </div>
 
         <!-- DEDUCTIONS SECTION -->
-        <div style="margin: 4px 0; border-top: 1px solid #ccc; padding-top: 4px;">
-          <div style="font-weight: bold; font-size: 13px; margin-bottom: 3px; color: #dc2626;">DEDUCTIONS</div>
+        <div style="margin: 4px 0; border-top: 1px solid #e5e7eb; padding-top: 4px;">
+          <div style="font-weight: bold; font-size: 12px; margin-bottom: 3px; color: #dc2626;">DEDUCTIONS</div>
           
           <!-- Mandatory Deductions -->
           ${mandatoryDeductions.length > 0 || totalMandatory > 0 ? `
-          <div style="padding: 5px; border-radius: 3px; margin-bottom: 4px;">
-            <div style="font-size: 10px; font-weight: bold; color: #3b82f6; margin-bottom: 3px;">Mandatory Deductions:</div>
+          <div style="margin-bottom: 2px;">
+            <div style="font-size: 12px; font-weight: bold; color: #000; margin-bottom: 1px;">Mandatory Deductions:</div>
             ${mandatoryDeductions.map((d: any) => `
-              <div style="display: flex; justify-content: space-between; margin-bottom: 1px; font-size: 9px; padding-left: 6px;">
+              <div style="display: flex; justify-content: space-between; margin-bottom: 1px; font-size: 12px; padding-left: 6px; padding-right: 15%;">
                 <span style="color: #666;">${d.type || 'Deduction'}</span>
                 <span style="color: #dc2626; font-weight: bold;">-₱${(d.amount || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
               </div>
             `).join('')}
-            <div style="border-top: 1px solid #ddd; margin-top: 3px; padding-top: 3px;">
-              <div style="display: flex; justify-content: space-between; font-size: 10px; font-weight: bold;">
-                <span>Subtotal:</span>
-                <span style="color: #dc2626;">-₱${totalMandatory.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
-              </div>
-            </div>
           </div>
           ` : ''}
 
           <!-- Attendance Deductions -->
           ${attendanceDeductions.length > 0 || totalAttendance > 0 ? `
-          <div style="padding: 5px; border-radius: 3px; margin-bottom: 4px;">
-            <div style="font-size: 10px; font-weight: bold; color: #dc2626; margin-bottom: 3px;">Attendance Deductions:</div>
+          <div style="margin-bottom: 2px;">
+            <div style="font-size: 12px; font-weight: bold; color: #000; margin-bottom: 1px;">Attendance Deductions:</div>
             ${attendanceDeductions.map((d: any) => {
     const incidentDate = d.appliedAt
       ? new Date(d.appliedAt).toLocaleDateString('en-PH', { month: 'long', day: 'numeric', year: 'numeric' })
       : ''
-    // Use real notes; if empty derive from amount (₱1/min)
     const rawNotes = (d.notes || '').trim()
     const displayNote = rawNotes || (() => {
       const totalMin = Math.round(Number(d.amount || 0))
@@ -251,93 +229,72 @@ export function generatePayslipHTML(
       return h > 0 ? `Late: ${h}h ${m}m` : `Late: ${totalMin}m`
     })()
     return `
-              <div style="margin-bottom: 3px; padding-left: 6px;">
-                <div style="display: flex; justify-content: space-between; font-size: 9px;">
-                  <span style="color: #666;">${d.type || 'Attendance Deduction'}${incidentDate ? ` <span style="font-size:8px;color:#999;">— ${incidentDate}</span>` : ''}</span>
-                  <span style="color: #dc2626; font-weight: bold;">-₱${(d.amount || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
-                </div>
-                ${displayNote ? `<div style="font-size: 8px; color: #888; padding-left: 4px;">${displayNote}</div>` : ''}
+              <div style="display: flex; justify-content: space-between; font-size: 12px; padding-left: 6px; margin-bottom: 1px; padding-right: 15%;">
+                <span style="color: #666;">${incidentDate}${displayNote ? ` — ${displayNote}` : ''}</span>
+                <span style="color: #dc2626; font-weight: bold;">-₱${(d.amount || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
               </div>`
   }).join('')}
             ${attendanceDeductions.length === 0 && totalAttendance > 0 ? `
-              <div style="display: flex; justify-content: space-between; margin-bottom: 1px; font-size: 9px; padding-left: 6px;">
+              <div style="display: flex; justify-content: space-between; margin-bottom: 1px; font-size: 12px; padding-left: 6px; padding-right: 15%;">
                 <span style="color: #666;">Attendance Deduction</span>
                 <span style="color: #dc2626; font-weight: bold;">-₱${totalAttendance.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
               </div>
             ` : ''}
-            <div style="border-top: 1px solid #ddd; margin-top: 3px; padding-top: 3px;">
-              <div style="display: flex; justify-content: space-between; font-size: 10px; font-weight: bold;">
-                <span>Subtotal:</span>
-                <span style="color: #dc2626;">-₱${totalAttendance.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
-              </div>
-            </div>
           </div>
           ` : ''}
 
           <!-- Loan Payments -->
           ${loanDeductions.length > 0 || totalLoans > 0 ? `
-          <div style="padding: 5px; border-radius: 3px; margin-bottom: 4px;">
-            <div style="font-size: 10px; font-weight: bold; color: #d97706; margin-bottom: 3px;">Loan Payments:</div>
+          <div style="margin-bottom: 2px;">
+            <div style="font-size: 12px; font-weight: bold; color: #000; margin-bottom: 1px;">Loan Payments:</div>
             ${loanDeductions.map((loan: any) => `
-              <div style="margin-bottom: 2px; font-size: 9px; padding-left: 6px;">
-                <div style="display: flex; justify-content: space-between;">
+              <div style="margin-bottom: 2px; font-size: 12px; padding-left: 6px;">
+                <div style="display: flex; justify-content: space-between; padding-right: 15%;">
                   <span style="color: #666;">${loan.purpose || loan.type || 'Loan Payment'}</span>
-                  <span style="color: #d97706; font-weight: bold;">-₱${(loan.payment || loan.amount || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+                  <span style="color: #dc2626; font-weight: bold;">-₱${(loan.payment || loan.amount || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
                 </div>
                 ${loan.remainingBalance ? `
-                <div style="font-size: 8px; color: #666; margin-top: 1px;">
+                <div style="font-size: 12px; color: #666; margin-top: 1px;">
                   Balance: ₱${(loan.remainingBalance || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                 </div>
                 ` : ''}
               </div>
             `).join('')}
             ${loanDeductions.length === 0 && totalLoans > 0 ? `
-              <div style="display: flex; justify-content: space-between; margin-bottom: 1px; font-size: 9px; padding-left: 6px;">
+              <div style="display: flex; justify-content: space-between; margin-bottom: 1px; font-size: 12px; padding-left: 6px; padding-right: 15%;">
                 <span style="color: #666;">Loan Payment</span>
-                <span style="color: #d97706; font-weight: bold;">-₱${totalLoans.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+                <span style="color: #dc2626; font-weight: bold;">-₱${totalLoans.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
               </div>
             ` : ''}
-            <div style="border-top: 1px solid #ddd; margin-top: 3px; padding-top: 3px;">
-              <div style="display: flex; justify-content: space-between; font-size: 10px; font-weight: bold;">
-                <span>Subtotal:</span>
-                <span style="color: #d97706;">-₱${totalLoans.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
-              </div>
-            </div>
           </div>
           ` : ''}
 
           <!-- Custom Deductions (separated from loans) -->
           ${customDeductionItems.length > 0 ? `
-          <div style="padding: 5px; border-radius: 3px; margin-bottom: 4px;">
-            <div style="font-size: 10px; font-weight: bold; color: #b45309; margin-bottom: 3px;">Custom Deductions:</div>
+          <div style="margin-bottom: 2px;">
+            <div style="font-size: 12px; font-weight: bold; color: #000; margin-bottom: 1px;">Custom Deductions:</div>
             ${customDeductionItems.map((d: any) => {
               const rawName = String(d.purpose || d.type || 'Deduction')
               const displayName = rawName.replace(/^\[DEDUCTION\]\s*/i, '').trim() || 'Custom Deduction'
               return `
-              <div style="margin-bottom: 2px; font-size: 9px; padding-left: 6px;">
-                <div style="display: flex; justify-content: space-between;">
+              <div style="margin-bottom: 2px; font-size: 12px; padding-left: 6px;">
+                <div style="display: flex; justify-content: space-between; padding-right: 15%;">
                   <span style="color: #666;">${displayName}</span>
-                  <span style="color: #b45309; font-weight: bold;">-₱${(d.payment || d.amount || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+                  <span style="color: #dc2626; font-weight: bold;">-₱${(d.payment || d.amount || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
                 </div>
                 ${d.remainingBalance ? `
-                <div style="font-size: 8px; color: #666; margin-top: 1px;">
+                <div style="font-size: 12px; color: #666; margin-top: 1px;">
                   Balance: ₱${(d.remainingBalance || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                 </div>
                 ` : ''}
               </div>
             `}).join('')}
-            <div style="border-top: 1px solid #ddd; margin-top: 3px; padding-top: 3px;">
-              <div style="display: flex; justify-content: space-between; font-size: 10px; font-weight: bold;">
-                <span>Subtotal:</span>
-                <span style="color: #b45309;">-₱${totalCustomDeductions.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
-              </div>
-            </div>
           </div>
           ` : ''}
 
           <!-- Total Deductions -->
-          <div style="padding: 5px; border-radius: 3px; border-top: 2px solid #000; border-bottom: 2px solid #000;">
-            <div style="display: flex; justify-content: space-between; font-size: 11px; font-weight: bold;">
+          <div style="padding: 2px 0; border-top: 1px solid #bbb; margin-top: 2px;">
+            <div style="display: flex; justify-content: space-between; font-size: 12px; font-weight: bold; padding-right: 15%;">
               <span>TOTAL DEDUCTIONS:</span>
               <span style="color: #dc2626;">-₱${breakdown.totalDeductions.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
             </div>
@@ -345,22 +302,22 @@ export function generatePayslipHTML(
         </div>
 
         <!-- NET PAY -->
-        <div style="display: flex; justify-content: space-between; margin-top: 6px; padding: 6px; border-top: 2px solid #000; font-weight: bold; font-size: 14px; border-radius: 3px;">
+        <div style="display: flex; justify-content: space-between; margin-top: 6px; padding: 6px 15% 6px 6px; border-top: 1px solid #bbb; font-weight: bold; font-size: 12px; border-radius: 3px;">
           <span>NET PAY</span>
-          <span style="color: #16a34a;">₱${employee.totalSalary.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+          <span style="color: #000;">₱${employee.totalSalary.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
         </div>
 
         <!-- Signatures -->
         <div style="margin-top: 6px; display: flex; justify-content: space-around; gap: 12px; border-top: 1px solid #ccc; padding-top: 6px;">
-          <div style="flex: 1; text-align: center; font-size: 9px;">
+          <div style="flex: 1; text-align: center; font-size: 12px;">
             <div style="border-top: 1px solid #000; margin: 12px 6px 2px 6px;"></div>
-            <div style="font-weight: bold; font-size: 10px;">EMMA L. MAGTAO</div>
-            <div style="font-size: 8px; color: #666;">Brgy Treasurer</div>
+            <div style="font-weight: bold; font-size: 12px;">EMMA L. MACTAO</div>
+            <div style="font-size: 12px; color: #666;">Brgy Treasurer</div>
           </div>
-          <div style="flex: 1; text-align: center; font-size: 9px;">
+          <div style="flex: 1; text-align: center; font-size: 12px;">
             <div style="border-top: 1px solid #000; margin: 12px 6px 2px 6px;"></div>
-            <div style="font-weight: bold; font-size: 10px;">${employee.name || employee.email}</div>
-            <div style="font-size: 8px; color: #666;">Received by</div>
+            <div style="font-weight: bold; font-size: 12px;">${(employee.name || employee.email).toUpperCase()}</div>
+            <div style="font-size: 12px; color: #666;">Received by</div>
           </div>
         </div>
         
@@ -469,3 +426,11 @@ export function generatePayslipsHTML(
     </html>
   `
 }
+
+
+
+
+
+
+
+

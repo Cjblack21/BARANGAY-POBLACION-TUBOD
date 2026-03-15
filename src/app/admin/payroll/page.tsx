@@ -1488,22 +1488,20 @@ html, body { margin: 0 !important; padding: 0 !important; overflow: hidden !impo
             </thead>
             <tbody>
               ${rowsHtml}
-            </tbody>
-            <tfoot>
               <tr>
-                <td class="td" colspan="4">TOTAL</td>
-                <td class="td right">${formatCurrency(totals.basicSalary)}</td>
-                <td class="td right">${formatCurrency(totals.additionalPay)}</td>
-                <td class="td right">${formatCurrency(totals.deductions)}</td>
-                <td class="td right">${formatCurrency(totals.netPay)}</td>
+                <td class="td" colspan="4" style="border-top: 2px solid #e5e7eb; font-weight: 800;">TOTAL</td>
+                <td class="td right" style="border-top: 2px solid #e5e7eb; font-weight: 800;">${formatCurrency(totals.basicSalary)}</td>
+                <td class="td right" style="border-top: 2px solid #e5e7eb; font-weight: 800;">${formatCurrency(totals.additionalPay)}</td>
+                <td class="td right" style="border-top: 2px solid #e5e7eb; font-weight: 800;">${formatCurrency(totals.deductions)}</td>
+                <td class="td right" style="border-top: 2px solid #e5e7eb; font-weight: 800;">${formatCurrency(totals.netPay)}</td>
               </tr>
-            </tfoot>
+            </tbody>
           </table>
 
           <div class="sign">
             <div class="sigbox">
               <div class="sig-label-top">Prepared by:</div>
-              <div class="signame">EMMA L. MAGTAO</div>
+              <div class="signame">EMMA L. MACTAO</div>
               <div class="line"></div>
               <div class="siglabel">Brgy Treasurer</div>
               <div class="sig-date">Date: ________________________</div>
@@ -2689,12 +2687,54 @@ html, body { margin: 0 !important; padding: 0 !important; overflow: hidden !impo
                               </Button>
                             </TableCell>
                             <TableCell className="py-4 text-center">
-                              <DropdownMenu>
-                                <DropdownMenuTrigger asChild>
-                                  <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
-                                    <MoreVertical className="h-4 w-4" />
-                                  </Button>
-                                </DropdownMenuTrigger>
+                              <div className="flex items-center justify-center gap-1">
+                                <Button
+                                  variant="ghost" 
+                                  size="sm"
+                                  className="h-8 w-8 p-0 text-blue-600 hover:text-blue-700 hover:bg-blue-50 dark:hover:bg-blue-950/30"
+                                  title="Print Payslips Directly"
+                                  onClick={async () => {
+                                    try {
+                                      toast.loading('Preparing print...', { id: 'direct-print' })
+                                      const response = await fetch('/api/admin/payroll/generate-payslips', {
+                                        method: 'POST',
+                                        headers: { 'Content-Type': 'application/json' },
+                                        body: JSON.stringify({ 
+                                          periodStart: payroll.periodStart, 
+                                          periodEnd: payroll.periodEnd 
+                                        })
+                                      })
+                                      if (!response.ok) throw new Error('Failed to generate payslips')
+                                      
+                                      const rawHtml = await response.text()
+                                      const htmlContent = injectPreviewStyles(sanitizeForPreview(rawHtml))
+                                      
+                                      const printWindow = window.open('', '_blank', 'width=1200,height=800,scrollbars=yes,resizable=yes')
+                                      if (printWindow) {
+                                        printWindow.document.write(htmlContent)
+                                        printWindow.document.close()
+                                        
+                                        setTimeout(() => {
+                                          printWindow.focus()
+                                          printWindow.print()
+                                          toast.success('Print window opened successfully!', { id: 'direct-print' })
+                                        }, 500)
+                                      } else {
+                                        toast.error('Popup blocked. Please allow popups to print.', { id: 'direct-print' })
+                                      }
+                                    } catch (e) {
+                                      toast.error('Failed to print payslips.', { id: 'direct-print' })
+                                    }
+                                  }}
+                                >
+                                  <Printer className="h-4 w-4" />
+                                </Button>
+                                <DropdownMenu>
+                                  <DropdownMenuTrigger asChild>
+                                    <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
+                                      <MoreVertical className="h-4 w-4" />
+                                    </Button>
+                                  </DropdownMenuTrigger>
                                 <DropdownMenuContent align="end" className="w-48">
                                   <DropdownMenuItem onClick={() => {
                                     // View individual personnel payrolls
@@ -2767,6 +2807,7 @@ html, body { margin: 0 !important; padding: 0 !important; overflow: hidden !impo
                                   </DropdownMenuItem>
                                 </DropdownMenuContent>
                               </DropdownMenu>
+                              </div>
                             </TableCell>
                           </TableRow>
                         ))

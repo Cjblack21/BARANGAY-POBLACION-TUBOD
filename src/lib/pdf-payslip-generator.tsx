@@ -30,7 +30,7 @@ const styles = StyleSheet.create({
     flexDirection: 'column',
     backgroundColor: '#FFFFFF',
     padding: 20,
-    fontSize: 8,
+    fontSize: 14,
     fontFamily: 'Roboto',
   },
   gridContainer: {
@@ -64,31 +64,31 @@ const styles = StyleSheet.create({
     alignSelf: 'center',
   },
   schoolName: {
-    fontSize: 9,
+    fontSize: 15,
     fontWeight: 'bold',
     marginBottom: 1,
     textAlign: 'center',
   },
   schoolAddress: {
-    fontSize: 6,
+    fontSize: 12,
     color: '#666666',
     marginBottom: 1,
     textAlign: 'center',
   },
   systemName: {
-    fontSize: 6,
+    fontSize: 12,
     color: '#666666',
     marginBottom: 1,
     textAlign: 'center',
   },
   customText: {
-    fontSize: 6,
+    fontSize: 12,
     color: '#666666',
     marginBottom: 1,
     textAlign: 'center',
   },
   payslipTitle: {
-    fontSize: 10,
+    fontSize: 16,
     fontWeight: 'bold',
     textAlign: 'center',
     marginTop: 2,
@@ -121,10 +121,10 @@ const styles = StyleSheet.create({
     marginBottom: 1,
   },
   payrollLabel: {
-    fontSize: 7,
+    fontSize: 13,
   },
   payrollValue: {
-    fontSize: 7,
+    fontSize: 13,
     fontWeight: 'bold',
   },
   grossPayRow: {
@@ -148,11 +148,11 @@ const styles = StyleSheet.create({
     borderTop: '2pt solid #000000',
     paddingTop: 2,
     fontWeight: 'bold',
-    fontSize: 9,
+    fontSize: 15,
   },
   status: {
     textAlign: 'center',
-    fontSize: 6,
+    fontSize: 12,
     color: '#666666',
     marginTop: 4,
   },

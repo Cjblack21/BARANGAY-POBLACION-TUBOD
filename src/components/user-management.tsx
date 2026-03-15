@@ -668,7 +668,7 @@ export function UserManagement() {
           <div class="signatures">
             <div class="sig-box">
               <div class="sig-line"></div>
-              <div class="sig-name">EMMA L. MAGTAO</div>
+              <div class="sig-name">EMMA L. MACTAO</div>
               <div class="sig-role">Brgy. Treasurer</div>
             </div>
             <div class="sig-box">

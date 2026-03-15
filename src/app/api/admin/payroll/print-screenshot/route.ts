@@ -467,30 +467,12 @@ export async function POST(request: NextRequest) {
           </div>
           
           <div class="employee-info">
-            <div class="info-row">
-              <span class="label">Brgy Staff:</span>
-              <span class="value">${employee.name || employee.email}</span>
-            </div>
-            <div class="info-row">
-              <span class="label">Brgy Staff ID:</span>
-              <span class="value">${employee.idNumber || 'N/A'}</span>
-            </div>
-            <div class="info-row">
-              <span class="label">Email:</span>
-              <span class="value">${employee.email}</span>
-            </div>
-            <div class="info-row">
-              <span class="label">BLGU/Position:</span>
-              <span class="value">${employee.department || 'BLGU'} / ${employee.position || 'Barangay Staff'}</span>
-            </div>
-            <div class="info-row">
-              <span class="label">Period:</span>
-              <span class="value">${new Date(periodStart).toLocaleDateString()} - ${new Date(periodEnd).toLocaleDateString()}</span>
-            </div>
-            <div class="info-row">
-              <span class="label">Status:</span>
-              <span class="value">Released</span>
-            </div>
+            <div class="info-row"><span class="label">Brgy Staff:</span><span class="value">${employee.name || employee.email}</span></div>
+            <div class="info-row"><span class="label">Period:</span><span class="value">${new Date(periodStart).toLocaleDateString()} - ${new Date(periodEnd).toLocaleDateString()}</span></div>
+            <div class="info-row"><span class="label">Brgy Staff ID:</span><span class="value">${employee.idNumber || 'N/A'}</span></div>
+            <div class="info-row"><span class="label">Status:</span><span class="value">Released</span></div>
+            <div class="info-row"><span class="label">Email:</span><span class="value">${employee.email}</span></div>
+            <div class="info-row"><span class="label">BLGU/Position:</span><span class="value">${employee.department || 'BLGU'} / ${employee.position || 'Barangay Staff'}</span></div>
           </div>
           
           <div class="payroll-details">
@@ -702,12 +684,12 @@ export async function POST(request: NextRequest) {
           <div class="signatures">
             <div class="sig-box">
               <div class="sig-line"></div>
-              <div class="sig-label">EMMA L. MAGTAO</div>
+              <div class="sig-label">EMMA L. MACTAO</div>
               <div class="sig-sublabel">Brgy Treasurer</div>
             </div>
             <div class="sig-box">
               <div class="sig-line"></div>
-              <div class="sig-label">${employee.name || 'Staff Name'}</div>
+              <div class="sig-label">${(employee.name || 'Staff Name').toUpperCase()}</div>
               <div class="sig-sublabel">Received by</div>
             </div>
           </div>
@@ -819,11 +801,16 @@ export async function POST(request: NextRequest) {
           .employee-info {
             margin-bottom: 4px;
             font-size: 12px;
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 1px 8px;
+            border-bottom: 1px solid #ccc;
+            padding-bottom: 4px;
           }
           .info-row {
             margin-bottom: 2px;
             display: flex;
-            justify-content: space-between;
+            gap: 3px;
           }
           .label {
             font-weight: bold;

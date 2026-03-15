@@ -1,4 +1,4 @@
-﻿"use client"
+"use client"
 
 import { useEffect, useMemo, useState } from "react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
@@ -608,7 +608,7 @@ export default function DeductionsPage() {
                         {d.users.personnel_types?.basicSalary ? `₱${d.users.personnel_types.basicSalary.toLocaleString()}` : <span className="text-muted-foreground">—</span>}
                       </TableCell>
                       <TableCell>
-                        <span className="font-semibold text-red-600">₱{d.amount.toLocaleString()}</span>
+                        <span className="font-semibold text-red-600">₱{Number(d.amount).toLocaleString()}</span>
                         {d.deduction_types.calculationType === 'PERCENTAGE' && d.deduction_types.percentageValue && d.users.personnel_types?.basicSalary && (
                           <div className="text-[10px] text-muted-foreground">{d.deduction_types.percentageValue}% of ₱{d.users.personnel_types.basicSalary.toLocaleString()}</div>
                         )}
@@ -636,6 +636,7 @@ export default function DeductionsPage() {
           )}
         </CardContent>
       </Card>
+
 
       {/* ── Edit Type Dialog ── */}
       <Dialog open={editOpen} onOpenChange={setEditOpen}>
