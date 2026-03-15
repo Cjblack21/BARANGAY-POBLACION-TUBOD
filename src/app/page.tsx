@@ -86,7 +86,7 @@ export default function Home() {
             {/* Footer */}
             <div className="text-center text-xs text-slate-500 dark:text-slate-500 mt-6 space-y-1">
               <p>© 2026 BRGY POBLACION PMS. All rights reserved.</p>
-              <p>PMS system v1.2.0</p>
+              <p>PMS SYSTEM v1.1.1</p>
             </div>
           </div>
         </div>

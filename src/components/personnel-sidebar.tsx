@@ -69,7 +69,7 @@ export function PersonnelSidebar({ user, ...props }: PersonnelSidebarProps) {
                 <span className="font-bold text-[16px] whitespace-nowrap tracking-tight">BRGY POBLACION</span>
                 <div className="flex items-center gap-1.5">
                   <span className="text-xs font-medium text-white/70 whitespace-nowrap tracking-wide">PMS SYSTEM</span>
-                  <span className="text-[10px] font-medium text-white/40">v1.0.0</span>
+                  <span className="text-[10px] font-medium text-white/40">v1.1.1</span>
                 </div>
               </div>
             </div>
