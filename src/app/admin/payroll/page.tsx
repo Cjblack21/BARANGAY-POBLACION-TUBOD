@@ -11,7 +11,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, Di
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, DropdownMenuSeparator } from '@/components/ui/dropdown-menu'
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip'
-import { Calendar, Clock, Banknote, FileText, Archive, Printer, Download, Settings, Save, Eye, CheckCircle2, Trash2, CheckSquare, Square, MoreVertical, Search, X, AlertCircle, Users, TrendingUp, ClipboardMinus, CalendarRange, Activity, Edit2 } from 'lucide-react'
+import { Calendar, Clock, Banknote, FileText, Archive, Printer, Download, Settings, Save, Eye, CheckCircle2, Trash2, CheckSquare, Square, MoreVertical, Search, X, AlertCircle, Users, TrendingUp, ClipboardMinus, CalendarRange, Activity, Edit2, Landmark, User } from 'lucide-react'
 import { toast } from 'react-hot-toast'
 import { getPayrollSummary, releasePayrollWithAudit, generatePayslips } from '@/lib/actions/payroll'
 import {
@@ -80,6 +80,7 @@ type ArchivedPayroll = {
   id: string
   periodStart: string
   periodEnd: string
+  blgu?: string // "Barangay Officials" | "Barangay Staff"
   totalEmployees: number
   totalGrossSalary: number
   totalExpenses: number
@@ -119,12 +120,20 @@ export default function PayrollPage() {
   // Payroll Time Settings state
   const [payrollPeriodStart, setPayrollPeriodStart] = useState('')
   const [payrollPeriodEnd, setPayrollPeriodEnd] = useState('')
-  const [payrollReleaseTime, setPayrollReleaseTime] = useState('17:00')
-  const [originalReleaseTime, setOriginalReleaseTime] = useState('17:00') // Store original time-out end time
+  const [payrollReleaseTime, setPayrollReleaseTime] = useState('17:00') // legacy fallback
+  const [releaseTimeOfficials, setReleaseTimeOfficials] = useState('17:00')
+  const [releaseTimeStaff, setReleaseTimeStaff] = useState('17:00')
+  const [originalReleaseTime, setOriginalReleaseTime] = useState('17:00')
+  const [periodEndOfficials, setPeriodEndOfficials] = useState('') // period end for officials
+  const [periodEndStaff, setPeriodEndStaff] = useState('')         // period end for staff
   const [savingPeriod, setSavingPeriod] = useState(false)
   const [canRelease, setCanRelease] = useState(false)
+  const [canReleaseOfficials, setCanReleaseOfficials] = useState(false)
+  const [canReleaseStaff, setCanReleaseStaff] = useState(false)
   const [settingsCustomDays, setSettingsCustomDays] = useState('')
   const [timeUntilRelease, setTimeUntilRelease] = useState('')
+  const [timeUntilReleaseOfficials, setTimeUntilReleaseOfficials] = useState('')
+  const [timeUntilReleaseStaff, setTimeUntilReleaseStaff] = useState('')
   const [customSeconds, setCustomSeconds] = useState('10')
   const [now, setNow] = useState(new Date())
   const [hasShownReleaseModal, setHasShownReleaseModal] = useState(false)
@@ -168,10 +177,27 @@ export default function PayrollPage() {
   const [confirmPeriodStart, setConfirmPeriodStart] = useState('')
   const [confirmPeriodEnd, setConfirmPeriodEnd] = useState('')
   const [periodValidationError, setPeriodValidationError] = useState('')
+  const [selectedBlguGenerate, setSelectedBlguGenerate] = useState<'Barangay Officials' | 'Barangay Staff' | ''>('')
+  const [selectedBlguRelease, setSelectedBlguRelease] = useState<'Barangay Officials' | 'Barangay Staff' | ''>('')
+  const [archiveBlguFilter, setArchiveBlguFilter] = useState<'all' | 'Barangay Officials' | 'Barangay Staff'>('all')
+  const [currentBlguFilter, setCurrentBlguFilter] = useState<'all' | 'Barangay Officials' | 'Barangay Staff'>('all')
   const todayPHString = useMemo(() => toPhilippinesDateString(new Date()), [])
+
+  // Per-BLGU generation tracking based on actual PENDING entries
+  const officialsGenerated = useMemo(
+    () => payrollEntries.some(e => e.department === 'Barangay Officials'),
+    [payrollEntries]
+  )
+  const staffGenerated = useMemo(
+    () => payrollEntries.some(e => e.department === 'Barangay Staff'),
+    [payrollEntries]
+  )
+  const bothBlguGenerated = officialsGenerated && staffGenerated
+  const [showGeneratedBanner, setShowGeneratedBanner] = useState(true)
+
   const readyToGenerate = useMemo(
-    () => !!payrollPeriodStart && !!payrollPeriodEnd && !hasGeneratedForSettings,
-    [payrollPeriodStart, payrollPeriodEnd, hasGeneratedForSettings]
+    () => !!payrollPeriodStart && !!payrollPeriodEnd && !bothBlguGenerated,
+    [payrollPeriodStart, payrollPeriodEnd, bothBlguGenerated]
   )
 
   // Pan/Drag handlers for free view
@@ -548,9 +574,9 @@ html, body { margin: 0 !important; padding: 0 !important; overflow: hidden !impo
         })
       }
 
-      // Release with auto-calculated dates and attendance deduction preference
-      console.log('🔍 Releasing payroll with attendance deductions:', includeAttendanceDeductions)
-      const result = await releasePayrollWithAudit(nextStart, nextEnd, includeAttendanceDeductions)
+      // Release with auto-calculated dates, attendance deduction preference, and BLGU filter
+      console.log('🔍 Releasing payroll with attendance deductions:', includeAttendanceDeductions, 'BLGU:', selectedBlguRelease || 'All')
+      const result = await releasePayrollWithAudit(nextStart, nextEnd, includeAttendanceDeductions, selectedBlguRelease || undefined)
       if (!result.success) {
         throw new Error(result.error || 'Failed to release payroll')
       }
@@ -847,7 +873,8 @@ html, body { margin: 0 !important; padding: 0 !important; overflow: hidden !impo
       const requestBody = {
         userConfirmed: true,
         periodStart: confirmPeriodStart,
-        periodEnd: confirmPeriodEnd
+        periodEnd: confirmPeriodEnd,
+        blgu: selectedBlguGenerate || undefined
       }
 
       console.log('🔍 Generating payroll with period:', requestBody)
@@ -870,6 +897,15 @@ html, body { margin: 0 !important; padding: 0 !important; overflow: hidden !impo
       setPayrollPeriodEnd(confirmPeriodEnd)
       localStorage.setItem('payroll_period_start', confirmPeriodStart)
       localStorage.setItem('payroll_period_end', confirmPeriodEnd)
+
+      // Save per-BLGU period end so each group can have its own countdown
+      if (selectedBlguGenerate === 'Barangay Officials') {
+        setPeriodEndOfficials(confirmPeriodEnd)
+        localStorage.setItem('payroll_period_end_officials', confirmPeriodEnd)
+      } else if (selectedBlguGenerate === 'Barangay Staff') {
+        setPeriodEndStaff(confirmPeriodEnd)
+        localStorage.setItem('payroll_period_end_staff', confirmPeriodEnd)
+      }
 
       // Force refresh ALL data with the new period dates
       await Promise.all([
@@ -1617,11 +1653,24 @@ html, body { margin: 0 !important; padding: 0 !important; overflow: hidden !impo
     return false
   }
 
-  // Filter entries based on search
-  const filteredEntries = payrollEntries.filter(entry =>
-    entry.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    entry.email.toLowerCase().includes(searchTerm.toLowerCase())
-  )
+  // Filter entries based on search and BLGU tab selection
+  const filteredEntries = payrollEntries.filter(entry => {
+    const matchesSearch = entry.name?.toLowerCase().includes(searchTerm.toLowerCase()) || 
+                          entry.email.toLowerCase().includes(searchTerm.toLowerCase());
+    const matchesCategory = currentBlguFilter === 'all' || entry.department === currentBlguFilter;
+    
+    return matchesSearch && matchesCategory;
+  })
+
+  // Auto-hide the "Both Generated" banner after 5 seconds
+  useEffect(() => {
+    if (bothBlguGenerated && showGeneratedBanner) {
+      const timer = setTimeout(() => {
+        setShowGeneratedBanner(false)
+      }, 5000)
+      return () => clearTimeout(timer)
+    }
+  }, [bothBlguGenerated, showGeneratedBanner])
 
   // Update current time every second for live counters
   useEffect(() => {
@@ -1652,6 +1701,15 @@ html, body { margin: 0 !important; padding: 0 !important; overflow: hidden !impo
           setPayrollReleaseTime(savedReleaseTime)
           setOriginalReleaseTime(savedReleaseTime)
         }
+        const savedReleaseTimeOfficials = localStorage.getItem('payroll_release_time_officials')
+        const savedReleaseTimeStaff = localStorage.getItem('payroll_release_time_staff')
+        if (savedReleaseTimeOfficials) setReleaseTimeOfficials(savedReleaseTimeOfficials)
+        if (savedReleaseTimeStaff) setReleaseTimeStaff(savedReleaseTimeStaff)
+
+        const savedPeriodEndOfficials = localStorage.getItem('payroll_period_end_officials')
+        const savedPeriodEndStaff = localStorage.getItem('payroll_period_end_staff')
+        if (savedPeriodEndOfficials) setPeriodEndOfficials(savedPeriodEndOfficials)
+        if (savedPeriodEndStaff) setPeriodEndStaff(savedPeriodEndStaff)
       }
 
       // Load all data in parallel, but only load payroll if period exists
@@ -1674,63 +1732,112 @@ html, body { margin: 0 !important; padding: 0 !important; overflow: hidden !impo
     initializePayroll()
   }, [])
 
-  // Timer to update countdown every second
+  // Countdown timer — Officials release time (uses officials-specific period end)
   useEffect(() => {
-    if (!currentPeriod?.periodEnd || !payrollReleaseTime) {
+    const endDate = periodEndOfficials || currentPeriod?.periodEnd
+    if (!endDate || !releaseTimeOfficials) return
+    const tick = () => {
+      const now = new Date()
+      const ph = new Date(now.toLocaleString('en-US', { timeZone: 'Asia/Manila' }))
+      const [h, m] = releaseTimeOfficials.split(':').map(Number)
+      const rel = new Date(endDate)
+      rel.setHours(h, m, 0, 0)
+      const diff = rel.getTime() - ph.getTime()
+      if (diff <= 0) {
+        setCanReleaseOfficials(true)
+        setTimeUntilReleaseOfficials('')
+      } else {
+        setCanReleaseOfficials(false)
+        const days = Math.floor(diff / (1000 * 60 * 60 * 24))
+        const hrs = Math.floor((diff % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60))
+        const mins = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60))
+        const secs = Math.floor((diff % (1000 * 60)) / 1000)
+        let countdown = ''
+        if (days > 0) countdown += `${days}d `
+        countdown += `${hrs.toString().padStart(2, '0')}:${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`
+        setTimeUntilReleaseOfficials(countdown)
+      }
+    }
+    tick()
+    const id = setInterval(tick, 1000)
+    return () => clearInterval(id)
+  }, [periodEndOfficials, currentPeriod?.periodEnd, releaseTimeOfficials])
+
+  // Countdown timer — Staff release time (uses staff-specific period end)
+  useEffect(() => {
+    const endDate = periodEndStaff || currentPeriod?.periodEnd
+    if (!endDate || !releaseTimeStaff) return
+    const tick = () => {
+      const now = new Date()
+      const ph = new Date(now.toLocaleString('en-US', { timeZone: 'Asia/Manila' }))
+      const [h, m] = releaseTimeStaff.split(':').map(Number)
+      const rel = new Date(endDate)
+      rel.setHours(h, m, 0, 0)
+      const diff = rel.getTime() - ph.getTime()
+      if (diff <= 0) {
+        setCanReleaseStaff(true)
+        setTimeUntilReleaseStaff('')
+      } else {
+        setCanReleaseStaff(false)
+        const days = Math.floor(diff / (1000 * 60 * 60 * 24))
+        const hrs = Math.floor((diff % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60))
+        const mins = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60))
+        const secs = Math.floor((diff % (1000 * 60)) / 1000)
+        let countdown = ''
+        if (days > 0) countdown += `${days}d `
+        countdown += `${hrs.toString().padStart(2, '0')}:${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`
+        setTimeUntilReleaseStaff(countdown)
+      }
+    }
+    tick()
+    const id = setInterval(tick, 1000)
+    return () => clearInterval(id)
+  }, [periodEndStaff, currentPeriod?.periodEnd, releaseTimeStaff])
+
+  // Derive canRelease from the individual BLGU states
+  useEffect(() => {
+    setCanRelease(canReleaseOfficials || canReleaseStaff)
+  }, [canReleaseOfficials, canReleaseStaff])
+
+  // Combined countdown display (uses earliest release time — for the header release button tooltip)
+  useEffect(() => {
+    const releaseTime = releaseTimeOfficials < releaseTimeStaff ? releaseTimeOfficials : releaseTimeStaff
+    if (!currentPeriod?.periodEnd || !releaseTime) {
       setTimeUntilRelease('')
       return
     }
-
     const updateCountdown = () => {
-      // Get current time in Philippines (UTC+8)
       const now = new Date()
       const philippinesTime = new Date(now.toLocaleString('en-US', { timeZone: 'Asia/Manila' }))
-      const [hours, minutes] = payrollReleaseTime.split(':').map(Number)
-
-      // Use period end date with the release time
+      const [hours, minutes] = releaseTime.split(':').map(Number)
       const releaseDateTime = new Date(currentPeriod.periodEnd)
       releaseDateTime.setHours(hours, minutes, 0, 0)
-
       const diff = releaseDateTime.getTime() - philippinesTime.getTime()
-
       if (diff <= 0) {
         setTimeUntilRelease('Release available now!')
         if (!canRelease) {
           setCanRelease(true)
-          console.log('🚀 Countdown complete - Release button now enabled')
-
-          // Auto-release payroll when countdown hits zero (only once)
           if (hasGeneratedForSettings && currentPeriod.status !== 'Released' && !hasAutoReleased) {
-            console.log('🚀 Auto-releasing payroll after cutoff...')
             setHasAutoReleased(true)
             handleAutoReleasePayroll()
           }
         }
         return
       }
-
-      // If we're counting down, make sure canRelease is false
-      if (canRelease) {
-        setCanRelease(false)
-      }
-
+      if (canRelease) setCanRelease(false)
       const days = Math.floor(diff / (1000 * 60 * 60 * 24))
       const hrs = Math.floor((diff % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60))
       const mins = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60))
       const secs = Math.floor((diff % (1000 * 60)) / 1000)
-
       let countdown = ''
       if (days > 0) countdown += `${days}d `
       countdown += `${hrs.toString().padStart(2, '0')}:${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`
-
       setTimeUntilRelease(countdown)
     }
-
     updateCountdown()
     const interval = setInterval(updateCountdown, 1000)
-
     return () => clearInterval(interval)
-  }, [currentPeriod?.periodEnd, payrollReleaseTime, canRelease])
+  }, [currentPeriod?.periodEnd, releaseTimeOfficials, releaseTimeStaff, canRelease])
 
   // Debug: Log newArchivedPayrollId changes
   useEffect(() => {
@@ -1810,14 +1917,22 @@ html, body { margin: 0 !important; padding: 0 !important; overflow: hidden !impo
           </p>
         </div>
         <div className="flex gap-2">
-          <Button onClick={handleGeneratePayroll} disabled={loading || hasGeneratedForSettings} aria-disabled>
+          <Button onClick={handleGeneratePayroll} disabled={loading || bothBlguGenerated} aria-disabled>
             <FileText className="h-4 w-4 mr-2" />
-            {hasGeneratedForSettings ? 'Payroll Generated' : 'Generate Payroll'}
+            {bothBlguGenerated ? (
+              'Payroll Generated'
+            ) : officialsGenerated ? (
+              <span className="flex items-center gap-1.5"><User className="h-4 w-4" /> Generate Brgy Staff</span>
+            ) : staffGenerated ? (
+              <span className="flex items-center gap-1.5"><Landmark className="h-4 w-4" /> Generate Officials</span>
+            ) : (
+              'Generate Payroll'
+            )}
           </Button>
           <Button
             onClick={showReleaseConfirmation}
             disabled={loading || !hasGeneratedForSettings || currentPeriod?.status === 'Released' || !canRelease}
-            title={!canRelease && currentPeriod?.periodEnd && payrollReleaseTime ? `Release only available on or after ${formatDateForDisplay(new Date(currentPeriod.periodEnd))} at ${formatTime12Hour(payrollReleaseTime)}` : ''}
+            title={!canRelease && currentPeriod?.periodEnd ? `Officials: ${formatTime12Hour(releaseTimeOfficials)} | Staff: ${formatTime12Hour(releaseTimeStaff)} — on ${formatDateForDisplay(new Date(currentPeriod.periodEnd))}` : ''}
             className="bg-green-600 hover:bg-green-700 text-white disabled:bg-green-600/60 disabled:text-white"
           >
             <Save className="h-4 w-4 mr-2" />
@@ -1826,23 +1941,82 @@ html, body { margin: 0 !important; padding: 0 !important; overflow: hidden !impo
         </div>
       </div>
 
-      {/* Release Countdown Timer */}
-      {!canRelease && currentPeriod && currentPeriod.status !== 'Released' && timeUntilRelease && hasGeneratedForSettings && (
-        <div className="flex items-center justify-between rounded-xl border border-blue-200 dark:border-blue-900 flex-col md:flex-row dark:bg-transparent px-6 py-5 shadow-sm">
-          <div className="flex items-center gap-4 mb-4 md:mb-0">
-            <div className="p-3 rounded-full">
-              <Clock className="h-7 w-7 text-blue-600 dark:text-blue-400 flex-shrink-0" />
-            </div>
-            <div>
-              <p className="text-xl font-bold text-foreground">Waiting for Release Time</p>
-              <p className="text-base text-muted-foreground mt-0.5">
-                {formatDateForDisplay(new Date(currentPeriod.periodEnd))} at {formatTime12Hour(payrollReleaseTime)}
-              </p>
-            </div>
+      {/* Both BLGU Generated Notice */}
+      {bothBlguGenerated && showGeneratedBanner && currentPeriod?.status !== 'Released' && (
+        <div className="flex items-start gap-3 px-4 py-3 bg-blue-50 dark:bg-blue-950/20 border border-blue-200 dark:border-blue-800 rounded-xl text-sm text-blue-800 dark:text-blue-300">
+          <CheckCircle2 className="h-5 w-5 mt-0.5 flex-shrink-0 text-blue-600 dark:text-blue-400" />
+          <div>
+            <p className="font-semibold flex items-center flex-wrap gap-1">
+              Both <Landmark className="h-4 w-4 text-blue-500 inline-block" /> Barangay Officials and <User className="h-4 w-4 text-amber-500 inline-block" /> Barangay Staff payroll have been generated
+            </p>
           </div>
-          <div className="text-right w-full md:w-auto text-center md:text-right flex items-center justify-center">
-            <span className="text-4xl font-bold font-mono text-blue-600 dark:text-blue-400 tracking-tight">{timeUntilRelease}</span>
-          </div>
+        </div>
+      )}
+
+      {/* Release Countdown Timer — per BLGU group */}
+      {currentPeriod && currentPeriod.status !== 'Released' && hasGeneratedForSettings && (officialsGenerated || staffGenerated) && (
+        <div className="space-y-4">
+          {/* Officials row */}
+          {officialsGenerated && (
+            <div className={`flex items-center justify-between rounded-2xl border-2 px-8 py-6 shadow-sm ${canReleaseOfficials ? 'border-green-300 bg-green-50 dark:bg-green-950/20 dark:border-green-800' : 'border-blue-200 dark:border-blue-900 bg-blue-50/50 dark:bg-blue-950/10'}`}>
+              <div className="flex items-center gap-5">
+                <div className={`h-16 w-16 rounded-2xl flex items-center justify-center flex-shrink-0 ${canReleaseOfficials ? 'bg-green-100 dark:bg-green-900' : 'bg-blue-100 dark:bg-blue-900'}`}>
+                  <Landmark className={`h-8 w-8 ${canReleaseOfficials ? 'text-green-600 dark:text-green-300' : 'text-blue-600 dark:text-blue-300'}`} />
+                </div>
+                <div>
+                  <p className="font-bold text-foreground text-xl">Barangay Officials</p>
+                  <p className="text-sm text-muted-foreground mt-1">
+                    Period ends: <strong>{periodEndOfficials ? formatDateForDisplay(new Date(periodEndOfficials)) : currentPeriod?.periodEnd ? formatDateForDisplay(new Date(currentPeriod.periodEnd)) : '—'}</strong>
+                    {' · '}Release at <strong>{formatTime12Hour(releaseTimeOfficials)}</strong>
+                  </p>
+                </div>
+              </div>
+              <div className="text-right flex-shrink-0">
+                {canReleaseOfficials ? (
+                  <Button
+                    onClick={showReleaseConfirmation}
+                    className="bg-green-600 hover:bg-green-700 text-white font-semibold py-6 px-6 text-lg shadow-sm"
+                  >
+                    <CheckCircle2 className="h-5 w-5 mr-2" />
+                    Release Payroll
+                  </Button>
+                ) : (
+                  <span className="font-mono font-bold text-blue-600 dark:text-blue-400 text-4xl tracking-tight">{timeUntilReleaseOfficials}</span>
+                )}
+              </div>
+            </div>
+          )}
+
+          {/* Staff row */}
+          {staffGenerated && (
+            <div className={`flex items-center justify-between rounded-2xl border-2 px-8 py-6 shadow-sm ${canReleaseStaff ? 'border-green-300 bg-green-50 dark:bg-green-950/20 dark:border-green-800' : 'border-amber-200 dark:border-amber-900 bg-amber-50/50 dark:bg-amber-950/10'}`}>
+              <div className="flex items-center gap-5">
+                <div className={`h-16 w-16 rounded-2xl flex items-center justify-center flex-shrink-0 ${canReleaseStaff ? 'bg-green-100 dark:bg-green-900' : 'bg-amber-100 dark:bg-amber-900'}`}>
+                  <User className={`h-8 w-8 ${canReleaseStaff ? 'text-green-600 dark:text-green-300' : 'text-amber-600 dark:text-amber-300'}`} />
+                </div>
+                <div>
+                  <p className="font-bold text-foreground text-xl">Barangay Staff</p>
+                  <p className="text-sm text-muted-foreground mt-1">
+                    Period ends: <strong>{periodEndStaff ? formatDateForDisplay(new Date(periodEndStaff)) : currentPeriod?.periodEnd ? formatDateForDisplay(new Date(currentPeriod.periodEnd)) : '—'}</strong>
+                    {' · '}Release at <strong>{formatTime12Hour(releaseTimeStaff)}</strong>
+                  </p>
+                </div>
+              </div>
+              <div className="text-right flex-shrink-0">
+                {canReleaseStaff ? (
+                  <Button
+                    onClick={showReleaseConfirmation}
+                    className="bg-green-600 hover:bg-green-700 text-white font-semibold py-6 px-6 text-lg shadow-sm"
+                  >
+                    <CheckCircle2 className="h-5 w-5 mr-2" />
+                    Release Payroll
+                  </Button>
+                ) : (
+                  <span className="font-mono font-bold text-amber-600 dark:text-amber-400 text-4xl tracking-tight">{timeUntilReleaseStaff}</span>
+                )}
+              </div>
+            </div>
+          )}
         </div>
       )}
 
@@ -1871,43 +2045,123 @@ html, body { margin: 0 !important; padding: 0 !important; overflow: hidden !impo
       )}
 
       {/* Current Period Info */}
-      {/* Current Period Info - Simplified */}
       {currentPeriod && (
         <Card className="border shadow-sm bg-card mb-6">
           <CardContent className="p-0">
             <div className="flex flex-col md:flex-row divide-y md:divide-y-0 md:divide-x border-b md:border-b-0">
 
-              {/* Period Date Section */}
-              <div className="flex-1 p-6 flex items-start gap-4">
+              {/* Explicit Separated Period Date Section */}
+              <div className="flex-[1.2] p-6 flex items-start gap-4">
                 <div className="mt-1">
                   <div className="h-10 w-10 rounded-full border bg-muted/30 flex items-center justify-center">
                     <CalendarRange className="h-5 w-5 text-muted-foreground" />
                   </div>
                 </div>
-                <div>
-                  <p className="text-sm font-medium text-muted-foreground mb-1">Payroll Period</p>
-                  <h3 className="text-lg font-semibold text-foreground tracking-tight">
-                    {formatDateForDisplay(new Date(currentPeriod.periodStart))} — {formatDateForDisplay(new Date(currentPeriod.periodEnd))}
-                  </h3>
-                  <p className="text-sm text-muted-foreground mt-1">
-                    {calculateWorkingDaysInPhilippines(new Date(currentPeriod.periodStart), new Date(currentPeriod.periodEnd))} working days
-                  </p>
+                <div className="w-full">
+                  <p className="text-sm font-medium text-muted-foreground mb-3">Payroll Periods</p>
+                  {!officialsGenerated && !staffGenerated ? (
+                    <div className="space-y-3">
+                      <div className="flex items-start gap-2 opacity-40">
+                        <div className="mt-0.5"><Landmark className="h-4 w-4 text-blue-500" /></div>
+                        <div>
+                          <p className="text-xs text-muted-foreground font-medium leading-none mb-1">Brgy Officials</p>
+                          <p className="text-sm font-semibold text-muted-foreground">— —</p>
+                        </div>
+                      </div>
+                      <div className="flex items-start gap-2 opacity-40">
+                        <div className="mt-0.5"><User className="h-4 w-4 text-amber-500" /></div>
+                        <div>
+                          <p className="text-xs text-muted-foreground font-medium leading-none mb-1">Brgy Staff</p>
+                          <p className="text-sm font-semibold text-muted-foreground">— —</p>
+                        </div>
+                      </div>
+                    </div>
+
+                  ) : (
+                    <div className="space-y-3">
+                      {/* Officials Period Label */}
+                      {officialsGenerated && (
+                        <div className="flex items-start gap-2">
+                          <div className="mt-0.5"><Landmark className="h-4 w-4 text-blue-500" /></div>
+                          <div>
+                            <p className="text-xs text-muted-foreground font-medium leading-none mb-1">Brgy Officials</p>
+                            <p className="text-sm font-semibold text-foreground">
+                              {formatDateForDisplay(new Date(currentPeriod.periodStart))} — {formatDateForDisplay(new Date(periodEndOfficials || currentPeriod.periodEnd))}
+                            </p>
+                          </div>
+                        </div>
+                      )}
+                      {/* Staff Period Label */}
+                      {staffGenerated && (
+                        <div className="flex items-start gap-2">
+                          <div className="mt-0.5"><User className="h-4 w-4 text-amber-500" /></div>
+                          <div>
+                            <p className="text-xs text-muted-foreground font-medium leading-none mb-1">Brgy Staff</p>
+                            <p className="text-sm font-semibold text-foreground">
+                              {formatDateForDisplay(new Date(currentPeriod.periodStart))} — {formatDateForDisplay(new Date(periodEndStaff || currentPeriod.periodEnd))}
+                            </p>
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  )}
                 </div>
               </div>
 
-              {/* Staff Count Section */}
+
+              {/* Barangay Officials Info */}
               <div className="flex-1 p-6 flex items-start gap-4">
                 <div className="mt-1">
-                  <div className="h-10 w-10 rounded-full border bg-muted/30 flex items-center justify-center">
-                    <Users className="h-5 w-5 text-muted-foreground" />
+                  <div className="h-10 w-10 rounded-full border bg-blue-50 border-blue-200 flex items-center justify-center">
+                    <Landmark className="h-5 w-5 text-blue-600" />
                   </div>
                 </div>
                 <div>
-                  <p className="text-sm font-medium text-muted-foreground mb-1">Total Brgy Staff</p>
-                  <div className="flex items-baseline gap-2">
-                    <h3 className="text-2xl font-bold text-foreground">{totalEmployees}</h3>
+                  <p className="text-sm font-medium text-muted-foreground mb-1">Brgy Officials</p>
+                  <div className="flex items-baseline gap-2 mb-2">
+                    <h3 className="text-2xl font-bold text-foreground">
+                      {payrollEntries.filter(e => e.department === 'Barangay Officials').length}
+                    </h3>
                     <span className="text-sm text-muted-foreground">active</span>
                   </div>
+                  {officialsGenerated && periodEndOfficials && (
+                    <div className="text-xs text-muted-foreground bg-muted/30 px-2 py-1 rounded inline-block">
+                      {formatDateForDisplay(new Date(currentPeriod.periodStart))} — {formatDateForDisplay(new Date(periodEndOfficials))}
+                    </div>
+                  )}
+                  {!officialsGenerated && (
+                    <div className="text-xs text-muted-foreground bg-muted/30 px-2 py-1 rounded inline-block">
+                      Not generated yet
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              {/* Barangay Staff Info */}
+              <div className="flex-1 p-6 flex items-start gap-4">
+                <div className="mt-1">
+                  <div className="h-10 w-10 rounded-full border bg-amber-50 border-amber-200 flex items-center justify-center">
+                    <User className="h-5 w-5 text-amber-600" />
+                  </div>
+                </div>
+                <div>
+                  <p className="text-sm font-medium text-muted-foreground mb-1">Brgy Staff</p>
+                  <div className="flex items-baseline gap-2 mb-2">
+                    <h3 className="text-2xl font-bold text-foreground">
+                      {payrollEntries.filter(e => e.department === 'Barangay Staff').length}
+                    </h3>
+                    <span className="text-sm text-muted-foreground">active</span>
+                  </div>
+                  {staffGenerated && periodEndStaff && (
+                    <div className="text-xs text-muted-foreground bg-muted/30 px-2 py-1 rounded inline-block">
+                      {formatDateForDisplay(new Date(currentPeriod.periodStart))} — {formatDateForDisplay(new Date(periodEndStaff))}
+                    </div>
+                  )}
+                  {!staffGenerated && (
+                    <div className="text-xs text-muted-foreground bg-muted/30 px-2 py-1 rounded inline-block">
+                      Not generated yet
+                    </div>
+                  )}
                 </div>
               </div>
 
@@ -1923,13 +2177,13 @@ html, body { margin: 0 !important; padding: 0 !important; overflow: hidden !impo
                   </div>
                 </div>
                 <div>
-                  <p className="text-sm font-medium text-muted-foreground mb-1">Status</p>
+                  <p className="text-sm font-medium text-muted-foreground mb-1">Overall Status</p>
                   <div className="flex items-center gap-2 mb-1">
                     {getStatusBadge(currentPeriod.status || 'Pending')}
                   </div>
                   {hasGeneratedForSettings && canRelease && currentPeriod?.status !== 'Released' && (
                     <span className="text-xs font-medium text-orange-600 mt-1 block">
-                      Release required
+                      Ready to release
                     </span>
                   )}
                 </div>
@@ -1939,6 +2193,7 @@ html, body { margin: 0 !important; padding: 0 !important; overflow: hidden !impo
           </CardContent>
         </Card>
       )}
+
 
       {/* Main Content Tabs */}
       <Tabs value={activeTab} onValueChange={setActiveTab}>
@@ -1976,7 +2231,7 @@ html, body { margin: 0 !important; padding: 0 !important; overflow: hidden !impo
 
         {/* Current Payroll Tab */}
         <TabsContent value="current" className="space-y-4">
-          {!hasGeneratedForSettings ? (
+          {payrollEntries.length === 0 ? (
             /* Empty State - Payroll Not Generated */
             <Card>
               <CardContent className="flex flex-col items-center justify-center py-16">
@@ -1988,19 +2243,7 @@ html, body { margin: 0 !important; padding: 0 !important; overflow: hidden !impo
                   </div>
                   <div>
                     <h3 className="text-2xl font-semibold mb-2">Payroll Waiting to be Generated</h3>
-                    <p className="text-muted-foreground max-w-md">
-                      Click the button below to generate payroll for the current period
-                    </p>
                   </div>
-                  <Button
-                    onClick={handleGeneratePayroll}
-                    disabled={loading}
-                    size="lg"
-                    className="mt-4"
-                  >
-                    <FileText className="h-5 w-5 mr-2" />
-                    Generate Payroll Now
-                  </Button>
                 </div>
               </CardContent>
             </Card>
@@ -2090,6 +2333,47 @@ html, body { margin: 0 !important; padding: 0 !important; overflow: hidden !impo
                       </Card>
                     </div>
                   )}
+
+                  {/* Active Payroll BLGU Filter Tabs */}
+                  {payrollEntries.length > 0 && (
+                    <div className="mt-6 mb-4 px-6">
+                      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+                        <Tabs
+                          value={currentBlguFilter}
+                          onValueChange={(val: any) => setCurrentBlguFilter(val)}
+                          className="w-full sm:w-auto"
+                        >
+                          <TabsList className="bg-muted/50 p-1 border h-auto flex flex-wrap sm:flex-nowrap">
+                            <TabsTrigger
+                              value="all"
+                              className="px-4 py-2 font-medium data-[state=active]:bg-white dark:data-[state=active]:bg-slate-900 data-[state=active]:shadow-sm data-[state=active]:text-primary rounded-md flex items-center gap-1.5"
+                            >
+                              All Staff
+                            </TabsTrigger>
+                            <TabsTrigger
+                              value="Barangay Officials"
+                              className="px-4 py-2 font-medium data-[state=active]:bg-white dark:data-[state=active]:bg-slate-900 data-[state=active]:shadow-sm data-[state=active]:text-primary rounded-md flex items-center gap-1.5"
+                            >
+                              <Landmark className="h-4 w-4" /> Brgy Officials
+                            </TabsTrigger>
+                            <TabsTrigger
+                              value="Barangay Staff"
+                              className="px-4 py-2 font-medium data-[state=active]:bg-white dark:data-[state=active]:bg-slate-900 data-[state=active]:shadow-sm data-[state=active]:text-primary rounded-md flex items-center gap-1.5"
+                            >
+                              <User className="h-4 w-4" /> Brgy Staff
+                            </TabsTrigger>
+                          </TabsList>
+                        </Tabs>
+                        
+                        {/* Summary of currently filtered count */}
+                        <div className="text-sm text-muted-foreground font-medium bg-muted/30 px-3 py-1.5 rounded-md border">
+                          Showing: <span className="text-foreground font-bold">
+                            {payrollEntries.filter(e => currentBlguFilter === 'all' || e.department === currentBlguFilter).length}
+                          </span> entries
+                        </div>
+                      </div>
+                    </div>
+                  )}
                 </CardHeader>
                 <CardContent className="p-0">
                   {/* Search Bar - Moved to inside the Card and below Summary */}
@@ -2123,38 +2407,52 @@ html, body { margin: 0 !important; padding: 0 !important; overflow: hidden !impo
                         </TableRow>
                       </TableHeader>
                       <TableBody>
-                        {loading ? (
-                          <TableRow>
-                            <TableCell colSpan={8} className="text-center py-16">
-                              <div className="flex flex-col items-center gap-3">
-                                <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-primary"></div>
-                                <span className="text-sm text-muted-foreground">Loading payroll data...</span>
-                              </div>
-                            </TableCell>
-                          </TableRow>
-                        ) : filteredEntries.length === 0 ? (
-                          <TableRow>
-                            <TableCell colSpan={8} className="text-center py-16">
-                              <div className="flex flex-col items-center gap-3">
-                                <FileText className="h-16 w-16 text-muted-foreground/30" />
-                                <div>
-                                  <p className="text-base font-medium text-foreground">No payroll entries found</p>
-                                  <p className="text-sm text-muted-foreground mt-1">Try adjusting your search</p>
+                        {(() => {
+                          if (loading) return (
+                            <TableRow>
+                              <TableCell colSpan={8} className="text-center py-16">
+                                <div className="flex flex-col items-center gap-3">
+                                  <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-primary"></div>
+                                  <span className="text-sm text-muted-foreground">Loading payroll data...</span>
                                 </div>
-                              </div>
-                            </TableCell>
-                          </TableRow>
-                        ) : (
-                          filteredEntries.map((entry, index) => {
+                              </TableCell>
+                            </TableRow>
+                          )
+
+                          const searchLower = searchTerm.toLowerCase()
+                          const displayEntries = payrollEntries.filter(person => {
+                            const matchesSearch =
+                              person.name.toLowerCase().includes(searchLower) ||
+                              person.email.toLowerCase().includes(searchLower) ||
+                              (person.users_id && person.users_id.toLowerCase().includes(searchLower)) ||
+                              (person.department && person.department.toLowerCase().includes(searchLower))
+                            const matchesBlgu = currentBlguFilter === 'all' || person.department === currentBlguFilter
+                            return matchesSearch && matchesBlgu
+                          })
+
+                          if (displayEntries.length === 0) return (
+                            <TableRow>
+                              <TableCell colSpan={8} className="text-center py-16">
+                                <div className="flex flex-col items-center gap-3">
+                                  <Users className="h-16 w-16 text-muted-foreground/30" />
+                                  <div>
+                                    <p className="text-base font-medium text-foreground">No payroll entries found</p>
+                                    <p className="text-sm text-muted-foreground mt-1">
+                                      {currentBlguFilter !== 'all' ? `No entries for ${currentBlguFilter}` : 'Try adjusting your search'}
+                                    </p>
+                                  </div>
+                                </div>
+                              </TableCell>
+                            </TableRow>
+                          )
+
+                          return displayEntries.map((entry, index) => {
                             const basicSalary = Number(entry.breakdown?.basicSalary || 0)
                             const overloadPay = Number(entry.breakdown?.overloadPay || 0)
                             const { netPay } = calculateUserPayroll(entry.users_id, basicSalary, overloadPay)
 
                             return (
-                              <TableRow
-                                key={`${entry.users_id}-${index}`}
-                                className="border-b border-border/50 hover:bg-transparent"
-                              >
+                              <TableRow key={`${entry.users_id}-${index}`} className="border-b border-border/50 hover:bg-muted/30 transition-colors">
                                 <TableCell className="px-6 py-4">
                                   <span className="inline-flex items-center font-mono text-xs font-medium text-muted-foreground bg-secondary/60 px-2.5 py-1 rounded-md">
                                     {entry.users_id}
@@ -2164,11 +2462,7 @@ html, body { margin: 0 !important; padding: 0 !important; overflow: hidden !impo
                                   <div className="flex items-center gap-3">
                                     <div className="relative h-10 w-10 rounded-full overflow-hidden bg-muted flex-shrink-0">
                                       {entry.avatar ? (
-                                        <img
-                                          src={entry.avatar}
-                                          alt={entry.name}
-                                          className="h-full w-full object-cover"
-                                        />
+                                        <img src={entry.avatar} alt={entry.name} className="h-full w-full object-cover" />
                                       ) : (
                                         <div className="h-full w-full flex items-center justify-center bg-primary/10 text-primary font-semibold text-sm">
                                           {entry.name?.charAt(0).toUpperCase() || 'U'}
@@ -2181,19 +2475,24 @@ html, body { margin: 0 !important; padding: 0 !important; overflow: hidden !impo
                                 <TableCell className="py-4">
                                   <span className="text-sm">{entry.email}</span>
                                 </TableCell>
+                                {/* BLGU Badge */}
                                 <TableCell className="py-4">
-                                  <span className="font-medium text-sm">{(() => {
-                                    const personnelTypeName = entry.personnelType || ''
-                                    const nameParts = personnelTypeName.split(': ')
-                                    return nameParts.length === 2 ? nameParts[0] : (entry.department || 'N/A')
-                                  })()}</span>
+                                  <div className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium border ${
+                                    entry.department === 'Barangay Officials'
+                                      ? 'bg-blue-50 text-blue-700 border-blue-200 dark:bg-blue-900/30 dark:text-blue-300 dark:border-blue-800'
+                                      : 'bg-amber-50 text-amber-700 border-amber-200 dark:bg-amber-900/30 dark:text-amber-300 dark:border-amber-800'
+                                  }`}>
+                                    {entry.department === 'Barangay Officials' 
+                                      ? <span className="flex items-center gap-1"><Landmark className="h-3.5 w-3.5" /> Official</span> 
+                                      : <span className="flex items-center gap-1"><User className="h-3.5 w-3.5" /> Staff</span>}
+                                  </div>
                                 </TableCell>
+                                {/* Position */}
                                 <TableCell className="py-4">
                                   <Badge variant="outline" className="font-medium text-xs px-2.5 py-1">
                                     {(() => {
-                                      const personnelTypeName = entry.personnelType || ''
-                                      const nameParts = personnelTypeName.split(': ')
-                                      return nameParts.length === 2 ? nameParts[1] : (personnelTypeName || 'N/A')
+                                      const parts = (entry.personnelType || '').split(': ')
+                                      return parts.length === 2 ? parts[1] : (entry.personnelType || 'N/A')
                                     })()}
                                   </Badge>
                                 </TableCell>
@@ -2219,11 +2518,7 @@ html, body { margin: 0 !important; padding: 0 !important; overflow: hidden !impo
                                       variant="ghost"
                                       size="sm"
                                       className="font-medium"
-                                      onClick={() => {
-                                        setSelectedEntry(entry)
-                                        setOpenInEditMode(false)
-                                        setBreakdownDialogOpen(true)
-                                      }}
+                                      onClick={() => { setSelectedEntry(entry); setOpenInEditMode(false); setBreakdownDialogOpen(true) }}
                                     >
                                       <Eye className="h-4 w-4 mr-2" />
                                       Details
@@ -2232,11 +2527,7 @@ html, body { margin: 0 !important; padding: 0 !important; overflow: hidden !impo
                                       variant="outline"
                                       size="sm"
                                       className="font-medium"
-                                      onClick={() => {
-                                        setSelectedEntry(entry)
-                                        setOpenInEditMode(true)
-                                        setBreakdownDialogOpen(true)
-                                      }}
+                                      onClick={() => { setSelectedEntry(entry); setOpenInEditMode(true); setBreakdownDialogOpen(true) }}
                                       disabled={entry.status !== 'Pending'}
                                     >
                                       <Edit2 className="h-4 w-4 mr-2" />
@@ -2247,7 +2538,7 @@ html, body { margin: 0 !important; padding: 0 !important; overflow: hidden !impo
                               </TableRow>
                             )
                           })
-                        )}
+                        })()}
                       </TableBody>
                     </Table>
                   </div>
@@ -2552,7 +2843,28 @@ html, body { margin: 0 !important; padding: 0 !important; overflow: hidden !impo
               </div>
             </CardHeader>
             <CardContent className="p-0">
-              <div className="overflow-x-auto">
+              {/* BLGU Filter Tabs */}
+              <div className="flex gap-2 px-4 pt-4 pb-3">
+                {(['all', 'Barangay Officials', 'Barangay Staff'] as const).map(filter => (
+                  <button
+                    key={filter}
+                    type="button"
+                    onClick={() => setArchiveBlguFilter(filter)}
+                    className={`px-4 py-1.5 rounded-full text-xs font-semibold border transition-all ${
+                      archiveBlguFilter === filter
+                        ? 'bg-primary text-primary-foreground border-primary'
+                        : 'bg-background text-muted-foreground border-border hover:border-primary/50 hover:text-foreground'
+                    }`}
+                  >
+                    {filter === 'all' 
+                      ? <span className="flex items-center gap-1.5">All BLGU</span> 
+                      : filter === 'Barangay Officials' 
+                        ? <span className="flex items-center gap-1.5"><Landmark className="h-3.5 w-3.5" /> Officials</span> 
+                        : <span className="flex items-center gap-1.5"><User className="h-3.5 w-3.5" /> Staff</span>}
+                  </button>
+                ))}
+              </div>
+              <div className="overflow-x-auto border-t border-border/50">
                 <Table>
                   <TableHeader>
                     <TableRow className="border-b bg-muted/50">
@@ -2571,6 +2883,7 @@ html, body { margin: 0 !important; padding: 0 !important; overflow: hidden !impo
                         </Button>
                       </TableHead>
                       <TableHead className="font-semibold text-xs uppercase tracking-wider">Period</TableHead>
+                      <TableHead className="font-semibold text-xs uppercase tracking-wider">BLGU</TableHead>
                       <TableHead className="font-semibold text-xs uppercase tracking-wider">Staff</TableHead>
                       <TableHead className="font-semibold text-xs uppercase tracking-wider text-right pr-8">Net Pay</TableHead>
                       <TableHead className="font-semibold text-xs uppercase tracking-wider pl-8">Released</TableHead>
@@ -2579,74 +2892,85 @@ html, body { margin: 0 !important; padding: 0 !important; overflow: hidden !impo
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {archivedPayrolls.length === 0 ? (
-                      <TableRow>
-                        <TableCell colSpan={7} className="text-center py-20">
-                          <div className="flex flex-col items-center gap-4">
-                            <div className="p-6 bg-muted/30 rounded-2xl border">
-                              <Archive className="h-16 w-16 text-muted-foreground/50" />
-                            </div>
-                            <div>
-                              <p className="text-lg font-semibold text-foreground">No Archived Payrolls Yet</p>
-                              <p className="text-sm text-muted-foreground mt-2 max-w-md">
-                                Released payrolls will be automatically archived and displayed here for historical reference
-                              </p>
-                            </div>
-                          </div>
-                        </TableCell>
-                      </TableRow>
-                    ) : (
-                      archivedPayrolls
-                        .filter(payroll => {
-                          if (!archiveSearchTerm) return true
-                          const searchLower = archiveSearchTerm.toLowerCase()
-                          const periodStart = formatDateForDisplay(new Date(payroll.periodStart)).toLowerCase()
-                          const periodEnd = formatDateForDisplay(new Date(payroll.periodEnd)).toLowerCase()
-                          const releasedAt = formatDateForDisplay(new Date(payroll.releasedAt)).toLowerCase()
-                          const releasedBy = payroll.releasedBy.toLowerCase()
-                          return periodStart.includes(searchLower) ||
-                            periodEnd.includes(searchLower) ||
-                            releasedAt.includes(searchLower) ||
-                            releasedBy.includes(searchLower)
-                        })
-                        .map((payroll) => (
-                          <TableRow key={payroll.id} className="border-b border-border/50 hover:bg-slate-50/50 dark:hover:bg-slate-950/20 transition-colors">
-                            <TableCell className="py-5">
-                              <Button
-                                variant="ghost"
-                                size="sm"
-                                onClick={() => handleToggleArchive(payroll.id)}
-                                className="h-8 w-8 p-0 hover:bg-slate-100 dark:hover:bg-slate-900/30"
-                              >
-                                {selectedArchives.includes(payroll.id) ? (
-                                  <CheckSquare className="h-4 w-4 text-primary" />
-                                ) : (
-                                  <Square className="h-4 w-4 text-muted-foreground" />
-                                )}
-                              </Button>
-                            </TableCell>
-                            <TableCell className="py-5">
-                              <div className="flex items-center gap-3 relative">
-                                <div className="flex items-center gap-3">
-                                  <div className="p-2 bg-muted/30 rounded-lg border">
-                                    <Calendar className="h-4 w-4 text-muted-foreground" />
-                                  </div>
-                                  <div className="flex flex-col">
-                                    <span className="font-semibold text-sm text-foreground">{formatDateForDisplay(new Date(payroll.periodStart))}</span>
-                                    <span className="text-xs text-muted-foreground flex items-center gap-1">
-                                      <span>to</span>
-                                      <span className="font-medium">{formatDateForDisplay(new Date(payroll.periodEnd))}</span>
-                                    </span>
-                                  </div>
-                                </div>
-                                {(archivedPayrolls.indexOf(payroll) === 0 && !hasViewedNewestPayroll) && (
-                                  <span className="relative flex h-3 w-3 flex-shrink-0">
-                                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-500 opacity-75"></span>
-                                    <span className="relative inline-flex rounded-full h-3 w-3 bg-red-600 shadow-lg"></span>
-                                  </span>
-                                )}
+                    {(() => {
+                      const filteredArchive = archiveBlguFilter === 'all'
+                        ? archivedPayrolls
+                        : archivedPayrolls.filter(p => p.blgu === archiveBlguFilter)
+                      const displayArchive = archiveSearchTerm
+                        ? filteredArchive.filter((p: any) => {
+                            const search = archiveSearchTerm.toLowerCase()
+                            const periodStr = `${new Date(p.periodStart).toLocaleDateString()} ${new Date(p.periodEnd).toLocaleDateString()}`
+                            return periodStr.toLowerCase().includes(search) || (p.blgu || '').toLowerCase().includes(search)
+                          })
+                        : filteredArchive
+                      if (displayArchive.length === 0) return (
+                        <TableRow>
+                          <TableCell colSpan={8} className="text-center py-20">
+                            <div className="flex flex-col items-center gap-4">
+                              <div className="p-6 bg-muted/30 rounded-2xl border">
+                                <Archive className="h-16 w-16 text-muted-foreground/50" />
                               </div>
-                            </TableCell>
+                              <div>
+                                <p className="text-lg font-semibold text-foreground">No Archived Payrolls Yet</p>
+                                <p className="text-sm text-muted-foreground mt-2 max-w-md">
+                                  {archiveBlguFilter !== 'all'
+                                    ? `No archived payrolls found for ${archiveBlguFilter}`
+                                    : 'Released payrolls will be automatically archived and displayed here for historical reference'}
+                                </p>
+                              </div>
+                            </div>
+                          </TableCell>
+                        </TableRow>
+                      )
+                      return displayArchive.map((payroll: any) => (
+                        <TableRow key={payroll.id} className="border-b border-border/50 hover:bg-slate-50/50 dark:hover:bg-slate-950/20 transition-colors">
+                          <TableCell className="py-5">
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => handleToggleArchive(payroll.id)}
+                              className="h-8 w-8 p-0 hover:bg-slate-100 dark:hover:bg-slate-900/30"
+                            >
+                              {selectedArchives.includes(payroll.id) ? (
+                                <CheckSquare className="h-4 w-4 text-primary" />
+                              ) : (
+                                <Square className="h-4 w-4 text-muted-foreground" />
+                              )}
+                            </Button>
+                          </TableCell>
+                          <TableCell className="py-5">
+                            <div className="flex items-center gap-3 relative">
+                              <div className="flex items-center gap-3">
+                                <div className="p-2 bg-muted/30 rounded-lg border">
+                                  <Calendar className="h-4 w-4 text-muted-foreground" />
+                                </div>
+                                <div className="flex flex-col">
+                                  <span className="font-semibold text-sm text-foreground">{formatDateForDisplay(new Date(payroll.periodStart))}</span>
+                                  <span className="text-xs text-muted-foreground flex items-center gap-1">
+                                    <span>to</span>
+                                    <span className="font-medium">{formatDateForDisplay(new Date(payroll.periodEnd))}</span>
+                                  </span>
+                                </div>
+                              </div>
+                              {(archivedPayrolls.indexOf(payroll) === 0 && !hasViewedNewestPayroll) && (
+                                <span className="relative flex h-3 w-3 flex-shrink-0">
+                                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-500 opacity-75"></span>
+                                  <span className="relative inline-flex rounded-full h-3 w-3 bg-red-600 shadow-lg"></span>
+                                </span>
+                              )}
+                            </div>
+                          </TableCell>
+                          {/* BLGU Badge column */}
+                          <TableCell className="py-5">
+                            <Badge variant="outline" className={`text-xs font-semibold ${
+                              payroll.blgu === 'Barangay Officials'
+                                ? 'border-blue-300 text-blue-700 dark:text-blue-400 bg-blue-50 dark:bg-blue-950/20'
+                                : 'border-amber-300 text-amber-700 dark:text-amber-400 bg-amber-50 dark:bg-amber-950/20'
+                            }`}>
+                              {payroll.blgu === 'Barangay Officials' ? <Landmark className="h-3.5 w-3.5 inline-block mr-1 align-text-bottom text-blue-600" /> : <User className="h-3.5 w-3.5 inline-block mr-1 align-text-bottom text-amber-600" />} {payroll.blgu || 'N/A'}
+                            </Badge>
+                          </TableCell>
+
                             <TableCell className="py-5">
                               <Badge variant="secondary" className="font-semibold bg-muted/50 text-muted-foreground border-border">
                                 {payroll.totalEmployees} Staff
@@ -2811,7 +3135,8 @@ html, body { margin: 0 !important; padding: 0 !important; overflow: hidden !impo
                             </TableCell>
                           </TableRow>
                         ))
-                    )}
+                      })()}
+
                   </TableBody>
                 </Table>
               </div>
@@ -2986,18 +3311,56 @@ html, body { margin: 0 !important; padding: 0 !important; overflow: hidden !impo
                         />
                       </div>
                     </div>
-                    <div>
-                      <Label htmlFor="payrollReleaseTime">Release Time</Label>
-                      <Input
-                        id="payrollReleaseTime"
-                        type="time"
-                        value={payrollReleaseTime}
-                        onChange={(e) => setPayrollReleaseTime(e.target.value)}
-                      />
-                      <p className="text-xs text-muted-foreground mt-1">
-                        Set the time when payroll should be released
-                      </p>
+                    <div className="space-y-4">
+                      <h4 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider">Release Times by BLGU</h4>
+                      
+                      {/* Officials Release Time */}
+                      <div className="flex items-center gap-4 p-4 rounded-xl border bg-blue-50 dark:bg-blue-950/20 border-blue-200 dark:border-blue-800">
+                        <div className="h-9 w-9 rounded-full bg-blue-100 dark:bg-blue-900 flex items-center justify-center flex-shrink-0">
+                          <Landmark className="h-5 w-5 text-blue-600 dark:text-blue-400" />
+                        </div>
+                        <div className="flex-1">
+                          <Label htmlFor="releaseTimeOfficials" className="text-sm font-semibold text-blue-800 dark:text-blue-300">
+                            Brgy Officials Release Time
+                          </Label>
+                          <p className="text-xs text-blue-600 dark:text-blue-400 mt-0.5">When to release payroll for Barangay Officials</p>
+                        </div>
+                        <Input
+                          id="releaseTimeOfficials"
+                          type="time"
+                          value={releaseTimeOfficials}
+                          onChange={(e) => {
+                            setReleaseTimeOfficials(e.target.value)
+                            localStorage.setItem('payroll_release_time_officials', e.target.value)
+                          }}
+                          className="w-36 text-center font-mono font-semibold"
+                        />
+                      </div>
+
+                      {/* Staff Release Time */}
+                      <div className="flex items-center gap-4 p-4 rounded-xl border bg-amber-50 dark:bg-amber-950/20 border-amber-200 dark:border-amber-800">
+                        <div className="h-9 w-9 rounded-full bg-amber-100 dark:bg-amber-900 flex items-center justify-center flex-shrink-0">
+                          <User className="h-5 w-5 text-amber-600 dark:text-amber-400" />
+                        </div>
+                        <div className="flex-1">
+                          <Label htmlFor="releaseTimeStaff" className="text-sm font-semibold text-amber-800 dark:text-amber-300">
+                            Brgy Staff Release Time
+                          </Label>
+                          <p className="text-xs text-amber-600 dark:text-amber-400 mt-0.5">When to release payroll for Barangay Staff</p>
+                        </div>
+                        <Input
+                          id="releaseTimeStaff"
+                          type="time"
+                          value={releaseTimeStaff}
+                          onChange={(e) => {
+                            setReleaseTimeStaff(e.target.value)
+                            localStorage.setItem('payroll_release_time_staff', e.target.value)
+                          }}
+                          className="w-36 text-center font-mono font-semibold"
+                        />
+                      </div>
                     </div>
+
                   </div>
 
                   {payrollPeriodStart && payrollPeriodEnd && (
@@ -3698,8 +4061,98 @@ html, body { margin: 0 !important; padding: 0 !important; overflow: hidden !impo
           </DialogHeader>
 
           <div className="py-6 space-y-8">
+            {/* 0. BLGU Selection - who to generate for */}
+            <div className="space-y-3">
+              <Label className="text-sm font-semibold uppercase tracking-wider text-muted-foreground flex items-center gap-2">
+                <Users className="h-4 w-4" />
+                Select BLGU to Generate
+              </Label>
+              <div className="grid grid-cols-3 gap-3">
+
+                {/* All BLGU card */}
+                <button
+                  type="button"
+                  onClick={() => setSelectedBlguGenerate('')}
+                  className={`relative flex items-center gap-3 w-full h-20 px-4 rounded-xl border-2 text-left transition-all duration-200 focus:outline-none cursor-pointer ${
+                    !selectedBlguGenerate
+                      ? 'border-green-500 bg-green-50 dark:bg-green-950/30 shadow-lg ring-2 ring-green-200 dark:ring-green-800'
+                      : 'border-border bg-card hover:border-green-400 hover:bg-green-50/40 hover:shadow-md'
+                  }`}
+                >
+                  <div className={`flex-shrink-0 h-10 w-10 rounded-full flex items-center justify-center ${!selectedBlguGenerate ? 'bg-green-500' : 'bg-muted'}`}>
+                    <Users className={`h-5 w-5 ${!selectedBlguGenerate ? 'text-white' : 'text-muted-foreground'}`} />
+                  </div>
+                  <div>
+                    <div className={`font-bold text-sm ${!selectedBlguGenerate ? 'text-green-700 dark:text-green-400' : 'text-foreground'}`}>All BLGU</div>
+                  </div>
+                  {!selectedBlguGenerate && (
+                    <CheckCircle2 className="absolute top-2 right-2 h-4 w-4 text-green-500" />
+                  )}
+                </button>
+
+                {/* Barangay Officials & Staff cards */}
+                {(['Barangay Officials', 'Barangay Staff'] as const).map(blgu => {
+                  const isGenerated = blgu === 'Barangay Officials' ? officialsGenerated : staffGenerated;
+                  const isOfficials = blgu === 'Barangay Officials';
+                  const isSelected = selectedBlguGenerate === blgu;
+                  const color = isOfficials ? 'blue' : 'amber';
+
+                  return (
+                    <div key={blgu} className="relative">
+                      <button
+                        type="button"
+                        disabled={isGenerated}
+                        onClick={() => setSelectedBlguGenerate(prev => prev === blgu ? '' : blgu)}
+                        className={`relative flex items-center gap-3 w-full h-20 px-4 rounded-xl border-2 text-left transition-all duration-200 focus:outline-none ${
+                          isGenerated
+                            ? 'border-border bg-muted/50 opacity-60 cursor-not-allowed'
+                            : isSelected
+                              ? isOfficials
+                                ? 'border-blue-500 bg-blue-50 dark:bg-blue-950/30 shadow-lg ring-2 ring-blue-200 dark:ring-blue-800 cursor-pointer'
+                                : 'border-amber-500 bg-amber-50 dark:bg-amber-950/30 shadow-lg ring-2 ring-amber-200 dark:ring-amber-800 cursor-pointer'
+                              : 'border-border bg-card hover:shadow-md cursor-pointer ' + (isOfficials ? 'hover:border-blue-400 hover:bg-blue-50/40' : 'hover:border-amber-400 hover:bg-amber-50/40')
+                        }`}
+                      >
+                        <div className={`flex-shrink-0 h-10 w-10 rounded-full flex items-center justify-center ${
+                          isGenerated ? 'bg-muted' : isSelected
+                            ? isOfficials ? 'bg-blue-500' : 'bg-amber-500'
+                            : isOfficials ? 'bg-blue-100 dark:bg-blue-900/40' : 'bg-amber-100 dark:bg-amber-900/40'
+                        }`}>
+                          {isOfficials
+                            ? <Landmark className={`h-5 w-5 ${isGenerated ? 'text-muted-foreground' : isSelected ? 'text-white' : 'text-blue-600 dark:text-blue-400'}`} />
+                            : <User className={`h-5 w-5 ${isGenerated ? 'text-muted-foreground' : isSelected ? 'text-white' : 'text-amber-600 dark:text-amber-400'}`} />
+                          }
+                        </div>
+                        <div>
+                          <div className={`font-bold text-sm ${
+                            isGenerated ? 'text-muted-foreground' : isSelected
+                              ? isOfficials ? 'text-blue-700 dark:text-blue-400' : 'text-amber-700 dark:text-amber-400'
+                              : 'text-foreground'
+                          }`}>{blgu}</div>
+                          <div className="text-xs text-muted-foreground">
+                            {isOfficials ? 'Kagawad, Secretary, etc.' : 'Collector, Encoder, etc.'}
+                          </div>
+                        </div>
+                        {isSelected && !isGenerated && (
+                          <CheckCircle2 className={`absolute top-2 right-2 h-4 w-4 ${isOfficials ? 'text-blue-500' : 'text-amber-500'}`} />
+                        )}
+                      </button>
+
+                      {isGenerated && (
+                        <div className="absolute top-2 right-2 bg-green-100 dark:bg-green-900/40 text-green-700 dark:text-green-400 text-[10px] font-bold px-2 py-0.5 rounded-full flex items-center gap-1 border border-green-200 dark:border-green-800">
+                          <CheckCircle2 className="h-3 w-3" />
+                          GENERATED
+                        </div>
+                      )}
+                    </div>
+                  )
+                })}
+              </div>
+            </div>
+
             {/* 1. Top Header: Large Date Inputs */}
             <div className="bg-muted/30 p-4 rounded-xl border flex flex-col md:flex-row items-end md:items-center gap-4 justify-between">
+
 
               <div className="flex-1 w-full relative">
                 <Label htmlFor="confirmPeriodStart" className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-1.5 block">Start Date</Label>
@@ -3904,6 +4357,83 @@ html, body { margin: 0 !important; padding: 0 !important; overflow: hidden !impo
 
           <div className="flex-1 overflow-y-auto px-6 py-5">
             <div className="space-y-5">
+
+              {/* BLGU Selection */}
+              <div className="space-y-3">
+                <Label className="text-sm font-semibold uppercase tracking-wider text-muted-foreground flex items-center gap-2">
+                  <Users className="h-4 w-4" />
+                  Select BLGU to Release
+                </Label>
+                <div className="grid grid-cols-3 gap-3">
+                  
+                  {/* All BLGU card */}
+                  <button
+                    type="button"
+                    onClick={() => setSelectedBlguRelease('')}
+                    className={`relative flex items-center gap-3 w-full h-20 px-4 rounded-xl border-2 text-left transition-all duration-200 focus:outline-none cursor-pointer ${
+                      !selectedBlguRelease
+                        ? 'border-green-500 bg-green-50 dark:bg-green-950/30 shadow-lg ring-2 ring-green-200 dark:ring-green-800'
+                        : 'border-border bg-card hover:border-green-400 hover:bg-green-50/40 hover:shadow-md'
+                    }`}
+                  >
+                    <div className={`flex-shrink-0 h-10 w-10 rounded-full flex items-center justify-center ${!selectedBlguRelease ? 'bg-green-500' : 'bg-muted'}`}>
+                      <Users className={`h-5 w-5 ${!selectedBlguRelease ? 'text-white' : 'text-muted-foreground'}`} />
+                    </div>
+                    <div>
+                      <div className={`font-bold text-sm ${!selectedBlguRelease ? 'text-green-700 dark:text-green-400' : 'text-foreground'}`}>All BLGU</div>
+                    </div>
+                    {!selectedBlguRelease && (
+                      <CheckCircle2 className="absolute top-2 right-2 h-4 w-4 text-green-500" />
+                    )}
+                  </button>
+
+                  {/* Officials & Staff cards */}
+                  {(['Barangay Officials', 'Barangay Staff'] as const).map(blgu => {
+                    const isOfficials = blgu === 'Barangay Officials';
+                    const isSelected = selectedBlguRelease === blgu;
+                    
+                    return (
+                      <button
+                        key={blgu}
+                        type="button"
+                        onClick={() => setSelectedBlguRelease(prev => prev === blgu ? '' : blgu)}
+                        className={`relative flex items-center gap-3 w-full h-20 px-4 rounded-xl border-2 text-left transition-all duration-200 focus:outline-none ${
+                          isSelected
+                            ? isOfficials
+                              ? 'border-blue-500 bg-blue-50 dark:bg-blue-950/30 shadow-lg ring-2 ring-blue-200 dark:ring-blue-800 cursor-pointer'
+                              : 'border-amber-500 bg-amber-50 dark:bg-amber-950/30 shadow-lg ring-2 ring-amber-200 dark:ring-amber-800 cursor-pointer'
+                            : 'border-border bg-card hover:shadow-md cursor-pointer ' + (isOfficials ? 'hover:border-blue-400 hover:bg-blue-50/40' : 'hover:border-amber-400 hover:bg-amber-50/40')
+                        }`}
+                      >
+                        <div className={`flex-shrink-0 h-10 w-10 rounded-full flex items-center justify-center ${
+                          isSelected
+                            ? isOfficials ? 'bg-blue-500' : 'bg-amber-500'
+                            : isOfficials ? 'bg-blue-100 dark:bg-blue-900/40' : 'bg-amber-100 dark:bg-amber-900/40'
+                        }`}>
+                          {isOfficials
+                            ? <Landmark className={`h-5 w-5 ${isSelected ? 'text-white' : 'text-blue-600 dark:text-blue-400'}`} />
+                            : <User className={`h-5 w-5 ${isSelected ? 'text-white' : 'text-amber-600 dark:text-amber-400'}`} />
+                          }
+                        </div>
+                        <div>
+                          <div className={`font-bold text-sm ${
+                            isSelected
+                              ? isOfficials ? 'text-blue-700 dark:text-blue-400' : 'text-amber-700 dark:text-amber-400'
+                              : 'text-foreground'
+                          }`}>{blgu}</div>
+                          <div className="text-xs text-muted-foreground">
+                            {isOfficials ? 'Kagawad, Secretary, etc.' : 'Collector, Encoder, etc.'}
+                          </div>
+                        </div>
+                        {isSelected && (
+                          <CheckCircle2 className={`absolute top-2 right-2 h-4 w-4 ${isOfficials ? 'text-blue-500' : 'text-amber-500'}`} />
+                        )}
+                      </button>
+                    )
+                  })}
+                </div>
+              </div>
+
               {/* Top Section - Controls */}
               <div className="flex flex-wrap gap-4">
                 {/* Attendance Deductions Info */}
@@ -3916,6 +4446,7 @@ html, body { margin: 0 !important; padding: 0 !important; overflow: hidden !impo
                       <h4 className="font-semibold text-base mb-1">
                         Attendance Deductions
                       </h4>
+
                       <p className="text-sm text-muted-foreground leading-relaxed">
                         Do you want to include attendance deductions (late, absent, early timeout) in this payroll release?
                       </p>

@@ -55,15 +55,17 @@ export async function GET(request: NextRequest) {
       })
     }
 
-    // Group by period for better organization and calculate breakdown
+    // Group by period + BLGU department for separate archive entries per group
     const payrollsByPeriod = releasedPayrolls.reduce((acc, payroll) => {
-      const periodKey = `${payroll.periodStart.toISOString().split('T')[0]}_${payroll.periodEnd.toISOString().split('T')[0]}`
+      const dept = payroll.users?.personnel_types?.department || 'Unknown'
+      const periodKey = `${payroll.periodStart.toISOString().split('T')[0]}_${payroll.periodEnd.toISOString().split('T')[0]}_${dept}`
 
       if (!acc[periodKey]) {
         acc[periodKey] = {
           id: periodKey,
           periodStart: payroll.periodStart.toISOString(),
           periodEnd: payroll.periodEnd.toISOString(),
+          blgu: dept,
           archivedAt: payroll.archivedAt?.toISOString() || new Date().toISOString(),
           releasedAt: payroll.releasedAt?.toISOString() || new Date().toISOString(),
           releasedBy: (payroll as any).releasedBy || 'Admin',
@@ -108,7 +110,9 @@ export async function GET(request: NextRequest) {
     }, {} as Record<string, any>)
 
     const result = Object.values(payrollsByPeriod)
-    console.log(`📦 Grouped into ${result.length} periods`)
+      .sort((a: any, b: any) => new Date(b.releasedAt).getTime() - new Date(a.releasedAt).getTime())
+    console.log(`📦 Grouped into ${result.length} BLGU period groups`)
+
     if (result.length > 0) {
       console.log('📦 First period:', {
         periodStart: result[0].periodStart,

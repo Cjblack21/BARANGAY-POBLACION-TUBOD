@@ -27,9 +27,10 @@ export async function POST(request: NextRequest) {
 
     const periodStart = body.periodStart
     const periodEnd = body.periodEnd
-    console.log('📅 Generating payroll for period:', { periodStart, periodEnd })
+    const blgu = body.blgu as string | undefined // "Barangay Officials" | "Barangay Staff" | undefined (all)
+    console.log('📅 Generating payroll for period:', { periodStart, periodEnd, blgu })
 
-    const result = await generatePayroll(periodStart, periodEnd)
+    const result = await generatePayroll(periodStart, periodEnd, blgu)
     if (!result.success) {
       return NextResponse.json({ success: false, error: result.error || "Failed to generate payroll" }, { status: 500 })
     }

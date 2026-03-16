@@ -668,7 +668,7 @@ export async function getPayrollSchedule(): Promise<{
 }
 
 // Server Action: Generate Payroll
-export async function generatePayroll(customPeriodStart?: string, customPeriodEnd?: string): Promise<{
+export async function generatePayroll(customPeriodStart?: string, customPeriodEnd?: string, blgu?: string): Promise<{
   success: boolean
   message?: string
   error?: string
@@ -709,11 +709,16 @@ export async function generatePayroll(customPeriodStart?: string, customPeriodEn
 
     console.log('📅 Generating payroll for period:', periodStart.toISOString(), 'to', periodEnd.toISOString())
 
-    // Get all active personnel
+    // Get active personnel — optionally filtered by BLGU department
+    const blguFilter = blgu
+      ? { personnel_types: { department: blgu } }
+      : {}
+
     const users = await prisma.users.findMany({
       where: {
         isActive: true,
-        role: 'PERSONNEL'
+        role: 'PERSONNEL',
+        ...blguFilter
       },
       select: {
         users_id: true,
@@ -730,7 +735,7 @@ export async function generatePayroll(customPeriodStart?: string, customPeriodEn
       }
     })
 
-    console.log('👥 Found', users.length, 'active personnel for payroll generation')
+    console.log(`👥 Found ${users.length} active personnel for payroll generation${blgu ? ` (BLGU: ${blgu})` : ' (all BLGU)'}`)
 
     if (users.length === 0) {
       return {
@@ -739,15 +744,17 @@ export async function generatePayroll(customPeriodStart?: string, customPeriodEn
       }
     }
 
-    // Delete existing PENDING entries for this period to prevent duplicates
+    // Delete existing PENDING entries for this BLGU group/period to prevent duplicates
+    const userIdsToDelete = blgu ? users.map(u => u.users_id) : undefined
     const deletedEntries = await prisma.payroll_entries.deleteMany({
       where: {
         periodStart: periodStart,
         periodEnd: periodEnd,
-        status: 'PENDING'
+        status: 'PENDING',
+        ...(userIdsToDelete ? { users_id: { in: userIdsToDelete } } : {})
       }
     })
-    console.log(`🗑️ Deleted ${deletedEntries.count} existing PENDING entries for this period to prevent duplicates`)
+    console.log(`🗑️ Deleted ${deletedEntries.count} PENDING entries${blgu ? ` for ${blgu}` : ''} to prevent duplicates`)
 
     let createdCount = 0
 
@@ -905,7 +912,7 @@ export async function generatePayroll(customPeriodStart?: string, customPeriodEn
 
     return {
       success: true,
-      message: `Payroll generated successfully for ${users.length} staff`
+      message: `Payroll generated successfully for ${users.length} ${blgu ? blgu : 'staff'}`
     }
 
   } catch (error) {
@@ -1114,7 +1121,8 @@ export async function getPayrollEntries(): Promise<{
 export async function releasePayrollWithAudit(
   nextPeriodStart?: string,
   nextPeriodEnd?: string,
-  includeAttendanceDeductions: boolean = true
+  includeAttendanceDeductions: boolean = true,
+  blgu?: string // "Barangay Officials" | "Barangay Staff" | undefined (all)
 ): Promise<{
   success: boolean
   releasedCount?: number
@@ -1161,8 +1169,8 @@ export async function releasePayrollWithAudit(
       end: endOfDayPH.toISOString()
     })
 
-    // Get entries that will be released
-    const entriesToRelease = await prisma.payroll_entries.findMany({
+    // Get entries that will be released — optionally scoped by BLGU department
+    let entriesToRelease = await prisma.payroll_entries.findMany({
       where: {
         periodStart: startOfDayPH,
         periodEnd: endOfDayPH,
@@ -1178,7 +1186,16 @@ export async function releasePayrollWithAudit(
       }
     })
 
-    console.log(`📋 Found ${entriesToRelease.length} payroll entries to release`)
+    // If BLGU filter is set, further restrict to only matching users
+    if (blgu) {
+      const blguUsers = await prisma.users.findMany({
+        where: { personnel_types: { department: blgu } },
+        select: { users_id: true }
+      })
+      const blguUserIds = new Set(blguUsers.map(u => u.users_id))
+      entriesToRelease = entriesToRelease.filter(e => blguUserIds.has(e.users_id))
+      console.log(`📋 Filtered to ${entriesToRelease.length} entries for BLGU: ${blgu}`)
+    }
 
     // Atomically: release current period entries and persist next period in AttendanceSettings
     const updateResult = await prisma.$transaction(async (tx) => {

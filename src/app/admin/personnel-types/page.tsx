@@ -8,7 +8,7 @@ import { Label } from "@/components/ui/label"
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { Plus, Edit, Trash2, Eye, UserCheck, Home, Banknote } from "lucide-react"
+import { Plus, Edit, Trash2, Eye, UserCheck, Home, Banknote, Landmark, User } from "lucide-react"
 import { toast } from "react-hot-toast"
 import { Badge } from "@/components/ui/badge"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
@@ -462,10 +462,10 @@ export default function PersonnelTypesPage() {
                 </CardHeader>
                 <CardContent>
                     <Tabs value={categoryFilter} onValueChange={setCategoryFilter} className="w-full">
-                        <TabsList className="grid w-full grid-cols-3 mb-4">
-                            <TabsTrigger value="all">All Positions</TabsTrigger>
-                            <TabsTrigger value="Barangay Officials">Barangay Officials</TabsTrigger>
-                            <TabsTrigger value="Barangay Staff">Barangay Staff</TabsTrigger>
+                        <TabsList className="grid w-full grid-cols-3 mb-4 h-auto p-1">
+                            <TabsTrigger value="all" className="py-2.5 flex items-center gap-2">All Positions</TabsTrigger>
+                            <TabsTrigger value="Barangay Officials" className="py-2.5 flex items-center gap-2"><Landmark className="h-4 w-4" /> Barangay Officials</TabsTrigger>
+                            <TabsTrigger value="Barangay Staff" className="py-2.5 flex items-center gap-2"><User className="h-4 w-4" /> Barangay Staff</TabsTrigger>
                         </TabsList>
 
                         <TabsContent value={categoryFilter} className="mt-0">
@@ -492,7 +492,12 @@ export default function PersonnelTypesPage() {
 
                                             return (
                                                 <TableRow key={t.personnel_types_id}>
-                                                    <TableCell className="font-medium">{office}</TableCell>
+                                                    <TableCell className="font-medium">
+                                                        <div className="flex items-center gap-1.5">
+                                                            {office === 'Barangay Officials' ? <Landmark className="h-4 w-4 text-blue-600" /> : office === 'Barangay Staff' ? <User className="h-4 w-4 text-amber-600" /> : null}
+                                                            {office}
+                                                        </div>
+                                                    </TableCell>
                                                     <TableCell>{position}</TableCell>
                                                     <TableCell>₱{Number(t.basicSalary).toLocaleString()}</TableCell>
                                                     <TableCell>

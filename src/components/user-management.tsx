@@ -55,7 +55,8 @@ import {
   Briefcase,
   UserPlus,
   EyeOff,
-  Printer
+  Printer,
+  Landmark
 } from 'lucide-react'
 import {
   Tooltip,
@@ -1100,7 +1101,12 @@ export function UserManagement() {
                       </TableCell>
                       <TableCell className="font-mono text-sm text-muted-foreground">{person.users_id}</TableCell>
                       <TableCell className="text-sm">{person.email}</TableCell>
-                      <TableCell className="font-medium">{office}</TableCell>
+                      <TableCell className="font-medium">
+                        <div className="flex items-center gap-1.5">
+                          {office === 'Barangay Officials' ? <Landmark className="h-4 w-4 text-blue-600" /> : office === 'Barangay Staff' ? <User className="h-4 w-4 text-amber-600" /> : null}
+                          {office}
+                        </div>
+                      </TableCell>
                       <TableCell>
                         <Badge variant="outline">
                           {position}
