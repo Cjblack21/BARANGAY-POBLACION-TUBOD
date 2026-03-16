@@ -4,7 +4,7 @@ import { authOptions } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
 import { generatePayslipsHTML, getHeaderSettings } from '@/lib/payslip-generator'
 
-async function handlePayslipGeneration(periodStart: string | null, periodEnd: string | null, userId: string | null) {
+async function handlePayslipGeneration(periodStart: string | null, periodEnd: string | null, userId: string | null, blgu: string | null = null) {
   try {
     const session = await getServerSession(authOptions)
 
@@ -56,7 +56,14 @@ async function handlePayslipGeneration(periodStart: string | null, periodEnd: st
         periodStart: { gte: startOfDay, lte: endOfDay },
         periodEnd: { gte: endStartOfDay, lte: endEndOfDay },
         status: { in: ['RELEASED', 'ARCHIVED'] },
-        ...(userId ? { users_id: userId } : {})
+        ...(userId ? { users_id: userId } : {}),
+        ...(blgu ? {
+          users: {
+            personnel_types: {
+              department: blgu
+            }
+          }
+        } : {})
       },
       include: {
         users: {
@@ -319,10 +326,11 @@ export async function GET(request: NextRequest) {
   const periodStart = searchParams.get('periodStart')
   const periodEnd = searchParams.get('periodEnd')
   const userId = searchParams.get('userId')
-  return handlePayslipGeneration(periodStart, periodEnd, userId)
+  const blgu = searchParams.get('blgu')
+  return handlePayslipGeneration(periodStart, periodEnd, userId, blgu)
 }
 
 export async function POST(request: NextRequest) {
-  const { periodStart, periodEnd, userId } = await request.json()
-  return handlePayslipGeneration(periodStart, periodEnd, userId)
+  const { periodStart, periodEnd, userId, blgu } = await request.json()
+  return handlePayslipGeneration(periodStart, periodEnd, userId, blgu || null)
 }

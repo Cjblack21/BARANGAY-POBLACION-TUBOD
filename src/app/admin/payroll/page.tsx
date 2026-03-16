@@ -3025,7 +3025,8 @@ html, body { margin: 0 !important; padding: 0 !important; overflow: hidden !impo
                                         headers: { 'Content-Type': 'application/json' },
                                         body: JSON.stringify({ 
                                           periodStart: payroll.periodStart, 
-                                          periodEnd: payroll.periodEnd 
+                                          periodEnd: payroll.periodEnd,
+                                          blgu: payroll.blgu || null
                                         })
                                       })
                                       if (!response.ok) throw new Error('Failed to generate payslips')
