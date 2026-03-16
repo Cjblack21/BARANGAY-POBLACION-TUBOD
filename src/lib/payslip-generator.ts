@@ -141,7 +141,7 @@ export function generatePayslipHTML(
       </div>
 
       <!-- Content (above watermark) -->
-      <div style="position: relative; z-index: 1; padding: 0 24px;">
+      <div style="position: relative; z-index: 1; padding: 0 24px; display: flex; flex-direction: column; height: 100%;">
         <!-- Header -->
         <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px; border-bottom: 2px solid #000; padding-bottom: 4px;">
           <!-- Logo left -->
@@ -168,7 +168,6 @@ export function generatePayslipHTML(
           <!-- QR code right -->
           <div style="min-width: 65px; text-align: right;">
             <img src="/QR CODE PMS SYSTEM.png" alt="QR Code" style="height: 65px; width: 65px; object-fit: contain;" onerror="this.style.display='none'">
-            <div style="font-size: 12px; font-weight: bold; color: #555; text-align: center; margin-top: 2px; letter-spacing: 1px;">SCAN ME</div>
           </div>
         </div>
         
@@ -308,14 +307,14 @@ export function generatePayslipHTML(
         </div>
 
         <!-- Signatures -->
-        <div style="margin-top: 6px; display: flex; justify-content: space-around; gap: 12px; border-top: 1px solid #ccc; padding-top: 6px;">
+        <div style="margin-top: 4px; display: flex; justify-content: space-around; align-items: flex-end; gap: 12px; padding-top: 6px;">
           <div style="flex: 1; text-align: center; font-size: 12px;">
-            <div style="border-top: 1px solid #000; margin: 12px 6px 2px 6px;"></div>
+            <div style="border-top: 1px solid #000; margin: 10px 6px 2px 6px;"></div>
             <div style="font-weight: bold; font-size: 12px;">EMMA L. MACTAO</div>
             <div style="font-size: 12px; color: #666;">Brgy Treasurer</div>
           </div>
           <div style="flex: 1; text-align: center; font-size: 12px;">
-            <div style="border-top: 1px solid #000; margin: 12px 6px 2px 6px;"></div>
+            <div style="border-top: 1px solid #000; margin: 10px 6px 2px 6px;"></div>
             <div style="font-weight: bold; font-size: 12px;">${(employee.name || employee.email).toUpperCase()}</div>
             <div style="font-size: 12px; color: #666;">Received by</div>
           </div>

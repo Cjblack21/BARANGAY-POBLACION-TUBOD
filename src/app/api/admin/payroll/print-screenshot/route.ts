@@ -461,7 +461,6 @@ export async function POST(request: NextRequest) {
               </div>
               <div style="text-align: right;">
                 <img src="/QR CODE PMS SYSTEM.png" alt="QR Code" style="width: 60px; height: 60px; object-fit: contain;" onerror="this.style.display='none'">
-                <div style="font-size: 7px; font-weight: bold; color: #555; text-align: center; margin-top: 2px; letter-spacing: 1px;">SCAN ME</div>
               </div>
             </div>
           </div>
@@ -870,8 +869,8 @@ export async function POST(request: NextRequest) {
             margin-top: 8px;
             display: flex;
             justify-content: space-between;
+            align-items: flex-end;
             gap: 4px;
-            border-top: 1px solid #ccc;
             padding-top: 6px;
           }
           .sig-box {
@@ -881,7 +880,7 @@ export async function POST(request: NextRequest) {
           }
           .sig-line {
             border-top: 1px solid #000;
-            margin: 20px 4px 2px 4px;
+            margin: 14px 4px 2px 4px;
           }
           .sig-label {
             font-weight: bold;
