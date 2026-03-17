@@ -50,6 +50,11 @@ type DashboardData = {
     amount: number
     period: string
   }
+  holidays: {
+    name: string
+    date: string
+    type: string
+  }[]
   deductions: Array<{
     name: string
     amount: number
@@ -113,6 +118,7 @@ export default function PersonnelDashboard() {
             amount: payload.nextPayout?.amount || 0,
             period: payload.nextPayout?.period || '',
           },
+          holidays: payload.holidays || [],
           deductions: payload.deductions || [],
           loans: payload.loans || [],
         }
@@ -168,7 +174,7 @@ export default function PersonnelDashboard() {
         <p className="text-sm text-muted-foreground mb-2">OVERVIEW</p>
       </div>
       {/* Main Stats Grid */}
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
         {/* Today's Status Removed */}
 
         {/* Attendance This Month */}
@@ -234,79 +240,131 @@ export default function PersonnelDashboard() {
             </div>
           </CardContent>
         </Card>
+
+        {/* This Month's Holidays */}
+        <Card
+          className="border-l-4 border-l-purple-500 cursor-pointer hover:shadow-md transition-all duration-150 hover:scale-[1.01]"
+          onClick={() => router.push('/personnel/holidays')}
+        >
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-1 px-4 pt-4">
+            <CardTitle className="text-xs font-medium">Holidays This Month</CardTitle>
+            <Calendar className="h-3.5 w-3.5 text-purple-600" />
+          </CardHeader>
+          <CardContent className="px-4 pb-3">
+            {(data.holidays?.length ?? 0) > 0 ? (
+              <div className="space-y-2 mt-2">
+                {data.holidays!.slice(0, 2).map((holiday, idx) => (
+                  <div key={idx} className="flex justify-between items-center text-sm">
+                    <span className="font-medium truncate pr-2">{holiday.name}</span>
+                    <span className="text-xs text-muted-foreground whitespace-nowrap">
+                      {new Date(holiday.date).toLocaleDateString([], { month: 'short', day: 'numeric' })}
+                    </span>
+                  </div>
+                ))}
+                {(data.holidays?.length ?? 0) > 2 && (
+                  <div className="text-xs text-purple-600 pt-1">+{(data.holidays!.length) - 2} more</div>
+                )}
+              </div>
+            ) : (
+              <div className="flex flex-col justify-center h-full min-h-[48px]">
+                <div className="text-xl font-bold">0</div>
+                <div className="text-sm text-muted-foreground">No holidays this month</div>
+              </div>
+            )}
+          </CardContent>
+        </Card>
       </div>
 
-      {/* Active Loans */}
-      <Card
-        className="cursor-pointer hover:shadow-md transition-all duration-150 hover:scale-[1.01]"
-        onClick={() => router.push('/personnel/loans')}
-      >
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <TrendingUp className="h-5 w-5" />
+      <div className="grid lg:grid-cols-2 gap-6 mt-8">
+        {/* Active Loans Section */}
+        <div>
+          <h3 className="text-lg font-bold tracking-tight flex items-center gap-2 mb-4">
+            <TrendingUp className="h-5 w-5 text-blue-600" />
             Active Loans
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
+          </h3>
+          
           {(data.loans?.length ?? 0) > 0 ? (
-            <div className="space-y-2">
+            <div className="flex flex-col gap-4">
               {data.loans!.map((loan, index) => (
-                <div key={index} className="flex justify-between items-center">
-                  <div>
-                    <div className="font-medium">{loan.purpose}</div>
-                    <div className="text-sm text-muted-foreground">
-                      {loan.termMonths} months remaining
+                <Card 
+                  key={index} 
+                  className="border-l-4 border-l-blue-500 hover:shadow-md transition-all duration-150 hover:scale-[1.01] cursor-pointer"
+                  onClick={() => router.push('/personnel/loans')}
+                >
+                  <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-1 px-4 pt-4">
+                    <CardTitle className="text-xs font-medium truncate pr-2 w-full" title={loan.purpose}>{loan.purpose}</CardTitle>
+                  <Badge variant="outline" className="bg-blue-50 text-blue-700 border-blue-200 text-[10px] px-2 py-0.5 h-5 flex-shrink-0">
+                    {loan.termMonths} {loan.termMonths === 1 ? 'month' : 'months'} left
+                  </Badge>
+                </CardHeader>
+                  <CardContent className="px-4 pb-3 pt-2">
+                    <div className="flex justify-between items-end">
+                      <div>
+                        <div className="text-[10px] text-muted-foreground uppercase tracking-wider mb-0.5">Remaining</div>
+                        <div className="text-sm font-bold text-red-600">₱{loan.balance.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</div>
+                      </div>
+                      <div className="text-right">
+                        <div className="text-[10px] text-muted-foreground uppercase tracking-wider mb-0.5">Per Payroll</div>
+                        <div className="text-sm font-bold text-blue-600">₱{loan.perPayrollPayment.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</div>
+                      </div>
                     </div>
-                  </div>
-                  <div className="text-right">
-                    <div className="font-semibold">₱{loan.perPayrollPayment.toLocaleString()}/payroll</div>
-                    <div className="text-sm text-muted-foreground">
-                      Balance: ₱{loan.balance.toLocaleString()}
-                    </div>
-                  </div>
-                </div>
+                  </CardContent>
+                </Card>
               ))}
             </div>
           ) : (
-            <div className="text-muted-foreground">No active loans</div>
+            <Card className="border-l-4 border-l-blue-500 opacity-70">
+              <CardContent className="flex items-center justify-center p-6 min-h-[100px]">
+                <div className="text-sm font-medium text-muted-foreground">No active loans</div>
+              </CardContent>
+            </Card>
           )}
-        </CardContent>
-      </Card>
+        </div>
 
-      {/* Active Deductions */}
-      <Card
-        className="cursor-pointer hover:shadow-md transition-all duration-150 hover:scale-[1.01]"
-        onClick={() => router.push('/personnel/deductions')}
-      >
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <CreditCard className="h-5 w-5" />
+        {/* Active Deductions Section */}
+        <div>
+          <h3 className="text-lg font-bold tracking-tight flex items-center gap-2 mb-4">
+            <CreditCard className="h-5 w-5 text-red-600" />
             Active Deductions
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
+          </h3>
+          
           {(data.deductions?.length ?? 0) > 0 ? (
-            <div className="space-y-2">
+            <div className="flex flex-col gap-4">
               {data.deductions!.map((deduction, index) => (
-                <div key={index} className="flex justify-between items-center">
-                  <div>
-                    <div className="font-medium">{deduction.name}</div>
-                    <div className="text-sm text-muted-foreground">
-                      Applied: {new Date(deduction.appliedAt).toLocaleDateString()}
+                <Card 
+                  key={index} 
+                  className="border-l-4 border-l-red-500 hover:shadow-md transition-all duration-150 hover:scale-[1.01] cursor-pointer"
+                  onClick={() => router.push('/personnel/deductions')}
+                >
+                  <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-1 px-4 pt-4">
+                    <CardTitle className="text-xs font-medium truncate w-full" title={deduction.name}>{deduction.name}</CardTitle>
+                  </CardHeader>
+                  <CardContent className="px-4 pb-3 pt-2">
+                    <div className="flex justify-between items-end">
+                      <div>
+                        <div className="text-[10px] text-muted-foreground uppercase tracking-wider mb-0.5">Applied</div>
+                        <div className="text-xs font-medium text-muted-foreground">
+                          {new Date(deduction.appliedAt).toLocaleDateString()}
+                        </div>
+                      </div>
+                      <div className="text-right">
+                        <div className="text-[10px] text-muted-foreground uppercase tracking-wider mb-0.5">Amount</div>
+                        <div className="text-sm font-bold text-red-600">₱{deduction.amount.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</div>
+                      </div>
                     </div>
-                  </div>
-                  <div className="text-right">
-                    <div className="font-semibold text-red-600">₱{deduction.amount.toLocaleString()}</div>
-                  </div>
-                </div>
+                  </CardContent>
+                </Card>
               ))}
             </div>
           ) : (
-            <div className="text-muted-foreground">No active deductions</div>
+            <Card className="border-l-4 border-l-red-500 opacity-70">
+              <CardContent className="flex items-center justify-center p-6 min-h-[100px]">
+                <div className="text-sm font-medium text-muted-foreground">No active deductions</div>
+              </CardContent>
+            </Card>
           )}
-        </CardContent>
-      </Card>
+        </div>
+      </div>
     </div>
   )
 }
-

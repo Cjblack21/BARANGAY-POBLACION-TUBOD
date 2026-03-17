@@ -574,8 +574,6 @@ export async function POST(request: NextRequest) {
                           <span style="font-weight: 500;">${loanName}</span>
                           <span class="deduction" style="font-weight: bold;">-₱${loan.amount.toLocaleString(undefined, { maximumFractionDigits: 2 })}</span>
                         </div>
-                        ${loan.originalAmount ? `<div style="font-size: 7px; color: #999; margin-left: 12px;">Total Amount: ₱${loan.originalAmount.toLocaleString(undefined, { maximumFractionDigits: 2 })}</div>` : ''}
-                        ${loan.remainingBalance && loan.remainingBalance > 0 ? `<div style="font-size: 7px; color: #999; margin-left: 12px;">Remaining Balance: ₱${loan.remainingBalance.toLocaleString(undefined, { maximumFractionDigits: 2 })}</div>` : ''}
                       </div>
                     `}).join('')}
                     <div class="detail-row deduction-detail" style="border-top: 1px solid #ddd; margin-top: 2px; padding-top: 2px; font-weight: bold;">
@@ -600,8 +598,6 @@ export async function POST(request: NextRequest) {
                           <span style="font-weight: 500;">${dedName}</span>
                           <span class="deduction" style="font-weight: bold;">-₱${d.amount.toLocaleString(undefined, { maximumFractionDigits: 2 })}</span>
                         </div>
-                        ${d.originalAmount ? `<div style="font-size: 7px; color: #999; margin-left: 12px;">Total Amount: ₱${d.originalAmount.toLocaleString(undefined, { maximumFractionDigits: 2 })}</div>` : ''}
-                        ${d.remainingBalance && d.remainingBalance > 0 ? `<div style="font-size: 7px; color: #999; margin-left: 12px;">Remaining Balance: ₱${d.remainingBalance.toLocaleString(undefined, { maximumFractionDigits: 2 })}</div>` : ''}
                       </div>
                     `}).join('')}
                     <div class="detail-row deduction-detail" style="border-top: 1px solid #ddd; margin-top: 2px; padding-top: 2px; font-weight: bold;">

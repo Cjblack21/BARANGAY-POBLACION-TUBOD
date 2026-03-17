@@ -60,6 +60,47 @@ export async function GET() {
     // Calculate biweekly salary (basicSalary / 2)
     const biweeklySalary = basicSalary / 2
     
+    // Fetch Active Deductions (from `deductions` table linked to `deduction_types`)
+    const activeDeductions = await prisma.deductions.findMany({
+      where: {
+        users_id: userId,
+        archivedAt: null
+      },
+      include: {
+        deduction_types: true
+      },
+      orderBy: { appliedAt: 'desc' }
+    })
+
+    // Fetch Active Loans
+    const activeLoans = await prisma.loans.findMany({
+      where: {
+        users_id: userId,
+        status: { in: ['APPROVED', 'ACTIVE'] } 
+      },
+      orderBy: { createdAt: 'desc' }
+    })
+    
+    // Fetch this month's holidays
+    const startOfMonth = new Date();
+    startOfMonth.setDate(1);
+    startOfMonth.setHours(0, 0, 0, 0);
+    
+    const endOfMonth = new Date(startOfMonth);
+    endOfMonth.setMonth(endOfMonth.getMonth() + 1);
+    endOfMonth.setDate(0);
+    endOfMonth.setHours(23, 59, 59, 999);
+
+    const thisMonthHolidays = await prisma.holidays.findMany({
+      where: {
+        date: {
+          gte: startOfMonth,
+          lte: endOfMonth
+        }
+      },
+      orderBy: { date: 'asc' }
+    });
+
     return NextResponse.json({
       user: {
         users_id: user.users_id,
@@ -101,8 +142,33 @@ export async function GET() {
         amount: netPay,
         period: `${periodStart.toLocaleDateString()} - ${periodEnd.toLocaleDateString()}`
       },
-      deductions: [],
-      loans: []
+      holidays: thisMonthHolidays.map((h: any) => ({
+        name: h.name,
+        date: h.date,
+        type: h.type
+      })),
+      deductions: activeDeductions.map((d: any) => ({
+        name: d.deduction_types?.name || 'Deduction',
+        amount: Number(d.amount),
+        appliedAt: d.appliedAt
+      })),
+      loans: activeLoans.map((l: any) => {
+        const loanAmount = Number(l.amount || 0);
+        const remainingBalance = Number(l.balance || 0);
+        const monthlyPaymentPercent = Number(l.monthlyPaymentPercent || 0);
+        
+        // Correct calculation from the loans page
+        const monthlyPayment = (loanAmount * monthlyPaymentPercent) / 100;
+        const biweeklyPayment = monthlyPayment / 2;
+        
+        return {
+          purpose: l.purpose || 'Loan',
+          balance: remainingBalance,
+          monthlyPayment: monthlyPayment,
+          perPayrollPayment: monthlyPayment, // The dashboard uses perPayrollPayment but expects the monthly total for display. Using monthlyPayment keeps the numbers consistent.
+          termMonths: Number(l.termMonths || 0)
+        };
+      })
     })
 
   } catch (error) {

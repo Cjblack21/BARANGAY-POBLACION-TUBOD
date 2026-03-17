@@ -113,6 +113,35 @@ export async function POST(request: NextRequest) {
       )
     }
 
+    // Restriction check for Punong Barangay and SK Kagawad
+    if (validatedData.personnel_types_id) {
+      const personnelType = await prisma.personnel_types.findUnique({
+        where: { personnel_types_id: validatedData.personnel_types_id }
+      })
+
+      if (personnelType) {
+        const isPunongBarangay = personnelType.name.toLowerCase().includes('punong barangay')
+        const isSkKagawad = personnelType.name.toLowerCase().includes('sk kagawad')
+
+        if (isPunongBarangay || isSkKagawad) {
+          const existingRoleUser = await prisma.users.findFirst({
+            where: {
+              personnel_types_id: validatedData.personnel_types_id,
+              isActive: true
+            }
+          })
+
+          if (existingRoleUser) {
+            const roleName = isPunongBarangay ? 'Punong Barangay' : 'SK Kagawad'
+            return NextResponse.json(
+              { error: `An active ${roleName} already exists. Only one is allowed.` },
+              { status: 400 }
+            )
+          }
+        }
+      }
+    }
+
     // Hash password
     const hashedPassword = await bcrypt.hash(validatedData.password, 10)
 

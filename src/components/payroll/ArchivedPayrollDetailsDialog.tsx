@@ -655,11 +655,6 @@ export default function ArchivedPayrollDetailsDialog({
                     )}
                   </>
                 )}
-
-                <div className="flex justify-between items-center py-2 border-b font-semibold">
-                  <span className="text-xs">Gross Pay</span>
-                  <span className="text-sm">{formatCurrency(grossPay)}</span>
-                </div>
               </div>
             </div>
 

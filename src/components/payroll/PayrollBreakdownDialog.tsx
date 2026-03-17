@@ -1870,9 +1870,9 @@ export default function PayrollBreakdownDialog({
                     <TableBody>
                       {mandatoryDeductions.map((deduction, index) => (
                         <TableRow key={index} className="hover:bg-indigo-50 dark:hover:bg-indigo-900/30">
-                          <TableCell className="font-medium">{deduction.type}</TableCell>
-                          <TableCell className="text-muted-foreground">{deduction.description || 'Mandatory payroll deduction'}</TableCell>
-                          <TableCell>
+                          <TableCell className="font-medium py-1">{deduction.type}</TableCell>
+                          <TableCell className="text-muted-foreground py-1">{deduction.description || 'Mandatory payroll deduction'}</TableCell>
+                          <TableCell className="py-1">
                             {deduction.calculationType === 'PERCENTAGE' && deduction.percentageValue ? (
                               <div className="text-sm">
                                 <span className="inline-flex items-center px-2 py-1 rounded-md text-xs font-medium bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-400">

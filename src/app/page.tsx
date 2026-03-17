@@ -92,36 +92,29 @@ export default function Home() {
       </div>
 
       {/* Right Side - Illustration */}
-      <div className="hidden lg:flex flex-1 bg-amber-500 items-center justify-center p-12 relative overflow-hidden">
+      <div className="hidden lg:flex flex-1 bg-slate-50 dark:bg-[#0a1628] items-center justify-center p-12 relative overflow-hidden transition-colors duration-500">
         {/* Decorative Circles */}
         <div className="absolute inset-0 overflow-hidden">
-          <div className="absolute top-20 right-20 w-96 h-96 bg-white/10 rounded-full blur-3xl"></div>
-          <div className="absolute bottom-20 left-20 w-80 h-80 bg-white/10 rounded-full blur-3xl"></div>
-          <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[600px] bg-white/5 rounded-full blur-3xl"></div>
+          <div className="absolute top-20 right-20 w-96 h-96 bg-slate-200/50 dark:bg-slate-800/50 rounded-full blur-3xl"></div>
+          <div className="absolute bottom-20 left-20 w-80 h-80 bg-slate-200/50 dark:bg-slate-800/50 rounded-full blur-3xl"></div>
+          <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[600px] bg-slate-200/30 dark:bg-slate-800/30 rounded-full blur-3xl"></div>
         </div>
 
         {/* Content */}
         <div className="relative z-10 w-full max-w-2xl text-center space-y-8">
-          {/* Animated Gears */}
-          <div className="relative h-64 flex items-center justify-center mb-12">
-            {/* Large Gear - Center */}
-            <Settings className="absolute w-48 h-48 text-white animate-spin-slow drop-shadow-2xl" style={{ animationDuration: '10s' }} />
-            {/* Medium Gear - Top Right */}
-            <Settings className="absolute w-32 h-32 text-white/90 top-4 right-20 animate-spin-slow drop-shadow-xl" style={{ animationDuration: '7s', animationDirection: 'reverse' }} />
-            {/* Small Gear - Bottom Left */}
-            <Settings className="absolute w-24 h-24 text-white/85 bottom-8 left-16 animate-spin-slow drop-shadow-xl" style={{ animationDuration: '6s' }} />
+          {/* Wallet Image */}
+          <div className="relative h-80 flex items-center justify-center mb-12">
+            <img 
+              src="/undraw_wallet_diag.svg" 
+              alt="Wallet Illustration" 
+              className="w-full h-full max-w-md object-contain drop-shadow-2xl"
+            />
           </div>
 
           {/* Text Content */}
           <div className="space-y-6">
-            <h2 className="text-6xl font-bold text-white leading-tight drop-shadow-lg">
-              BARANGAY POBLACION
-            </h2>
-            <p className="text-3xl font-semibold text-white/95 drop-shadow-md">
-              Tubod, Lanao del Norte
-            </p>
-            <div className="pt-4 border-t-2 border-white/30 mt-8">
-              <p className="text-2xl text-white/90 font-medium drop-shadow-md">
+            <div className="pt-4 border-t-2 border-slate-300 dark:border-slate-700 mt-8">
+              <p className="text-2xl text-slate-600 dark:text-slate-400 font-medium drop-shadow-md">
                 Payroll Management System
               </p>
             </div>

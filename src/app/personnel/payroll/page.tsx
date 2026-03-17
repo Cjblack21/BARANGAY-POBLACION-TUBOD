@@ -38,8 +38,6 @@ export default function PersonnelPayrollPage() {
   const [detailsOpen, setDetailsOpen] = useState(false)
   const [archiveOpen, setArchiveOpen] = useState(false)
   const [selectedPayroll, setSelectedPayroll] = useState<any>(null)
-  const [selectedBreakdown, setSelectedBreakdown] = useState<any>(null)
-  const [loadingBreakdown, setLoadingBreakdown] = useState(false)
   const [timeUntilRelease, setTimeUntilRelease] = useState('')
   const [canRelease, setCanRelease] = useState(false)
   const [fetchedDetails, setFetchedDetails] = useState<any>(null)
@@ -252,48 +250,6 @@ export default function PersonnelPayrollPage() {
 
     setSelectedPayroll(payroll)
     setDetailsOpen(true)
-  }
-
-  const fetchBreakdownForPayroll = async (payroll: any) => {
-    setLoadingBreakdown(true)
-
-    try {
-      // SIMPLE - Use the data that's already in the table (it's correct!)
-      const snapshot = payroll.breakdownSnapshot
-      const monthlyBasic = payroll.user?.personnelType?.basicSalary || 20000
-      const periodSalary = monthlyBasic / 2
-      const overload = snapshot?.totalAdditions || 0
-      const deductions = payroll.deductions || 0
-
-      setSelectedBreakdown({
-        basicSalary: periodSalary,
-        monthlyBasicSalary: monthlyBasic,
-        attendanceDeductions: 0,
-        leaveDeductions: 0,
-        loanDeductions: 0,
-        otherDeductions: deductions,
-        overloadPay: overload,
-        attendanceDetails: [],
-        loanDetails: [],
-        otherDeductionDetails: []
-      })
-    } catch (error) {
-      console.error('Error:', error)
-      setSelectedBreakdown({
-        basicSalary: 10000,
-        monthlyBasicSalary: 20000,
-        attendanceDeductions: 0,
-        leaveDeductions: 0,
-        loanDeductions: 0,
-        otherDeductions: 0,
-        overloadPay: 0,
-        attendanceDetails: [],
-        loanDetails: [],
-        otherDeductionDetails: []
-      })
-    } finally {
-      setLoadingBreakdown(false)
-    }
   }
 
 
@@ -788,30 +744,30 @@ export default function PersonnelPayrollPage() {
                 </div>
 
                 {/* Staff Information */}
-                <div className="space-y-1 text-sm border-b pb-3">
+                <div className="space-y-0.5 text-[15px] border-b pb-2">
                   <div className="flex justify-between">
-                    <span className="font-semibold">BRGY STAFF:</span>
-                    <span>{selectedPayroll.user?.name || selectedPayroll.users?.name || 'N/A'}</span>
+                    <span className="font-semibold uppercase text-xs text-muted-foreground mr-4">BRGY STAFF:</span>
+                    <span className="font-medium text-right">{selectedPayroll.user?.name || selectedPayroll.users?.name || 'N/A'}</span>
                   </div>
                   <div className="flex justify-between">
-                    <span className="font-semibold">Staff ID:</span>
-                    <span>{selectedPayroll.user?.users_id || selectedPayroll.users?.users_id || selectedPayroll.users_id || 'N/A'}</span>
+                    <span className="font-semibold uppercase text-xs text-muted-foreground mr-4">Staff ID:</span>
+                    <span className="font-medium text-right">{selectedPayroll.user?.users_id || selectedPayroll.users?.users_id || selectedPayroll.users_id || 'N/A'}</span>
                   </div>
                   <div className="flex justify-between">
-                    <span className="font-semibold">Email:</span>
-                    <span className="text-xs">{selectedPayroll.user?.email || selectedPayroll.users?.email || 'N/A'}</span>
+                    <span className="font-semibold uppercase text-xs text-muted-foreground mr-4">Email:</span>
+                    <span className="text-sm text-right text-muted-foreground">{selectedPayroll.user?.email || selectedPayroll.users?.email || 'N/A'}</span>
                   </div>
                   <div className="flex justify-between">
-                    <span className="font-semibold">BLGU:</span>
-                    <span>{selectedPayroll.user?.personnelType?.department || selectedPayroll.user?.personnel_types?.department || selectedPayroll.users?.personnel_types?.department || 'N/A'}</span>
+                    <span className="font-semibold uppercase text-xs text-muted-foreground mr-4">BLGU:</span>
+                    <span className="font-medium text-right overflow-hidden text-ellipsis whitespace-nowrap max-w-[60%]">{selectedPayroll.user?.personnelType?.department || selectedPayroll.user?.personnel_types?.department || selectedPayroll.users?.personnel_types?.department || 'N/A'}</span>
                   </div>
                   <div className="flex justify-between">
-                    <span className="font-semibold">Position:</span>
-                    <span>{selectedPayroll.user?.personnelType?.name || selectedPayroll.user?.personnel_types?.name || selectedPayroll.users?.personnel_types?.name || 'Barangay Officials'}</span>
+                    <span className="font-semibold uppercase text-xs text-muted-foreground mr-4">Position:</span>
+                    <span className="font-medium text-right">{selectedPayroll.user?.personnelType?.name || selectedPayroll.user?.personnel_types?.name || selectedPayroll.users?.personnel_types?.name || 'Barangay Officials'}</span>
                   </div>
                   <div className="flex justify-between">
-                    <span className="font-semibold">Period:</span>
-                    <span>{formatDate(selectedPayroll.periodStart)} - {formatDate(selectedPayroll.periodEnd)}</span>
+                    <span className="font-semibold uppercase text-xs text-muted-foreground mr-4">Period:</span>
+                    <span className="font-medium text-right">{formatDate(selectedPayroll.periodStart)} - {formatDate(selectedPayroll.periodEnd)}</span>
                   </div>
                 </div>
 
@@ -859,20 +815,12 @@ export default function PersonnelPayrollPage() {
                   {/* Loan Payments */}
                   {actualLoans.length > 0 && (
                     <>
-                      <p className="text-sm font-semibold text-muted-foreground mt-2">Loan Payments:</p>
+                      <p className="text-base font-semibold text-muted-foreground mt-2">Loan Payments:</p>
                       {actualLoans.map((loan: any, idx: number) => (
-                        <div key={idx} className="border-b pl-4 py-1.5">
+                        <div key={idx} className="border-b pl-4 py-1">
                           <div className="flex justify-between">
-                            <span className="text-sm">{loan.type || loan.purpose || 'Loan'}</span>
-                            <span className="text-sm text-red-600 font-semibold">-{formatCurrency(loan.payment !== undefined ? loan.payment : loan.amount)}</span>
-                          </div>
-                          <div className="text-xs text-muted-foreground mt-0.5 space-y-0.5">
-                            {loan.amount && loan.payment !== undefined && (
-                              <div>Total Amount: {formatCurrency(loan.amount)}</div>
-                            )}
-                            {(loan.remainingBalance || loan.balance) > 0 && (
-                              <div>Remaining Balance: {formatCurrency(loan.remainingBalance || loan.balance)}</div>
-                            )}
+                            <span className="text-base">{loan.type || loan.purpose || 'Loan'}</span>
+                            <span className="text-base text-red-600 font-semibold">-{formatCurrency(loan.payment !== undefined ? loan.payment : loan.amount)}</span>
                           </div>
                         </div>
                       ))}
@@ -882,23 +830,15 @@ export default function PersonnelPayrollPage() {
                   {/* Deduction Payments */}
                   {deductionPayments.length > 0 && (
                     <>
-                      <p className="text-sm font-semibold text-muted-foreground mt-2">Deduction Payments:</p>
+                      <p className="text-base font-semibold text-muted-foreground mt-2">Deduction Payments:</p>
                       {deductionPayments.map((deduction: any, idx: number) => {
                         const displayName = (deduction.type || deduction.purpose || 'Deduction').replace('[DEDUCTION] ', '')
                         const deductionAmount = deduction.payment !== undefined ? deduction.payment : deduction.amount
                         return (
-                          <div key={idx} className="border-b pl-4 py-1.5">
+                          <div key={idx} className="border-b pl-4 py-1">
                             <div className="flex justify-between">
-                              <span className="text-sm">{displayName}</span>
-                              <span className="text-sm text-red-600 font-semibold">-{formatCurrency(deductionAmount)}</span>
-                            </div>
-                            <div className="text-xs text-muted-foreground mt-0.5 space-y-0.5">
-                              {deduction.amount && deduction.payment !== undefined && (
-                                <div>Total Amount: {formatCurrency(deduction.amount)}</div>
-                              )}
-                              {(deduction.remainingBalance || deduction.balance) > 0 && (
-                                <div>Remaining Balance: {formatCurrency(deduction.remainingBalance || deduction.balance)}</div>
-                              )}
+                              <span className="text-base">{displayName}</span>
+                              <span className="text-base text-red-600 font-semibold">-{formatCurrency(deductionAmount)}</span>
                             </div>
                           </div>
                         )
@@ -909,12 +849,12 @@ export default function PersonnelPayrollPage() {
                   {/* Mandatory Deduction Details */}
                   {mandatoryDeductions.length > 0 && (
                     <>
-                      <p className="text-sm font-semibold text-muted-foreground mt-2">Mandatory Deductions:</p>
+                      <p className="text-base font-semibold text-muted-foreground mt-2">Mandatory Deductions:</p>
                       {mandatoryDeductions.map((deduction: any, idx: number) => (
-                        <div key={idx} className="border-b pl-4 py-1.5">
+                        <div key={idx} className="border-b pl-4 py-1">
                           <div className="flex justify-between">
-                            <span className="text-sm">{deduction.type}</span>
-                            <span className="text-sm text-red-600 font-semibold">-{formatCurrency(deduction.amount)}</span>
+                            <span className="text-base">{deduction.type}</span>
+                            <span className="text-base text-red-600 font-semibold">-{formatCurrency(deduction.amount)}</span>
                           </div>
                           <div className="text-xs text-muted-foreground mt-0.5">
                             {deduction.calculationType === 'PERCENTAGE' && deduction.percentageValue
@@ -929,12 +869,12 @@ export default function PersonnelPayrollPage() {
                   {/* Attendance Deductions */}
                   {attendanceDeductions.length > 0 && (
                     <>
-                      <p className="text-sm font-semibold text-muted-foreground mt-2">Attendance Deductions:</p>
+                      <p className="text-base font-semibold text-muted-foreground mt-2">Attendance Deductions:</p>
                       {attendanceDeductions.map((deduction: any, idx: number) => (
-                        <div key={idx} className="border-b pl-4 py-1.5">
+                        <div key={idx} className="border-b pl-4 py-1">
                           <div className="flex justify-between">
-                            <span className="text-sm font-medium">{deduction.type || deduction.name || 'Attendance'}</span>
-                            <span className="text-sm text-red-600 font-semibold">-{formatCurrency(Number(deduction.amount))}</span>
+                            <span className="text-base font-medium">{deduction.type || deduction.name || 'Attendance'}</span>
+                            <span className="text-base text-red-600 font-semibold">-{formatCurrency(Number(deduction.amount))}</span>
                           </div>
                           {(deduction.date || deduction.description || deduction.reason) && (
                             <div className="text-xs text-muted-foreground mt-0.5 space-y-0.5">
@@ -959,18 +899,13 @@ export default function PersonnelPayrollPage() {
                     </>
                   )}
 
-                  {(mandatoryDeductions.length === 0 && otherDeductions.length === 0) && deductions > 0 && (
+                  {/* TOTAL DEDUCTIONS */}
+                  {deductions > 0 && (
                     <div className="flex justify-between py-2 border-b bg-red-50 dark:bg-red-950/20 px-2">
-                      <span className="font-semibold">- Total Deductions</span>
+                      <span className="font-semibold text-red-700 dark:text-red-400">TOTAL DEDUCTIONS</span>
                       <span className="text-red-600 font-bold">-{formatCurrency(deductions)}</span>
                     </div>
                   )}
-
-                  {/* GROSS PAY */}
-                  <div className="flex justify-between py-2 border-b font-semibold">
-                    <span>GROSS PAY</span>
-                    <span>{formatCurrency(periodSalary + overloadPay)}</span>
-                  </div>
 
                   {/* NET PAY */}
                   <div className="flex justify-between py-3 bg-primary/10 px-2 rounded">
@@ -983,21 +918,6 @@ export default function PersonnelPayrollPage() {
           })()}
         </DialogContent>
       </Dialog>
-
-      {/* Loading Dialog */}
-      {selectedPayroll && !selectedBreakdown && detailsOpen && (
-        <Dialog open={true} onOpenChange={setDetailsOpen}>
-          <DialogContent>
-            <DialogHeader>
-              <DialogTitle>Loading Payroll Details...</DialogTitle>
-            </DialogHeader>
-            <div className="py-8 text-center">
-              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-gray-900 mx-auto mb-4"></div>
-              <p className="text-muted-foreground">Fetching breakdown data...</p>
-            </div>
-          </DialogContent>
-        </Dialog>
-      )}
     </div>
   )
 }
