@@ -445,7 +445,7 @@ export default function PersonnelPayrollPage() {
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <FileText className="h-5 w-5" />
-            Current Payroll (Honorarium)
+            Current Payroll
           </CardTitle>
           <CardDescription>
             View your current and archived payrolls
@@ -461,7 +461,7 @@ export default function PersonnelPayrollPage() {
                   : 'text-muted-foreground hover:text-foreground'
                   }`}
               >
-                Current Payroll (Honorarium)
+                Current Payroll
               </button>
               <button
                 onClick={() => setArchiveOpen(true)}
@@ -470,7 +470,7 @@ export default function PersonnelPayrollPage() {
                   : 'text-muted-foreground hover:text-foreground'
                   }`}
               >
-                Archived Payrolls (Honorarium)
+                Archived Payrolls
               </button>
             </div>
           </div>
@@ -521,10 +521,10 @@ export default function PersonnelPayrollPage() {
                     </div>
                   </div>
                 </div>
-                {/* Honorarium Label */}
+                {/* Payroll Label */}
                 <div className="text-center py-2">
                   <span className="text-xs font-semibold tracking-widest uppercase text-muted-foreground border border-dashed border-muted-foreground/40 px-4 py-1 rounded-full">
-                    Honorarium
+                    Payroll
                   </span>
                 </div>
               </div>
@@ -544,7 +544,7 @@ export default function PersonnelPayrollPage() {
                 {/* Total Payroll Summary */}
                 <div className="mb-4 rounded-xl border border-blue-200 dark:border-blue-800 bg-gradient-to-r from-blue-50 to-blue-100 dark:from-blue-950/30 dark:to-blue-900/20 p-4 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
                   <div>
-                    <p className="text-xs font-semibold tracking-widest uppercase text-blue-700 dark:text-blue-400">Total Honorarium</p>
+                    <p className="text-xs font-semibold tracking-widest uppercase text-blue-700 dark:text-blue-400">Total Payroll</p>
                     <p className="text-xs text-muted-foreground">{archivedPayrolls.length} payroll{archivedPayrolls.length !== 1 ? 's' : ''} released</p>
                   </div>
                   <p className="text-2xl font-bold text-blue-600 dark:text-blue-400">
@@ -740,7 +740,7 @@ export default function PersonnelPayrollPage() {
                   <h3 className="font-bold text-base">TUBOD BARANGAY POBLACION</h3>
                   <p className="text-xs text-muted-foreground">Tubod, Lanao del Norte</p>
                   <p className="text-xs text-muted-foreground">POBLACION - PMS</p>
-                  <h2 className="font-bold text-xl mt-3">HONORARIUM</h2>
+                  <h2 className="font-bold text-xl mt-3">PAYROLL</h2>
                 </div>
 
                 {/* Staff Information */}

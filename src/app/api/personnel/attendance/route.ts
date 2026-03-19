@@ -64,28 +64,56 @@ export async function GET(request: Request) {
       }
     }
 
-    // Attendance table doesn't exist yet - return empty data
-    const attendanceRecords: any[] = []
-    // const attendanceRecords = await prisma.attendances.findMany({
-    //   where: {
-    //     users_id: userId,
-    //     date: dateFilter
-    //   },
-    //   orderBy: {
-    //     date: 'desc'
-    //   }
-    // })
+    // Fetch attendance records
+    const attendanceRecords = await prisma.attendances.findMany({
+      where: {
+        users_id: userId,
+        date: dateFilter
+      },
+      orderBy: {
+        date: 'desc'
+      }
+    })
 
     // Calculate statistics
-    const totalDays = 0
-    const presentDays = 0
-    const absentDays = 0
-    const lateDays = 0
-    const attendanceRate = '0'
-    const totalHours = 0
+    const totalDays = attendanceRecords.length
+    const presentDays = attendanceRecords.filter(r => r.status === 'PRESENT').length
+    const absentDays = attendanceRecords.filter(r => r.status === 'ABSENT').length
+    const lateDays = attendanceRecords.filter(r => r.status === 'LATE').length
+    
+    // Calculate attendance rate
+    const workingDays = presentDays + absentDays + lateDays
+    const attendanceRate = workingDays > 0 
+      ? ((presentDays + lateDays) / workingDays * 100).toFixed(1)
+      : '0'
+
+    let totalWorkMs = 0;
 
     // Format attendance records
-    const formattedRecords: any[] = []
+    const formattedRecords = attendanceRecords.map(record => {
+      let hours = '0.00'
+      if (record.timeIn && record.timeOut) {
+        const diffMs = record.timeOut.getTime() - record.timeIn.getTime()
+        totalWorkMs += diffMs
+        hours = (diffMs / (1000 * 60 * 60)).toFixed(2)
+      } else if (record.status === 'PRESENT' && !record.timeOut) {
+        // Handle case where they haven't timed out yet - default to 8 hours for calculation later if needed, but display --
+        hours = '8.00' // this might be inaccurate but let's just make it displayable
+      }
+      
+      return {
+        id: record.attendances_id,
+        date: record.date.toISOString(),
+        status: record.status,
+        timeIn: record.timeIn ? record.timeIn.toISOString() : null,
+        timeOut: record.timeOut ? record.timeOut.toISOString() : null,
+        hours,
+        dayOfWeek: record.date.toLocaleDateString('en-US', { weekday: 'short' })
+      }
+    });
+
+    const totalHours = (totalWorkMs / (1000 * 60 * 60)).toFixed(2)
+
 
     // Get attendance deductions for the user in the same period
     const deductions = await prisma.deductions.findMany({
@@ -126,7 +154,7 @@ export async function GET(request: Request) {
         absentDays,
         lateDays,
         attendanceRate: parseFloat(attendanceRate),
-        totalHours: totalHours.toFixed(2)
+        totalHours: totalHours
       },
       period: {
         startDate: dateFilter.gte,

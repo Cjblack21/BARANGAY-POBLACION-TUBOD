@@ -67,19 +67,19 @@ export function NavUser({
             </SidebarMenuButton>
           </DropdownMenuTrigger>
           <DropdownMenuContent
-            className="w-(--radix-dropdown-menu-trigger-width) min-w-56 rounded-lg"
+            className="w-[260px] min-w-[260px] rounded-xl shadow-lg border p-1"
             side={isMobile ? "bottom" : "right"}
             align="end"
             sideOffset={4}
           >
             <DropdownMenuLabel className="p-0 font-normal">
-              <div className="flex items-center gap-2 px-1 py-1.5 text-left text-sm">
-                <Avatar className="h-8 w-8 rounded-lg">
+              <div className="flex items-center gap-3 px-2 py-2 text-left text-sm">
+                <Avatar className="h-10 w-10 rounded-lg">
                   <AvatarImage src={user.avatar} alt={user.name} />
                   <AvatarFallback className="rounded-lg">CN</AvatarFallback>
                 </Avatar>
                 <div className="grid flex-1 text-left text-sm leading-tight">
-                  <span className="truncate font-medium">{user.name}</span>
+                  <span className="truncate font-semibold text-[15px]">{user.name}</span>
                   <span className="truncate text-xs text-muted-foreground">{user.email}</span>
                   <span className="truncate text-xs text-muted-foreground">ID: {user.id}</span>
                 </div>
@@ -87,28 +87,31 @@ export function NavUser({
             </DropdownMenuLabel>
             <DropdownMenuSeparator />
             <DropdownMenuGroup>
-              <DropdownMenuItem asChild>
+              <DropdownMenuItem asChild className="p-2.5 text-[15px] cursor-pointer focus:bg-accent focus:text-accent-foreground">
                 <Link href={profilePath} onClick={() => setOpenMobile(false)}>
-                  <User />
+                  <User className="mr-3 h-4 w-4" />
                   Profile Settings
                 </Link>
               </DropdownMenuItem>
-              <DropdownMenuItem asChild>
+              <DropdownMenuItem asChild className="p-2.5 text-[15px] cursor-pointer focus:bg-accent focus:text-accent-foreground">
                 <Link href={`${profilePath}?tab=settings`} onClick={() => setOpenMobile(false)}>
-                  <Settings />
+                  <Settings className="mr-3 h-4 w-4" />
                   Settings
                 </Link>
               </DropdownMenuItem>
-              <DropdownMenuItem asChild>
+              <DropdownMenuItem asChild className="p-2.5 text-[15px] cursor-pointer focus:bg-accent focus:text-accent-foreground">
                 <Link href={`${profilePath}?tab=security`} onClick={() => setOpenMobile(false)}>
-                  <KeyRound />
+                  <KeyRound className="mr-3 h-4 w-4" />
                   Change Password
                 </Link>
               </DropdownMenuItem>
             </DropdownMenuGroup>
             <DropdownMenuSeparator />
-            <DropdownMenuItem onClick={() => { setOpenMobile(false); signOut({ callbackUrl: "/" }) }}>
-              <LogOut />
+            <DropdownMenuItem 
+              className="p-2.5 text-[15px] font-medium text-red-600 focus:text-red-700 focus:bg-red-50 dark:focus:bg-red-950/20 cursor-pointer transition-colors"
+              onClick={() => { setOpenMobile(false); signOut({ callbackUrl: "/" }) }}
+            >
+              <LogOut className="mr-3 h-4 w-4 text-red-600" />
               Log out
             </DropdownMenuItem>
           </DropdownMenuContent>

@@ -69,7 +69,7 @@ export function PersonnelSidebar({ user, ...props }: PersonnelSidebarProps) {
                 <span className="font-bold text-[16px] whitespace-nowrap tracking-tight">BRGY POBLACION</span>
                 <div className="flex items-center gap-1.5">
                   <span className="text-xs font-medium text-white/70 whitespace-nowrap tracking-wide">PMS SYSTEM</span>
-                  <span className="text-[10px] font-medium text-white/40">v1.2.2</span>
+                  <span className="text-[10px] font-medium text-white/40">v1.3.3</span>
                 </div>
               </div>
             </div>
@@ -113,7 +113,7 @@ export function PersonnelSidebar({ user, ...props }: PersonnelSidebarProps) {
                 <SidebarMenuButton asChild className="h-10 font-medium [&>svg]:size-[18px]" onClick={() => setOpenMobile(false)}>
                   <Link href="/personnel/payroll">
                     <span className="flex items-center justify-center w-[18px] h-[18px] text-lg font-normal">₱</span>
-                    <span>Payroll</span>
+                    <span>Payroll (Honorarium)</span>
                   </Link>
                 </SidebarMenuButton>
               </SidebarMenuItem>

@@ -102,7 +102,7 @@ export function AppSidebar({ user, ...props }: AppSidebarProps) {
                 <span className="font-bold text-[16px] whitespace-nowrap tracking-tight">BRGY POBLACION</span>
                 <div className="flex items-center gap-1.5">
                   <span className="text-xs font-medium text-white/70 whitespace-nowrap tracking-wide">PMS SYSTEM</span>
-                  <span className="text-[10px] font-medium text-white/40">v1.2.2</span>
+                  <span className="text-[10px] font-medium text-white/40">v1.3.3</span>
                 </div>
               </div>
             </div>
@@ -147,7 +147,7 @@ export function AppSidebar({ user, ...props }: AppSidebarProps) {
                   <Link href="/admin/payroll" className="relative">
                     <span className="flex items-center justify-center w-[18px] h-[18px] text-lg font-normal">₱</span>
                     <span className="flex items-center gap-1.5">
-                      <span>Payroll</span>
+                      <span>Payroll (Honorarium)</span>
                       {hasNotification && (
                         <span className="flex h-1.5 w-1.5">
                           <span className="animate-ping absolute inline-flex h-1.5 w-1.5 rounded-full bg-red-500 opacity-75"></span>
