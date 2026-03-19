@@ -74,6 +74,23 @@ export async function POST(request: NextRequest) {
     const body = await request.json()
     const { users_id, amount, purpose, monthlyPaymentPercent, termMonths } = body || {}
 
+    // ── Payroll-Active Guard ─────────────────────────────────────────────────
+    // Block new loans AND custom deductions when payroll is currently generated.
+    // Only Attendance Deductions are permitted during an active payroll period.
+    const pendingPayroll = await prisma.payroll_entries.findFirst({
+      where: { status: 'PENDING' },
+      select: { payroll_entries_id: true }
+    })
+
+    if (pendingPayroll) {
+      const isCustomDeduction = typeof purpose === 'string' && purpose.startsWith('[DEDUCTION]')
+      const itemType = isCustomDeduction ? 'Custom Deductions' : 'Loans'
+      return NextResponse.json({
+        error: `Payroll is currently generated. Only Attendance Deductions can be added at this time. ${itemType} cannot be added until the current payroll is released.`
+      }, { status: 403 })
+    }
+    // ────────────────────────────────────────────────────────────────────────
+
     if (!users_id || !amount || !termMonths) {
       return NextResponse.json({ error: 'Missing required fields' }, { status: 400 })
     }

@@ -113,17 +113,18 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    // Restriction check for Punong Barangay and SK Kagawad
+    // Restriction check for Punong Barangay and SK Chairman (only 1 allowed each)
     if (validatedData.personnel_types_id) {
       const personnelType = await prisma.personnel_types.findUnique({
         where: { personnel_types_id: validatedData.personnel_types_id }
       })
 
       if (personnelType) {
-        const isPunongBarangay = personnelType.name.toLowerCase().includes('punong barangay')
-        const isSkKagawad = personnelType.name.toLowerCase().includes('sk kagawad')
+        const nameLower = personnelType.name.toLowerCase()
+        const isPunongBarangay = nameLower.includes('punong barangay')
+        const isSkChairman = nameLower.includes('sk chairman') || nameLower.includes('sk kagawad')
 
-        if (isPunongBarangay || isSkKagawad) {
+        if (isPunongBarangay || isSkChairman) {
           const existingRoleUser = await prisma.users.findFirst({
             where: {
               personnel_types_id: validatedData.personnel_types_id,
@@ -132,9 +133,9 @@ export async function POST(request: NextRequest) {
           })
 
           if (existingRoleUser) {
-            const roleName = isPunongBarangay ? 'Punong Barangay' : 'SK Kagawad'
+            const roleName = isPunongBarangay ? 'Punong Barangay' : 'Brgy SK Chairman'
             return NextResponse.json(
-              { error: `An active ${roleName} already exists. Only one is allowed.` },
+              { error: `Only 1 ${roleName} can be added. This position is already taken by an active staff member.` },
               { status: 400 }
             )
           }

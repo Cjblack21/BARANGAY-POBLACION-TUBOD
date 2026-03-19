@@ -80,6 +80,7 @@ export default function PersonalDeductionsPage() {
     const [isCustomTerm, setIsCustomTerm] = useState(false)
     const [customPercent, setCustomPercent] = useState("")
     const [isCustomPercent, setIsCustomPercent] = useState(false)
+    const [payrollActive, setPayrollActive] = useState(false)
 
     // Confirm modals
     const [archiveConfirmOpen, setArchiveConfirmOpen] = useState(false)
@@ -102,6 +103,14 @@ export default function PersonalDeductionsPage() {
     useEffect(() => {
         loadDeductions()
         loadArchivedDeductions()
+        // Check if payroll is currently generated (Pending)
+        fetch("/api/admin/payroll/current")
+            .then(r => r.json())
+            .then(data => {
+                const entries: any[] = data?.entries || []
+                setPayrollActive(entries.some((e: any) => e.status === 'Pending'))
+            })
+            .catch(() => {})
     }, [])
 
     async function loadDeductions() {
@@ -316,6 +325,19 @@ export default function PersonalDeductionsPage() {
 
     return (
         <div className="flex-1 space-y-6 p-4 pt-6">
+            {/* Payroll Active Warning Banner */}
+            {payrollActive && (
+                <div className="flex items-start gap-3 p-4 rounded-lg border border-amber-300 bg-amber-50 dark:bg-amber-950/20 dark:border-amber-700">
+                    <AlertCircle className="h-5 w-5 text-amber-600 dark:text-amber-400 mt-0.5 shrink-0" />
+                    <div>
+                        <p className="font-semibold text-amber-800 dark:text-amber-300">Payroll is Currently Generated</p>
+                        <p className="text-sm text-amber-700 dark:text-amber-400 mt-0.5">
+                            Adding custom deductions is <strong>not allowed</strong> while a payroll is pending release.
+                            Only <strong>Attendance Deductions</strong> can be added at this time.
+                        </p>
+                    </div>
+                </div>
+            )}
             {/* Header */}
             <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
                 <div className="space-y-1">
@@ -331,7 +353,7 @@ export default function PersonalDeductionsPage() {
                 </div>
                 <Dialog open={open} onOpenChange={(v) => { setOpen(v); if (v) { loadUsers(); setUserSearch("") } }}>
                     <DialogTrigger asChild>
-                        <Button className="bg-red-600 hover:bg-red-700 text-white gap-2">
+                        <Button disabled={payrollActive} className="bg-red-600 hover:bg-red-700 text-white gap-2 disabled:opacity-50 disabled:cursor-not-allowed">
                             <Plus className="h-4 w-4" />Add Custom Deduction
                         </Button>
                     </DialogTrigger>

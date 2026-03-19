@@ -61,6 +61,21 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
   }
   try {
+    // ── Payroll-Active Guard ─────────────────────────────────────────────────
+    // When payroll is currently generated (Pending), only Attendance Deductions
+    // can be added. Block mandatory / custom deductions entirely.
+    const pendingPayroll = await prisma.payroll_entries.findFirst({
+      where: { status: 'PENDING' },
+      select: { payroll_entries_id: true }
+    })
+
+    if (pendingPayroll) {
+      return NextResponse.json({
+        error: 'Payroll is currently generated. Only Attendance Deductions can be added at this time. Please complete or release the current payroll first.'
+      }, { status: 403 })
+    }
+    // ────────────────────────────────────────────────────────────────────────
+
     const body = await req.json()
     const data: CreatePayload = createSchema.parse(body)
 

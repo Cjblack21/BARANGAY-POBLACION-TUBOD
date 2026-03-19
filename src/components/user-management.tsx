@@ -251,6 +251,25 @@ export function UserManagement() {
       })()
   }, [])
 
+  // Helper: detect restricted positions (only 1 allowed)
+  const isRestrictedPositionName = (name: string) => {
+    const n = name.toLowerCase()
+    return n.includes('punong barangay') || n.includes('sk chairman') || n.includes('sk kagawad')
+  }
+
+  // Helper: get display label for restricted position
+  const getRestrictedLabel = (name: string) => {
+    const n = name.toLowerCase()
+    if (n.includes('punong barangay')) return 'Punong Barangay'
+    if (n.includes('sk chairman') || n.includes('sk kagawad')) return 'Brgy SK Chairman'
+    return ''
+  }
+
+  // Helper: check if a personnel_types_id is already taken by an active staff
+  const isPositionAlreadyTaken = (personnelTypesId: string) => {
+    return personnel.some(p => p.isActive && p.personnel_types_id === personnelTypesId)
+  }
+
   // Handle create personnel
   const handleCreatePersonnel = async () => {
     // Validate required fields
@@ -265,6 +284,18 @@ export function UserManagement() {
     if (!formData.password || formData.password.length < 6) {
       toast.error('Password must be at least 6 characters')
       return
+    }
+
+    // Restrict Punong Barangay and SK Chairman to only 1 active staff
+    if (formData.personnel_types_id) {
+      const selectedType = personnelTypes.find(t => t.personnel_types_id === formData.personnel_types_id)
+      if (selectedType && isRestrictedPositionName(selectedType.name)) {
+        if (isPositionAlreadyTaken(formData.personnel_types_id)) {
+          const label = getRestrictedLabel(selectedType.name)
+          toast.error(`Only 1 ${label} can be added. This position is already taken by an active staff member.`)
+          return
+        }
+      }
     }
 
 
@@ -715,7 +746,7 @@ export function UserManagement() {
               <DialogTrigger asChild>
                 <Button>
                   <Plus className="h-4 w-4 mr-2" />
-                  Add Staff
+                  Add Brgy Staff
                 </Button>
               </DialogTrigger>
               <DialogContent className="sm:max-w-[700px] max-h-[90vh] overflow-y-auto">
@@ -976,9 +1007,23 @@ export function UserManagement() {
                               const nameParts = type.name.split(': ')
                               const office = nameParts.length === 2 ? nameParts[0] : (type.department || 'N/A')
                               const position = nameParts.length === 2 ? nameParts[1] : type.name
+                              const isRestricted = isRestrictedPositionName(type.name)
+                              const isTaken = isRestricted && isPositionAlreadyTaken(type.personnel_types_id)
                               return (
-                                <SelectItem key={type.personnel_types_id} value={type.personnel_types_id}>
-                                  {office} - {position}
+                                <SelectItem
+                                  key={type.personnel_types_id}
+                                  value={type.personnel_types_id}
+                                  disabled={isTaken}
+                                  className={isTaken ? 'opacity-50 cursor-not-allowed' : ''}
+                                >
+                                  <div className="flex items-center justify-between w-full gap-2">
+                                    <span>{office} - {position}</span>
+                                    {isTaken && (
+                                      <span className="text-xs font-medium text-red-500 bg-red-50 border border-red-200 rounded px-1.5 py-0.5 ml-2 flex-shrink-0">
+                                        Position Filled
+                                      </span>
+                                    )}
+                                  </div>
                                 </SelectItem>
                               )
                             })}

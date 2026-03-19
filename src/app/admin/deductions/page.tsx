@@ -54,6 +54,7 @@ export default function DeductionsPage() {
   const [personnel, setPersonnel] = useState<Personnel[]>([])
   const [deductions, setDeductions] = useState<Deduction[]>([])
   const [loading, setLoading] = useState(true)
+  const [payrollActive, setPayrollActive] = useState(false)
 
   // Create Type dialog
   const [typeOpen, setTypeOpen] = useState(false)
@@ -154,12 +155,16 @@ export default function DeductionsPage() {
   async function loadAll() {
     try {
       setLoading(true)
-      const [t, d] = await Promise.all([
+      const [t, d, payrollRes] = await Promise.all([
         fetch("/api/admin/deduction-types").then(r => r.json()),
         fetch("/api/admin/deductions").then(r => r.json()),
+        fetch("/api/admin/payroll/current").then(r => r.json()),
       ])
       setTypes(t)
       setDeductions(d)
+      // Payroll is "active" if any entry has Pending status
+      const entries: any[] = payrollRes?.entries || []
+      setPayrollActive(entries.some((e: any) => e.status === 'Pending'))
     } catch { toast.error("Failed to load data") } finally { setLoading(false) }
   }
 
@@ -378,6 +383,20 @@ export default function DeductionsPage() {
   return (
     <div className="flex-1 space-y-6 p-4 pt-6">
 
+      {/* ── Payroll Active Warning Banner ── */}
+      {payrollActive && (
+        <div className="flex items-start gap-3 p-4 rounded-lg border border-amber-300 bg-amber-50 dark:bg-amber-950/20 dark:border-amber-700">
+          <AlertCircle className="h-5 w-5 text-amber-600 dark:text-amber-400 mt-0.5 shrink-0" />
+          <div>
+            <p className="font-semibold text-amber-800 dark:text-amber-300">Payroll is Currently Generated</p>
+            <p className="text-sm text-amber-700 dark:text-amber-400 mt-0.5">
+              Adding mandatory deductions is <strong>not allowed</strong> while a payroll is pending release.
+              Only <strong>Attendance Deductions</strong> can be added at this time.
+            </p>
+          </div>
+        </div>
+      )}
+
       {/* ── Header ── */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-2 border-b">
         <div className="flex items-center gap-3">
@@ -390,12 +409,12 @@ export default function DeductionsPage() {
           </div>
         </div>
         <div className="flex gap-2 flex-wrap">
-          <Button onClick={() => setSyncMandatoryOpen(true)} className="bg-blue-600 hover:bg-blue-700 text-white shadow gap-2">
+          <Button onClick={() => setSyncMandatoryOpen(true)} disabled={payrollActive} className="bg-blue-600 hover:bg-blue-700 text-white shadow gap-2 disabled:opacity-50 disabled:cursor-not-allowed">
             <CheckCheck className="h-4 w-4" />Apply Mandatory Deductions
           </Button>
           <Dialog open={typeOpen} onOpenChange={setTypeOpen}>
             <DialogTrigger asChild>
-              <Button className="bg-green-600 hover:bg-green-700 text-white shadow gap-2"><Plus className="h-4 w-4" />Add Mandatory Deduction</Button>
+              <Button disabled={payrollActive} className="bg-green-600 hover:bg-green-700 text-white shadow gap-2 disabled:opacity-50 disabled:cursor-not-allowed"><Plus className="h-4 w-4" />Add Mandatory Deduction</Button>
             </DialogTrigger>
             <DialogContent className="max-h-[85vh] overflow-y-auto max-w-2xl">
               <DialogHeader>

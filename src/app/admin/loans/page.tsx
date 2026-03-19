@@ -75,6 +75,7 @@ export default function LoansPage() {
   const [isCustomTerm, setIsCustomTerm] = useState(false)
   const [customPercent, setCustomPercent] = useState('')
   const [isCustomPercent, setIsCustomPercent] = useState(false)
+  const [payrollActive, setPayrollActive] = useState(false)
 
   // Confirmation modal states
   const [approveConfirmOpen, setApproveConfirmOpen] = useState(false)
@@ -103,6 +104,14 @@ export default function LoansPage() {
   useEffect(() => {
     loadLoans()
     loadArchivedLoans()
+    // Check if payroll is currently generated (Pending)
+    fetch('/api/admin/payroll/current')
+      .then(r => r.json())
+      .then(data => {
+        const entries: any[] = data?.entries || []
+        setPayrollActive(entries.some((e: any) => e.status === 'Pending'))
+      })
+      .catch(() => {})
   }, [])
 
   async function loadLoans() {
@@ -430,6 +439,19 @@ export default function LoansPage() {
 
   return (
     <div className="flex-1 space-y-6 p-4 md:p-6 pt-6">
+      {/* Payroll Active Warning Banner */}
+      {payrollActive && (
+        <div className="flex items-start gap-3 p-4 rounded-lg border border-amber-300 bg-amber-50 dark:bg-amber-950/20 dark:border-amber-700">
+          <AlertCircle className="h-5 w-5 text-amber-600 dark:text-amber-400 mt-0.5 shrink-0" />
+          <div>
+            <p className="font-semibold text-amber-800 dark:text-amber-300">Payroll is Currently Generated</p>
+            <p className="text-sm text-amber-700 dark:text-amber-400 mt-0.5">
+              Adding loans is <strong>not allowed</strong> while a payroll is pending release.
+              Only <strong>Attendance Deductions</strong> can be added at this time.
+            </p>
+          </div>
+        </div>
+      )}
       {/* Header Section */}
       <div className="flex flex-col gap-4">
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
@@ -455,7 +477,7 @@ export default function LoansPage() {
               }
             }}>
               <DialogTrigger asChild>
-                <Button className="bg-blue-600 hover:bg-blue-700 text-white gap-2">
+                <Button disabled={payrollActive} className="bg-blue-600 hover:bg-blue-700 text-white gap-2 disabled:opacity-50 disabled:cursor-not-allowed">
                   <Plus className="h-4 w-4" />
                   <span className="hidden sm:inline">Add Loan</span>
                   <span className="sm:hidden">Add</span>
