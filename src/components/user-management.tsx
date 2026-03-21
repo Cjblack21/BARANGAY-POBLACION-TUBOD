@@ -766,9 +766,9 @@ export function UserManagement() {
 
                 <div className="space-y-6 py-6">
                   {/* Profile Image Section */}
-                  <div className="bg-gradient-to-br from-blue-50 to-indigo-50 rounded-lg p-6 border border-blue-100">
-                    <h3 className="text-sm font-semibold text-gray-900 mb-4 flex items-center gap-2">
-                      <User className="h-4 w-4 text-blue-600" />
+                  <div className="bg-gradient-to-br from-slate-50 to-gray-100 dark:from-slate-800/40 dark:to-gray-800/40 rounded-lg p-6 border border-slate-200 dark:border-slate-700">
+                    <h3 className="text-sm font-semibold text-gray-900 dark:text-gray-100 mb-4 flex items-center gap-2">
+                      <User className="h-4 w-4 text-slate-600" />
                       Profile Photo
                       <span className="text-xs text-gray-500 font-normal ml-2">(Optional)</span>
                     </h3>
@@ -790,7 +790,7 @@ export function UserManagement() {
                       </div>
                       <div className="flex-1">
                         <Label htmlFor="create-avatar" className="cursor-pointer">
-                          <div className="border-2 border-dashed border-blue-300 rounded-lg p-4 hover:border-blue-400 hover:bg-blue-50/50 transition-all">
+                          <div className="border-2 border-dashed border-slate-300 rounded-lg p-4 hover:border-slate-400 hover:bg-slate-50/50 transition-all">
                             <Input
                               id="create-avatar"
                               type="file"
@@ -809,7 +809,7 @@ export function UserManagement() {
                               }}
                             />
                             <div className="text-center">
-                              <Upload className="h-8 w-8 text-blue-500 mx-auto mb-2" />
+                              <Upload className="h-8 w-8 text-slate-500 mx-auto mb-2" />
                               <p className="text-sm font-medium text-gray-700">Click to upload photo</p>
                               <p className="text-xs text-gray-500 mt-1">JPG, PNG or GIF (max 5MB)</p>
                             </div>
@@ -1056,54 +1056,50 @@ export function UserManagement() {
         </div >
       </div >
 
-      {/* Filters Section */}
-      < Card >
+      {/* Personnel Table */}
+      <Card>
         <CardHeader>
-          <CardTitle className="text-lg">Filters & Search</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="flex flex-col space-y-4 md:flex-row md:items-center md:space-x-4 md:space-y-0">
-            <div className="flex-1">
-              <Label htmlFor="search">Search Staff</Label>
-              <div className="relative">
-                <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
-                <Input
-                  id="search"
-                  placeholder="Search by email or name..."
-                  value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
-                  className="pl-10"
-                />
+          <div className="flex flex-col md:flex-row items-start md:items-end justify-between gap-6 w-full">
+            <div>
+              <CardTitle>
+                Active Staff ({filteredPersonnel.length})
+              </CardTitle>
+              <CardDescription className="mt-1">
+                Showing {filteredPersonnel.length} of {personnel.filter(p => p.isActive).length} active staff
+              </CardDescription>
+            </div>
+            
+            <div className="flex flex-col sm:flex-row items-end sm:items-center gap-4 ml-auto">
+              <div className="flex flex-col gap-2 w-[280px]">
+                <Label htmlFor="search" className="text-sm font-medium text-muted-foreground ml-1">Search</Label>
+                <div className="relative w-full">
+                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                  <Input
+                    id="search"
+                    placeholder="Search by email or name..."
+                    value={searchTerm}
+                    onChange={(e) => setSearchTerm(e.target.value)}
+                    className="pl-10 h-10 border-slate-300 dark:border-slate-700 focus-visible:ring-1 focus-visible:ring-slate-400 focus-visible:ring-offset-0"
+                  />
+                </div>
+              </div>
+              <div className="flex flex-col gap-2 w-[280px]">
+                <Label className="text-sm font-medium text-muted-foreground ml-1">Filter by System Role</Label>
+                <SSRSafe>
+                  <Select value={roleFilter} onValueChange={setRoleFilter}>
+                    <SelectTrigger className="h-10 border-slate-300 dark:border-slate-700 focus-visible:ring-1 focus-visible:ring-slate-400 focus-visible:ring-offset-0 focus:ring-1 focus:ring-slate-400 focus:ring-offset-0">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="ALL">All System Roles</SelectItem>
+                      <SelectItem value="ADMIN">Admin Only</SelectItem>
+                      <SelectItem value="PERSONNEL">Staff Only</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </SSRSafe>
               </div>
             </div>
-            <div className="w-full md:w-48">
-              <Label>Filter by System Role</Label>
-              <SSRSafe>
-                <Select value={roleFilter} onValueChange={setRoleFilter}>
-                  <SelectTrigger>
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="ALL">All System Roles</SelectItem>
-                    <SelectItem value="ADMIN">Admin Only</SelectItem>
-                    <SelectItem value="PERSONNEL">Staff Only</SelectItem>
-                  </SelectContent>
-                </Select>
-              </SSRSafe>
-            </div>
           </div>
-        </CardContent>
-      </Card >
-
-      {/* Personnel Table */}
-      < Card >
-        <CardHeader>
-          <CardTitle>
-            Active Staff ({filteredPersonnel.length})
-          </CardTitle>
-          <CardDescription>
-            Showing {filteredPersonnel.length} of {personnel.filter(p => p.isActive).length} active staff
-          </CardDescription>
         </CardHeader>
         <CardContent>
           {loading ? (
@@ -1256,9 +1252,9 @@ export function UserManagement() {
 
             <div className="space-y-6 py-6">
               {/* Profile Image Section */}
-              <div className="bg-gradient-to-br from-blue-50 to-indigo-50 rounded-lg p-6 border border-blue-100">
-                <h3 className="text-sm font-semibold text-gray-900 mb-4 flex items-center gap-2">
-                  <User className="h-4 w-4 text-blue-600" />
+              <div className="bg-gradient-to-br from-slate-50 to-gray-100 dark:from-slate-800/40 dark:to-gray-800/40 rounded-lg p-6 border border-slate-200 dark:border-slate-700">
+                <h3 className="text-sm font-semibold text-gray-900 dark:text-gray-100 mb-4 flex items-center gap-2">
+                  <User className="h-4 w-4 text-slate-600" />
                   Profile Photo
                 </h3>
                 <div className="flex items-center gap-6">
@@ -1279,7 +1275,7 @@ export function UserManagement() {
                   </div>
                   <div className="flex-1">
                     <Label htmlFor="edit-avatar" className="cursor-pointer">
-                      <div className="border-2 border-dashed border-blue-300 rounded-lg p-4 hover:border-blue-400 hover:bg-blue-50/50 transition-all">
+                      <div className="border-2 border-dashed border-slate-300 rounded-lg p-4 hover:border-slate-400 hover:bg-slate-50/50 transition-all">
                         <Input
                           id="edit-avatar"
                           type="file"
@@ -1298,7 +1294,7 @@ export function UserManagement() {
                           }}
                         />
                         <div className="text-center">
-                          <Upload className="h-8 w-8 text-blue-500 mx-auto mb-2" />
+                          <Upload className="h-8 w-8 text-slate-500 mx-auto mb-2" />
                           <p className="text-sm font-medium text-gray-700">Click to upload new photo</p>
                           <p className="text-xs text-gray-500 mt-1">JPG, PNG or GIF (max 5MB)</p>
                         </div>
@@ -1499,21 +1495,21 @@ export function UserManagement() {
               <div className="space-y-6 py-6">
 
                 {/* Profile Section */}
-                <div className="bg-gradient-to-br from-blue-50 to-indigo-50 rounded-lg p-5 border border-blue-100">
-                  <h3 className="text-sm font-semibold text-gray-900 mb-4 flex items-center gap-2">
-                    <User className="h-4 w-4 text-blue-600" />
+                <div className="bg-gradient-to-br from-slate-50 to-gray-100 dark:from-slate-800/40 dark:to-gray-800/40 rounded-lg p-5 border border-slate-200 dark:border-slate-700">
+                  <h3 className="text-sm font-semibold text-gray-900 dark:text-gray-100 mb-4 flex items-center gap-2">
+                    <User className="h-4 w-4 text-slate-600" />
                     Profile
                   </h3>
                   <div className="flex items-center gap-5">
                     <Avatar className="h-20 w-20 border-4 border-white shadow-md">
                       <AvatarImage src={selectedPersonnel.avatar || ''} />
-                      <AvatarFallback className="text-2xl font-semibold bg-blue-100 text-blue-700">
+                      <AvatarFallback className="text-2xl font-semibold bg-slate-200 text-slate-700">
                         {getInitials(selectedPersonnel.name, selectedPersonnel.email)}
                       </AvatarFallback>
                     </Avatar>
                     <div>
-                      <p className="font-semibold text-gray-900 text-base">{selectedPersonnel.name || 'No name set'}</p>
-                      <p className="text-sm text-gray-500 mt-0.5">{selectedPersonnel.email}</p>
+                      <p className="font-semibold text-gray-900 dark:text-gray-100 text-base">{selectedPersonnel.name || 'No name set'}</p>
+                      <p className="text-sm text-gray-500 dark:text-gray-400 mt-0.5">{selectedPersonnel.email}</p>
                       <div className="flex gap-2 mt-2">
                         <Badge variant={selectedPersonnel.isActive ? 'default' : 'destructive'} className="text-xs">
                           {selectedPersonnel.isActive ? 'Active' : 'Inactive'}
@@ -1528,18 +1524,18 @@ export function UserManagement() {
 
                 {/* Account Info Section */}
                 <div className="space-y-3">
-                  <h3 className="text-sm font-semibold text-gray-900 flex items-center gap-2 border-b pb-2">
+                  <h3 className="text-sm font-semibold text-gray-900 dark:text-gray-100 flex items-center gap-2 border-b pb-2">
                     <Shield className="h-4 w-4 text-blue-600" />
                     Account Information
                   </h3>
                   <div className="grid grid-cols-2 gap-4 text-sm">
                     <div>
                       <p className="text-xs text-muted-foreground mb-1">Staff ID</p>
-                      <p className="font-mono font-medium bg-gray-50 border rounded px-2 py-1.5">{selectedPersonnel.users_id}</p>
+                      <p className="font-mono font-medium bg-gray-50 dark:bg-muted border rounded px-2 py-1.5 dark:text-foreground">{selectedPersonnel.users_id}</p>
                     </div>
                     <div>
                       <p className="text-xs text-muted-foreground mb-1">System Role</p>
-                      <p className="font-medium bg-gray-50 border rounded px-2 py-1.5">
+                      <p className="font-medium bg-gray-50 dark:bg-muted border rounded px-2 py-1.5 dark:text-foreground">
                         {selectedPersonnel.role === 'PERSONNEL' ? 'Staff Member' : 'Administrator'}
                       </p>
                     </div>
@@ -1549,27 +1545,27 @@ export function UserManagement() {
                 {/* Position & Salary Section */}
                 {(selectedPersonnel.personnelType || selectedPersonnel.personnel_types) && (
                   <div className="space-y-3">
-                    <h3 className="text-sm font-semibold text-gray-900 flex items-center gap-2 border-b pb-2">
+                    <h3 className="text-sm font-semibold text-gray-900 dark:text-gray-100 flex items-center gap-2 border-b pb-2">
                       <Briefcase className="h-4 w-4 text-blue-600" />
                       Position & Salary
                     </h3>
                     <div className="grid grid-cols-2 gap-4 text-sm">
                       <div className="col-span-2">
                         <p className="text-xs text-muted-foreground mb-1">Position</p>
-                        <p className="font-medium bg-gray-50 border rounded px-2 py-1.5">
+                        <p className="font-medium bg-gray-50 dark:bg-muted border rounded px-2 py-1.5 dark:text-foreground">
                           {(selectedPersonnel.personnelType || selectedPersonnel.personnel_types)?.name || '—'}
                         </p>
                       </div>
                       <div>
                         <p className="text-xs text-muted-foreground mb-1">Basic Salary</p>
-                        <p className="font-medium bg-gray-50 border rounded px-2 py-1.5">
+                        <p className="font-medium bg-gray-50 dark:bg-muted border rounded px-2 py-1.5 dark:text-foreground">
                           ₱{((selectedPersonnel.personnelType || selectedPersonnel.personnel_types)?.basicSalary ?? 0).toLocaleString('en-PH', { minimumFractionDigits: 2 })}
                         </p>
                       </div>
                       {(selectedPersonnel.personnelType || selectedPersonnel.personnel_types)?.department && (
                         <div>
                           <p className="text-xs text-muted-foreground mb-1">BLGU</p>
-                          <p className="font-medium bg-gray-50 border rounded px-2 py-1.5">
+                          <p className="font-medium bg-gray-50 dark:bg-muted border rounded px-2 py-1.5 dark:text-foreground">
                             {(selectedPersonnel.personnelType || selectedPersonnel.personnel_types)?.department}
                           </p>
                         </div>
@@ -1581,7 +1577,7 @@ export function UserManagement() {
                 {/* Address Section */}
                 {(selectedPersonnel.streetAddress || selectedPersonnel.barangay || selectedPersonnel.purok || selectedPersonnel.zipCode) && (
                   <div className="space-y-3">
-                    <h3 className="text-sm font-semibold text-gray-900 flex items-center gap-2 border-b pb-2">
+                    <h3 className="text-sm font-semibold text-gray-900 dark:text-gray-100 flex items-center gap-2 border-b pb-2">
                       <User className="h-4 w-4 text-blue-600" />
                       Address Information
                     </h3>
@@ -1589,25 +1585,25 @@ export function UserManagement() {
                       {selectedPersonnel.streetAddress && (
                         <div className="col-span-2">
                           <p className="text-xs text-muted-foreground mb-1">Street Address</p>
-                          <p className="font-medium bg-gray-50 border rounded px-2 py-1.5">{selectedPersonnel.streetAddress}</p>
+                          <p className="font-medium bg-gray-50 dark:bg-muted border rounded px-2 py-1.5 dark:text-foreground">{selectedPersonnel.streetAddress}</p>
                         </div>
                       )}
                       {selectedPersonnel.barangay && (
                         <div>
                           <p className="text-xs text-muted-foreground mb-1">Barangay</p>
-                          <p className="font-medium bg-gray-50 border rounded px-2 py-1.5">{selectedPersonnel.barangay}</p>
+                          <p className="font-medium bg-gray-50 dark:bg-muted border rounded px-2 py-1.5 dark:text-foreground">{selectedPersonnel.barangay}</p>
                         </div>
                       )}
                       {selectedPersonnel.purok && (
                         <div>
                           <p className="text-xs text-muted-foreground mb-1">Purok</p>
-                          <p className="font-medium bg-gray-50 border rounded px-2 py-1.5">{selectedPersonnel.purok}</p>
+                          <p className="font-medium bg-gray-50 dark:bg-muted border rounded px-2 py-1.5 dark:text-foreground">{selectedPersonnel.purok}</p>
                         </div>
                       )}
                       {selectedPersonnel.zipCode && (
                         <div>
                           <p className="text-xs text-muted-foreground mb-1">Zip Code</p>
-                          <p className="font-medium bg-gray-50 border rounded px-2 py-1.5">{selectedPersonnel.zipCode}</p>
+                          <p className="font-medium bg-gray-50 dark:bg-muted border rounded px-2 py-1.5 dark:text-foreground">{selectedPersonnel.zipCode}</p>
                         </div>
                       )}
                     </div>
@@ -1616,20 +1612,20 @@ export function UserManagement() {
 
                 {/* Timestamps Section */}
                 <div className="space-y-3">
-                  <h3 className="text-sm font-semibold text-gray-900 flex items-center gap-2 border-b pb-2">
+                  <h3 className="text-sm font-semibold text-gray-900 dark:text-gray-100 flex items-center gap-2 border-b pb-2">
                     <Shield className="h-4 w-4 text-blue-600" />
                     Record Info
                   </h3>
                   <div className="grid grid-cols-2 gap-4 text-sm">
                     <div>
                       <p className="text-xs text-muted-foreground mb-1">Created</p>
-                      <p className="font-medium bg-gray-50 border rounded px-2 py-1.5">
+                      <p className="font-medium bg-gray-50 dark:bg-muted border rounded px-2 py-1.5 dark:text-foreground">
                         {new Date(selectedPersonnel.createdAt).toLocaleDateString('en-GB', { day: '2-digit', month: '2-digit', year: 'numeric' })}
                       </p>
                     </div>
                     <div>
                       <p className="text-xs text-muted-foreground mb-1">Last Updated</p>
-                      <p className="font-medium bg-gray-50 border rounded px-2 py-1.5">
+                      <p className="font-medium bg-gray-50 dark:bg-muted border rounded px-2 py-1.5 dark:text-foreground">
                         {new Date(selectedPersonnel.updatedAt).toLocaleDateString('en-GB', { day: '2-digit', month: '2-digit', year: 'numeric' })}
                       </p>
                     </div>

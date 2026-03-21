@@ -332,14 +332,17 @@ export default function AttendanceDeductionPage() {
               </CardTitle>
               <CardDescription>Summary of staff with attendance deductions</CardDescription>
             </div>
-            <div className="relative w-56">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-              <Input
-                placeholder="Search staff..."
-                value={deductionSearch}
-                onChange={(e) => setDeductionSearch(e.target.value)}
-                className="pl-9 h-9"
-              />
+            <div className="flex flex-col gap-2 w-full sm:w-72 mt-2 sm:mt-0">
+              <Label className="text-sm font-medium text-muted-foreground ml-1">Search</Label>
+              <div className="relative">
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                <Input
+                  placeholder="Search staff..."
+                  value={deductionSearch}
+                  onChange={(e) => setDeductionSearch(e.target.value)}
+                  className="pl-9 h-10 border-slate-300 dark:border-slate-700 focus-visible:ring-1 focus-visible:ring-slate-400 focus-visible:ring-offset-0"
+                />
+              </div>
             </div>
           </div>
         </CardHeader>
@@ -462,14 +465,15 @@ export default function AttendanceDeductionPage() {
               <CardTitle>Staff List</CardTitle>
               <CardDescription>Select staff to add attendance deductions</CardDescription>
             </div>
-            <div className="flex items-center gap-3">
-              <div className="relative w-64">
+            <div className="flex flex-col gap-2 w-full sm:w-80 mt-2 sm:mt-0">
+              <Label className="text-sm font-medium text-muted-foreground ml-1">Search</Label>
+              <div className="relative">
                 <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                 <Input
                   placeholder="Search staff..."
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
-                  className="pl-9"
+                  className="pl-9 h-10 border-slate-300 dark:border-slate-700 focus-visible:ring-1 focus-visible:ring-slate-400 focus-visible:ring-offset-0"
                 />
               </div>
             </div>

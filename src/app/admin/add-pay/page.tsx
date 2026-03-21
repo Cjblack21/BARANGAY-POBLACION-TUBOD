@@ -75,6 +75,7 @@ export default function AddPayPage() {
   const [editOverloadPayNotes, setEditOverloadPayNotes] = useState("")
 
   const [searchQuery, setSearchQuery] = useState("")
+  const [archivedSearchQuery, setArchivedSearchQuery] = useState("")
 
   const filteredOverloadPays = useMemo(() => {
     if (!searchQuery) return overloadPays
@@ -89,6 +90,20 @@ export default function AddPayPage() {
       )
     })
   }, [overloadPays, searchQuery])
+
+  const filteredArchivedOverloadPays = useMemo(() => {
+    if (!archivedSearchQuery) return archivedOverloadPays
+    const q = archivedSearchQuery.toLowerCase()
+    return archivedOverloadPays.filter(op => {
+      return (
+        op.users.name?.toLowerCase().includes(q) ||
+        op.users.email.toLowerCase().includes(q) ||
+        op.users.personnel_types?.department?.toLowerCase().includes(q) ||
+        op.users.personnel_types?.name?.toLowerCase().includes(q) ||
+        op.notes?.toLowerCase().includes(q)
+      )
+    })
+  }, [archivedOverloadPays, archivedSearchQuery])
 
   const filteredOverloadPersonnel = useMemo(() => {
     if (!overloadEmployeeSearch) return personnel
@@ -424,15 +439,19 @@ export default function AddPayPage() {
             <CardHeader>
               <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                 <CardTitle>Current Additional Pays</CardTitle>
-                <div className="flex items-center gap-2">
-                  <div className="relative w-full sm:w-64">
-                    <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
-                    <Input
-                      placeholder="Search staff..."
-                      value={searchQuery}
-                      onChange={(e) => setSearchQuery(e.target.value)}
-                      className="pl-9"
-                    />
+                <div className="flex items-end gap-2">
+                  <div className="flex flex-col gap-2 w-full sm:w-80">
+                    <Label htmlFor="search-add-pay" className="text-sm font-medium text-muted-foreground ml-1">Search</Label>
+                    <div className="relative w-full">
+                      <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                      <Input
+                        id="search-add-pay"
+                        placeholder="Search staff..."
+                        value={searchQuery}
+                        onChange={(e) => setSearchQuery(e.target.value)}
+                        className="pl-10 h-10 border-slate-300 dark:border-slate-700 focus-visible:ring-1 focus-visible:ring-slate-400 focus-visible:ring-offset-0"
+                      />
+                    </div>
                   </div>
                   {selectedOverloadPays.length > 0 && (
                     <Button
@@ -567,15 +586,32 @@ export default function AddPayPage() {
         <TabsContent value="archived" className="space-y-4">
           <Card>
             <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <Archive className="h-5 w-5 text-muted-foreground" />
-                Archived Additional Pays
-              </CardTitle>
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                <CardTitle className="flex items-center gap-2">
+                  <Archive className="h-5 w-5 text-muted-foreground" />
+                  Archived Additional Pays
+                </CardTitle>
+                <div className="flex items-end gap-2">
+                  <div className="flex flex-col gap-2 w-full sm:w-80">
+                    <Label htmlFor="search-archived-pay" className="text-sm font-medium text-muted-foreground ml-1">Search</Label>
+                    <div className="relative w-full">
+                      <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                      <Input
+                        id="search-archived-pay"
+                        placeholder="Search staff..."
+                        value={archivedSearchQuery}
+                        onChange={(e) => setArchivedSearchQuery(e.target.value)}
+                        className="pl-10 h-10 border-slate-300 dark:border-slate-700 focus-visible:ring-1 focus-visible:ring-slate-400 focus-visible:ring-offset-0"
+                      />
+                    </div>
+                  </div>
+                </div>
+              </div>
             </CardHeader>
             <CardContent>
               {loading ? (
                 <div className="py-6">Loading...</div>
-              ) : archivedOverloadPays.length === 0 ? (
+              ) : filteredArchivedOverloadPays.length === 0 ? (
                 <div className="text-center py-12 text-muted-foreground">
                   <Archive className="h-12 w-12 mx-auto mb-3 opacity-30" />
                   <p>No archived additional pays</p>
@@ -595,7 +631,7 @@ export default function AddPayPage() {
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {archivedOverloadPays.map(op => (
+                    {filteredArchivedOverloadPays.map(op => (
                       <TableRow key={op.overload_pays_id} className="opacity-75">
                         <TableCell>
                           <div>
@@ -614,8 +650,10 @@ export default function AddPayPage() {
                             {op.type || 'OVERTIME'}
                           </span>
                         </TableCell>
-                        <TableCell className="font-semibold text-muted-foreground">
-                          ₱{op.amount.toLocaleString('en-US', { minimumFractionDigits: 2 })}
+                        <TableCell>
+                          <span className="inline-flex items-center rounded-md bg-green-50 px-2.5 py-1 text-sm font-bold text-green-700 ring-1 ring-inset ring-green-600/20 shadow-sm">
+                            +₱{op.amount.toLocaleString('en-US', { minimumFractionDigits: 2 })}
+                          </span>
                         </TableCell>
                         <TableCell className="text-sm text-muted-foreground">{op.notes || '—'}</TableCell>
                         <TableCell className="text-sm text-muted-foreground">
@@ -624,21 +662,20 @@ export default function AddPayPage() {
                         <TableCell className="text-right">
                           <div className="flex items-center justify-end gap-2">
                             <Button
-                              variant="ghost"
                               size="sm"
                               onClick={() => restoreOverloadPay(op.overload_pays_id)}
-                              className="text-green-600 hover:text-green-700 hover:bg-green-50"
+                              className="h-8 px-3 bg-green-600 hover:bg-green-700 text-white gap-1.5 font-medium shadow-sm border-0"
                             >
-                              <RotateCcw className="h-4 w-4 mr-1" />
+                              <RotateCcw className="h-3.5 w-3.5" />
                               Restore
                             </Button>
                             <Button
-                              variant="ghost"
                               size="sm"
                               onClick={() => permanentlyDeleteOverloadPay(op.overload_pays_id)}
-                              className="text-red-600 hover:text-red-700 hover:bg-red-50"
+                              className="h-8 px-3 bg-red-600 hover:bg-red-700 text-white gap-1.5 font-medium shadow-sm border-0"
                             >
-                              <Trash2 className="h-4 w-4" />
+                              <Trash2 className="h-3.5 w-3.5" />
+                              Delete
                             </Button>
                           </div>
                         </TableCell>

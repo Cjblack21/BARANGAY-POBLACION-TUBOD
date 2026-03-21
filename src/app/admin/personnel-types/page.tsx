@@ -8,7 +8,7 @@ import { Label } from "@/components/ui/label"
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { Plus, Edit, Trash2, Eye, UserCheck, Home, Banknote, Landmark, User } from "lucide-react"
+import { Plus, Edit, Trash2, Eye, UserCheck, Home, Banknote, Landmark, User, Search } from "lucide-react"
 import { toast } from "react-hot-toast"
 import { Badge } from "@/components/ui/badge"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
@@ -63,6 +63,7 @@ export default function PersonnelTypesPage() {
     const [deleteOpen, setDeleteOpen] = useState(false)
     const [typeToDelete, setTypeToDelete] = useState<PersonnelType | null>(null)
     const [confirmCreateOpen, setConfirmCreateOpen] = useState(false)
+    const [search, setSearch] = useState("")
 
     const basic = useMemo(() => parseSalary(basicSalaryInput), [basicSalaryInput])
     const semiMonthly = useMemo(() => basic / 2, [basic])
@@ -72,14 +73,21 @@ export default function PersonnelTypesPage() {
     const min = useMemo(() => hourly / 60, [hourly])
     const sec = useMemo(() => min / 60, [min])
 
-    // Filter positions by category
+    // Filter positions by category and search
     const filteredTypes = useMemo(() => {
-        if (categoryFilter === "all") return types
-        return types.filter(t => {
-            if (categoryFilter === "Barangay Staff" && t.department === "Barangay Personnel") return true
-            return t.department === categoryFilter
-        })
-    }, [types, categoryFilter])
+        let result = types
+        if (categoryFilter !== "all") {
+            result = result.filter(t => {
+                if (categoryFilter === "Barangay Staff" && t.department === "Barangay Personnel") return true
+                return t.department === categoryFilter
+            })
+        }
+        if (search.trim()) {
+            const q = search.toLowerCase()
+            result = result.filter(t => t.name.toLowerCase().includes(q))
+        }
+        return result
+    }, [types, categoryFilter, search])
 
     async function load() {
         try {
@@ -458,7 +466,21 @@ export default function PersonnelTypesPage() {
 
             <Card>
                 <CardHeader>
-                    <CardTitle>All Positions</CardTitle>
+                    <div className="flex flex-col md:flex-row items-start md:items-end justify-between gap-4">
+                        <CardTitle>All Positions</CardTitle>
+                        <div className="flex flex-col gap-2 w-full md:w-72 ml-auto">
+                            <Label className="text-sm font-medium text-muted-foreground ml-1">Search</Label>
+                            <div className="relative w-full">
+                                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                                <Input
+                                    placeholder="Search position..."
+                                    value={search}
+                                    onChange={(e) => setSearch(e.target.value)}
+                                    className="pl-10 h-10 border-slate-300 dark:border-slate-700 focus-visible:ring-1 focus-visible:ring-slate-400 focus-visible:ring-offset-0"
+                                />
+                            </div>
+                        </div>
+                    </div>
                 </CardHeader>
                 <CardContent>
                     <Tabs value={categoryFilter} onValueChange={setCategoryFilter} className="w-full">

@@ -10,6 +10,7 @@ import { Avatar, AvatarFallback } from "@/components/ui/avatar"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Badge } from "@/components/ui/badge"
 import { Separator } from "@/components/ui/separator"
+import { Label } from "@/components/ui/label"
 import {
     Search,
     Plus,
@@ -602,16 +603,19 @@ export default function PersonalDeductionsPage() {
             <Card className="border shadow-sm overflow-hidden">
                 <CardHeader className="p-4 border-b bg-muted/40">
                     <div className="flex flex-col gap-4">
-                        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+                        <div className="flex flex-col md:flex-row md:items-end justify-between gap-4">
                             <div className="flex items-center gap-3">
                                 <div className="p-2 bg-primary/10 rounded-lg">
                                     <DeductionIcon className="h-5 w-5 text-primary" />
                                 </div>
-                                <CardTitle className="text-xl">{activeTab === "active" ? "Active Deductions" : "Archived Deductions"}</CardTitle>
+                                <CardTitle className="text-xl mb-1">{activeTab === "active" ? "Active Deductions" : "Archived Deductions"}</CardTitle>
                             </div>
-                            <div className="relative w-full md:w-80">
-                                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                                <Input placeholder="Search by name, purpose..." value={search} onChange={e => setSearch(e.target.value)} className="pl-10" />
+                            <div className="flex flex-col gap-2 w-full md:w-96">
+                                <Label className="text-sm font-medium text-muted-foreground ml-1">Search</Label>
+                                <div className="relative w-full">
+                                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                                    <Input placeholder="Search by name, purpose..." value={search} onChange={e => setSearch(e.target.value)} className="pl-10 h-10 border-slate-300 dark:border-slate-700 focus-visible:ring-1 focus-visible:ring-slate-400 focus-visible:ring-offset-0" />
+                                </div>
                             </div>
                         </div>
                         {selectedIds.length > 0 && (

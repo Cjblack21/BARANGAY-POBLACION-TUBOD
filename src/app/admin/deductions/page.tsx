@@ -483,24 +483,29 @@ export default function DeductionsPage() {
       <Card className="shadow-sm">
         <CardHeader className="border-b bg-muted/30 px-5 py-4">
           <div className="flex flex-col gap-3">
-            <div className="flex items-center justify-between">
+            <div className="flex items-end justify-between gap-3">
               <CardTitle className="flex items-center gap-2 text-base font-semibold">
                 <BadgeMinus className="h-4 w-4 text-blue-600" />Mandatory Deductions
               </CardTitle>
-              {selectedMandatoryTypesForDelete.length > 0 && (
-                <Button variant="destructive" size="sm" onClick={promptDeleteMandatory} className="h-8 gap-1 text-xs">
-                  <Trash2 className="h-3 w-3" />Delete Selected ({selectedMandatoryTypesForDelete.length})
-                </Button>
-              )}
-            </div>
-            <div className="relative w-full sm:max-w-xs">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-              <Input
-                placeholder="Search mandatory deductions..."
-                value={mandatorySearch}
-                onChange={e => setMandatorySearch(e.target.value)}
-                className="pl-9 h-9 text-sm"
-              />
+              <div className="flex items-end gap-3">
+                {selectedMandatoryTypesForDelete.length > 0 && (
+                  <Button variant="destructive" size="sm" onClick={promptDeleteMandatory} className="h-8 gap-1 text-xs mb-0.5">
+                    <Trash2 className="h-3 w-3" />Delete Selected ({selectedMandatoryTypesForDelete.length})
+                  </Button>
+                )}
+                <div className="flex flex-col gap-1.5">
+                  <Label className="text-xs">Search</Label>
+                  <div className="relative w-full sm:w-56">
+                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                    <Input
+                      placeholder="Search mandatory deductions..."
+                      value={mandatorySearch}
+                      onChange={e => setMandatorySearch(e.target.value)}
+                      className="pl-9 h-9 text-sm border-slate-300 dark:border-slate-700 focus-visible:ring-1 focus-visible:ring-slate-400 focus-visible:ring-offset-0"
+                    />
+                  </div>
+                </div>
+              </div>
             </div>
           </div>
         </CardHeader>
@@ -539,15 +544,14 @@ export default function DeductionsPage() {
                         {t.calculationType === 'PERCENTAGE' ? `${t.percentageValue || 0}%` : `₱${t.amount.toLocaleString()}`}
                       </TableCell>
                       <TableCell className="text-right">
-                        <DropdownMenu>
-                          <DropdownMenuTrigger asChild>
-                            <Button variant="ghost" className="h-8 w-8 p-0 text-muted-foreground">⋯</Button>
-                          </DropdownMenuTrigger>
-                          <DropdownMenuContent align="end">
-                            <DropdownMenuItem onClick={() => openEdit(t)} className="gap-2"><Pencil className="h-3 w-3" />Edit</DropdownMenuItem>
-                            <DropdownMenuItem className="text-destructive gap-2" onClick={() => promptDeleteType(t.deduction_types_id)}><Trash2 className="h-3 w-3" />Delete</DropdownMenuItem>
-                          </DropdownMenuContent>
-                        </DropdownMenu>
+                        <div className="flex items-center justify-end gap-2">
+                          <Button size="sm" onClick={() => openEdit(t)} className="h-8 px-3 bg-blue-600 hover:bg-blue-700 text-white dark:bg-blue-600 dark:hover:bg-blue-700 gap-1.5 font-medium shadow-sm transition-colors border-0">
+                            <Pencil className="h-3.5 w-3.5" />Edit
+                          </Button>
+                          <Button size="sm" onClick={() => promptDeleteType(t.deduction_types_id)} className="h-8 px-3 bg-red-600 hover:bg-red-700 text-white dark:bg-red-600 dark:hover:bg-red-700 gap-1.5 font-medium shadow-sm transition-colors border-0">
+                            <Trash2 className="h-3.5 w-3.5" />Delete
+                          </Button>
+                        </div>
                       </TableCell>
                     </TableRow>
                   ))}
@@ -564,28 +568,31 @@ export default function DeductionsPage() {
       {/* ── Current Deductions Table ── */}
       <Card className="shadow-sm">
         <CardHeader className="border-b bg-muted/30 px-5 py-4">
-          <div className="flex flex-col gap-3">
-            <div className="flex items-center justify-between">
+          <div className="flex items-end justify-between gap-3">
               <CardTitle className="flex items-center gap-2 text-base font-semibold">
                 <BadgeMinus className="h-4 w-4 text-green-600" />Current Deductions
                 <Badge variant="secondary" className="ml-1">{deductions.length}</Badge>
               </CardTitle>
-              {selectedDeductions.length > 0 && (
-                <Button variant="destructive" size="sm" onClick={promptDeleteDeductions} className="h-8 gap-1 text-xs">
-                  <Trash2 className="h-3 w-3" />Delete Selected ({selectedDeductions.length})
-                </Button>
-              )}
+              <div className="flex items-end gap-3">
+                {selectedDeductions.length > 0 && (
+                  <Button variant="destructive" size="sm" onClick={promptDeleteDeductions} className="h-8 gap-1 text-xs mb-0.5">
+                    <Trash2 className="h-3 w-3" />Delete Selected ({selectedDeductions.length})
+                  </Button>
+                )}
+                <div className="flex flex-col gap-1.5">
+                  <Label className="text-xs">Search</Label>
+                  <div className="relative w-full sm:w-56">
+                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                    <Input
+                      placeholder="Search by staff, deduction..."
+                      value={currentDeductionSearch}
+                      onChange={e => setCurrentDeductionSearch(e.target.value)}
+                      className="pl-9 h-9 text-sm border-slate-300 dark:border-slate-700 focus-visible:ring-1 focus-visible:ring-slate-400 focus-visible:ring-offset-0"
+                    />
+                  </div>
+                </div>
+              </div>
             </div>
-            <div className="relative w-full sm:max-w-xs">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-              <Input
-                placeholder="Search by staff, deduction..."
-                value={currentDeductionSearch}
-                onChange={e => setCurrentDeductionSearch(e.target.value)}
-                className="pl-9 h-9 text-sm"
-              />
-            </div>
-          </div>
         </CardHeader>
         <CardContent className="p-0">
           {loading ? (
@@ -635,14 +642,11 @@ export default function DeductionsPage() {
                       <TableCell className="text-sm text-muted-foreground">{d.notes || '—'}</TableCell>
                       <TableCell className="text-sm text-muted-foreground">{new Date(d.createdAt).toLocaleDateString()}</TableCell>
                       <TableCell className="text-right">
-                        <DropdownMenu>
-                          <DropdownMenuTrigger asChild>
-                            <Button variant="ghost" className="h-8 w-8 p-0 text-muted-foreground">⋯</Button>
-                          </DropdownMenuTrigger>
-                          <DropdownMenuContent align="end">
-                            <DropdownMenuItem className="text-destructive gap-2" onClick={() => promptDeleteDeduction(d.deductions_id)}><Trash2 className="h-3 w-3" />Remove</DropdownMenuItem>
-                          </DropdownMenuContent>
-                        </DropdownMenu>
+                        <div className="flex items-center justify-end">
+                          <Button size="sm" onClick={() => promptDeleteDeduction(d.deductions_id)} className="h-8 px-3 bg-red-600 hover:bg-red-700 text-white dark:bg-red-600 dark:hover:bg-red-700 gap-1.5 font-medium shadow-sm transition-colors border-0">
+                            <Trash2 className="h-3.5 w-3.5" />Remove
+                          </Button>
+                        </div>
                       </TableCell>
                     </TableRow>
                   ))}
