@@ -1184,7 +1184,7 @@ export function UserManagement() {
                         </div>
                       </TableCell>
                       <TableCell>
-                        {new Date(person.createdAt).toLocaleDateString('en-GB', { day: '2-digit', month: '2-digit', year: 'numeric' })}
+                        {new Date(person.createdAt).toLocaleDateString('en-GB', { day: '2-digit', month: 'long', year: 'numeric' })}
                       </TableCell>
                       <TableCell className="text-right">
                         <DropdownMenu>

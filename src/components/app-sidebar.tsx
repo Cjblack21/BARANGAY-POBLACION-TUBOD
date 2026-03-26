@@ -104,7 +104,7 @@ export function AppSidebar({ user, ...props }: AppSidebarProps) {
                 <span className="font-bold text-[16px] whitespace-nowrap tracking-tight">BRGY POBLACION</span>
                 <div className="flex items-center gap-1.5">
                   <span className="text-xs font-medium text-white/70 whitespace-nowrap tracking-wide">PMS SYSTEM</span>
-                  <span className="text-[10px] font-medium text-white/40">v1.4.5</span>
+                  <span className="text-[10px] font-medium text-white/40">v1.5.6</span>
                 </div>
               </div>
             </div>
@@ -208,7 +208,7 @@ export function AppSidebar({ user, ...props }: AppSidebarProps) {
 
         {/* User Management */}
         <SidebarGroup>
-          <SidebarGroupLabel className="text-sm font-semibold text-sidebar-foreground/80">Staff Management</SidebarGroupLabel>
+          <SidebarGroupLabel className="text-sm font-semibold text-sidebar-foreground/80">Officials & Staff Management</SidebarGroupLabel>
           <SidebarGroupContent className="w-full min-w-0">
             <SidebarMenu>
               <SidebarMenuItem>

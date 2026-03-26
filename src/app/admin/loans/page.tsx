@@ -321,7 +321,7 @@ export default function LoansPage() {
     }
 
     return items.filter(i => {
-      const dateStr = format(new Date(i.createdAt), 'MMM dd, yyyy').toLowerCase()
+      const dateStr = format(new Date(i.createdAt), 'MMMM dd, yyyy').toLowerCase()
       return (
         statusFilter(i) &&
         ((i.userName || '').toLowerCase().includes(q) ||
@@ -334,7 +334,7 @@ export default function LoansPage() {
   const filteredArchived = useMemo(() => {
     const q = search.toLowerCase()
     return archivedItems.filter(i => {
-      const dateStr = format(new Date(i.createdAt), 'MMM dd, yyyy').toLowerCase()
+      const dateStr = format(new Date(i.createdAt), 'MMMM dd, yyyy').toLowerCase()
       return (
         (i.userName || '').toLowerCase().includes(q) ||
         i.userEmail.toLowerCase().includes(q) ||
@@ -982,7 +982,7 @@ export default function LoansPage() {
                           </p>
                         </TableCell>
                         <TableCell>
-                          <p className="text-sm">{format(new Date(item.createdAt), 'MMM dd, yyyy')}</p>
+                          <p className="text-sm">{format(new Date(item.createdAt), 'MMMM dd, yyyy')}</p>
                           <p className="text-xs text-muted-foreground">{format(new Date(item.createdAt), 'h:mm a')}</p>
                         </TableCell>
                         <TableCell className="text-center">
@@ -1042,7 +1042,7 @@ export default function LoansPage() {
                           <FileText className="h-3 w-3" />
                           <span className="font-medium text-foreground/80">{item.purpose}</span>
                           <span>•</span>
-                          <span>{format(new Date(item.createdAt), 'MMM dd, yyyy')}</span>
+                          <span>{format(new Date(item.createdAt), 'MMMM dd, yyyy')}</span>
                         </div>
                         {/* Show Approval Buttons for Pending Loans */}
                         {item.status === 'PENDING' && (
@@ -1242,7 +1242,7 @@ export default function LoansPage() {
                   </div>
                   <div>
                     <p className="text-sm text-muted-foreground">Request Date</p>
-                    <p className="font-medium">{format(new Date(selectedLoan.createdAt), 'MMM dd, yyyy')}</p>
+                    <p className="font-medium">{format(new Date(selectedLoan.createdAt), 'MMMM dd, yyyy')}</p>
                   </div>
                   <div>
                     <p className="text-sm text-muted-foreground">Term</p>

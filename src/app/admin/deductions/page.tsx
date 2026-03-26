@@ -640,7 +640,7 @@ export default function DeductionsPage() {
                         )}
                       </TableCell>
                       <TableCell className="text-sm text-muted-foreground">{d.notes || '—'}</TableCell>
-                      <TableCell className="text-sm text-muted-foreground">{new Date(d.createdAt).toLocaleDateString()}</TableCell>
+                      <TableCell className="text-sm text-muted-foreground">{new Date(d.createdAt).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })}</TableCell>
                       <TableCell className="text-right">
                         <div className="flex items-center justify-end">
                           <Button size="sm" onClick={() => promptDeleteDeduction(d.deductions_id)} className="h-8 px-3 bg-red-600 hover:bg-red-700 text-white dark:bg-red-600 dark:hover:bg-red-700 gap-1.5 font-medium shadow-sm transition-colors border-0">

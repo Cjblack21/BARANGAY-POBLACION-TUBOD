@@ -528,7 +528,7 @@ export default function PersonnelTypesPage() {
                                                         </Badge>
                                                     </TableCell>
                                                     <TableCell>
-                                                        {new Date(t.createdAt).toLocaleDateString()}
+                                                        {new Date(t.createdAt).toLocaleDateString('en-GB', { day: '2-digit', month: 'long', year: 'numeric' })}
                                                     </TableCell>
                                                     <TableCell className="text-right">
                                                         <SSRSafe>

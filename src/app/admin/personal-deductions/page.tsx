@@ -667,7 +667,7 @@ export default function PersonalDeductionsPage() {
                                                 <FileText className="h-3 w-3 shrink-0" />
                                                 <span className="font-medium text-foreground/80 truncate">{item.purpose?.replace("[DEDUCTION] ", "")}</span>
                                                 <span>•</span>
-                                                <span className="shrink-0">{format(new Date(item.createdAt), "MMM dd, yyyy")}</span>
+                                                <span className="shrink-0">{format(new Date(item.createdAt), "MMMM dd, yyyy")}</span>
                                             </div>
                                             {activeTab === "active" && (
                                                 <div className="flex gap-2 mt-1.5">
@@ -743,7 +743,7 @@ export default function PersonalDeductionsPage() {
                                     { label: "Monthly Payment %", value: `${selectedItem.monthlyPaymentPercent}%` },
                                     { label: "Term", value: `${selectedItem.termMonths} months` },
                                     { label: "Per Payroll", value: `₱${((selectedItem.amount * selectedItem.monthlyPaymentPercent) / 100).toLocaleString()}` },
-                                    { label: "Created At", value: format(new Date(selectedItem.createdAt), "MMM dd, yyyy") },
+                                    { label: "Created At", value: format(new Date(selectedItem.createdAt), "MMMM dd, yyyy") },
                                 ].map(({ label, value }) => (
                                     <div key={label} className="p-2 bg-muted/30 rounded">
                                         <p className="text-xs text-muted-foreground">{label}</p>

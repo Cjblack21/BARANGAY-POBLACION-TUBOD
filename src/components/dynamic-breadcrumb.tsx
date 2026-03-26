@@ -16,7 +16,7 @@ export function DynamicBreadcrumb() {
       '/admin/deductions': 'Mandatory Deductions',
       '/admin/add-pay': 'Add Pay',
       '/admin/users': 'Personnel',
-      '/admin/user-management': 'Staff Management',
+      '/admin/user-management': 'Officials & Staff Management',
       '/admin/personnel-types': 'Brgy Position',
       '/admin/loans': 'Loan Management',
       '/admin/personal-deductions': 'Custom Staff Deduction',

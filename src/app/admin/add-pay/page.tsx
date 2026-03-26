@@ -553,7 +553,7 @@ export default function AddPayPage() {
                             {op.notes || '—'}
                           </TableCell>
                           <TableCell className="text-sm text-muted-foreground">
-                            {new Date(op.appliedAt).toLocaleDateString()}
+                            {new Date(op.appliedAt).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })}
                           </TableCell>
                           <TableCell className="text-right">
                             <div className="flex items-center justify-end gap-2">
@@ -657,7 +657,7 @@ export default function AddPayPage() {
                         </TableCell>
                         <TableCell className="text-sm text-muted-foreground">{op.notes || '—'}</TableCell>
                         <TableCell className="text-sm text-muted-foreground">
-                          {new Date(op.appliedAt).toLocaleDateString()}
+                          {new Date(op.appliedAt).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })}
                         </TableCell>
                         <TableCell className="text-right">
                           <div className="flex items-center justify-end gap-2">
