@@ -21,6 +21,8 @@ import {
   Plus,
   BarChart3,
   ClipboardMinus,
+  Landmark,
+  User,
 } from "lucide-react"
 
 import { NavUser } from "@/components/nav-user"
@@ -211,9 +213,12 @@ export function AppSidebar({ user, ...props }: AppSidebarProps) {
             <SidebarMenu>
               <SidebarMenuItem>
                 <SidebarMenuButton asChild className="h-10 font-medium [&>svg]:size-[18px]" onClick={() => setOpenMobile(false)}>
-                  <Link href="/admin/user-management">
-                    <Users />
-                    <span>Brgy Staff</span>
+                  <Link href="/admin/user-management" className="flex items-center gap-2">
+                    <span className="flex items-center">
+                      <Landmark className="h-[18px] w-[18px]" />
+                      <User className="h-3.5 w-3.5 -ml-1.5" />
+                    </span>
+                    <span>Brgy Staff & Officials</span>
                   </Link>
                 </SidebarMenuButton>
               </SidebarMenuItem>

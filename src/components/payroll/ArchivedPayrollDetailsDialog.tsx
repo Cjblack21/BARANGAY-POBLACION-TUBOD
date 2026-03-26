@@ -37,7 +37,7 @@ export default function ArchivedPayrollDetailsDialog({
 
     const periodStart = formatDateForDisplay(new Date(period.periodStart))
     const periodEnd = formatDateForDisplay(new Date(period.periodEnd))
-    const logoUrl = '/BRGY PICTURE LOG TUBOD.png'
+    const logoUrl = window.location.origin + '/BRGY PICTURE LOG TUBOD.png'
 
     // Use live data if available
     const overloadPayDetails = liveData?.overloadPayDetails || []
@@ -133,7 +133,7 @@ export default function ArchivedPayrollDetailsDialog({
       const rows: string[] = []
 
       if (resolvedAttendance.length > 0) {
-        rows.push(`<tr><td class="td" colspan="2" style="font-weight:700;font-size:13px;color:#ea580c;background:#fff7ed;padding:8px 10px;letter-spacing:0.5px">Attendance Deductions:</td></tr>`)
+        rows.push(`<tr><td class="td" colspan="2" style="font-weight:700;font-size:13px;color:#111827;background:#f9fafb;padding:8px 10px;letter-spacing:0.5px">Attendance Deductions:</td></tr>`)
         resolvedAttendance.forEach((d: any) => {
           const dateStr = d.appliedAt
             ? new Date(d.appliedAt).toLocaleDateString('en-PH', { month: 'long', day: 'numeric', year: 'numeric' })
@@ -165,14 +165,14 @@ export default function ArchivedPayrollDetailsDialog({
       }
 
       if (mandatory.length > 0) {
-        rows.push(`<tr><td class="td" colspan="2" style="font-weight:700;font-size:13px;color:#7c3aed;background:#f5f3ff;padding:8px 10px;letter-spacing:0.5px">MANDATORY DEDUCTIONS</td></tr>`)
+        rows.push(`<tr><td class="td" colspan="2" style="font-weight:700;font-size:13px;color:#111827;background:#f9fafb;padding:8px 10px;letter-spacing:0.5px">MANDATORY DEDUCTIONS</td></tr>`)
         mandatory.forEach((d: any) => {
           rows.push(`<tr><td class="td">${String(d.type || 'Mandatory')}</td><td class="td right" style="color:#dc2626">-${formatCurrencyPrint(Number(d.amount || 0))}</td></tr>`)
         })
       }
 
       if (actualLoans.length > 0) {
-        rows.push(`<tr><td class="td" colspan="2" style="font-weight:700;font-size:13px;color:#0369a1;background:#f0f9ff;padding:8px 10px;letter-spacing:0.5px">LOANS</td></tr>`)
+        rows.push(`<tr><td class="td" colspan="2" style="font-weight:700;font-size:13px;color:#111827;background:#f9fafb;padding:8px 10px;letter-spacing:0.5px">LOANS</td></tr>`)
         actualLoans.forEach((l: any) => {
           rows.push(`<tr><td class="td">Loan: ${String(l.type || 'Loan')}</td><td class="td right" style="color:#dc2626">-${formatCurrencyPrint(Number(l.amount || 0))}</td></tr>`)
         })
@@ -184,7 +184,7 @@ export default function ArchivedPayrollDetailsDialog({
       })
 
       if (other.length > 0) {
-        rows.push(`<tr><td class="td" colspan="2" style="font-weight:700;font-size:13px;color:#374151;background:#f9fafb;padding:8px 10px;letter-spacing:0.5px">OTHER DEDUCTIONS</td></tr>`)
+        rows.push(`<tr><td class="td" colspan="2" style="font-weight:700;font-size:13px;color:#111827;background:#f9fafb;padding:8px 10px;letter-spacing:0.5px">OTHER DEDUCTIONS</td></tr>`)
         other.forEach((d: any) => {
           rows.push(`<tr><td class="td">${String(d.type || 'Other')}</td><td class="td right" style="color:#dc2626">-${formatCurrencyPrint(Number(d.amount || 0))}</td></tr>`)
         })
@@ -227,7 +227,7 @@ export default function ArchivedPayrollDetailsDialog({
           <div class="header">
             <img class="logo" src="${logoUrl}" alt="Logo" />
             <div>
-              <div class="title">Payslip</div>
+              <div class="title">Payslip (Honorarium)</div>
               <div class="subtitle">Barangay Payroll Management System</div>
               <div class="meta"><b>${entry.user?.name || 'N/A'}</b>${entry.user?.personnelType?.name ? ` • ${entry.user.personnelType.name}` : ''}${entry.user?.personnelType?.department ? ` • ${entry.user.personnelType.department}` : ''}</div>
               <div class="meta">Period: <b>${periodStart}</b> - <b>${periodEnd}</b> &nbsp; | &nbsp; Staff ID: <b>${entry.users_id || ''}</b></div>

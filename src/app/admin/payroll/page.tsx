@@ -162,6 +162,8 @@ export default function PayrollPage() {
   const [personnelSearchTerm, setPersonnelSearchTerm] = useState('')
   const [periodSearchTerm, setPeriodSearchTerm] = useState('')
   const [archivedBreakdownSearchTerm, setArchivedBreakdownSearchTerm] = useState('')
+  const [showPeriodBreakdown, setShowPeriodBreakdown] = useState(false)
+  const [selectedPeriodBreakdownFilter, setSelectedPeriodBreakdownFilter] = useState<string | null>(null)
   const [newArchivedPayrollId, setNewArchivedPayrollId] = useState<string | null>(null)
   const [showArchiveNotification, setShowArchiveNotification] = useState(false)
   const [hasViewedNewestPayroll, setHasViewedNewestPayroll] = useState(false)
@@ -1955,13 +1957,13 @@ html, body { margin: 0 !important; padding: 0 !important; overflow: hidden !impo
 
       {/* Release Countdown Timer — per BLGU group */}
       {currentPeriod && currentPeriod.status !== 'Released' && hasGeneratedForSettings && (officialsGenerated || staffGenerated) && (
-        <div className="space-y-4">
-          {/* Officials row */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          {/* Officials card */}
           {officialsGenerated && (
-            <div className={`flex items-center justify-between rounded-2xl border-2 px-8 py-6 shadow-sm ${canReleaseOfficials ? 'border-green-300 bg-green-50 dark:bg-green-950/20 dark:border-green-800' : 'border-blue-200 dark:border-blue-900 bg-blue-50/50 dark:bg-blue-950/10'}`}>
+            <div className={`flex items-center justify-between rounded-2xl border-2 px-8 py-6 shadow-sm ${canReleaseOfficials ? 'border-green-300 bg-green-50 dark:bg-green-950/20 dark:border-green-800' : 'border-border bg-muted/30 dark:bg-muted/10'}`}>
               <div className="flex items-center gap-5">
-                <div className={`h-16 w-16 rounded-2xl flex items-center justify-center flex-shrink-0 ${canReleaseOfficials ? 'bg-green-100 dark:bg-green-900' : 'bg-blue-100 dark:bg-blue-900'}`}>
-                  <Landmark className={`h-8 w-8 ${canReleaseOfficials ? 'text-green-600 dark:text-green-300' : 'text-blue-600 dark:text-blue-300'}`} />
+                <div className={`h-16 w-16 rounded-2xl flex items-center justify-center flex-shrink-0 ${canReleaseOfficials ? 'bg-green-100 dark:bg-green-900' : 'bg-blue-100 dark:bg-blue-900/40'}`}>
+                  <Landmark className={`h-8 w-8 ${canReleaseOfficials ? 'text-green-600 dark:text-green-300' : 'text-blue-600 dark:text-blue-400'}`} />
                 </div>
                 <div>
                   <p className="font-bold text-foreground text-xl">Barangay Officials</p>
@@ -1987,12 +1989,12 @@ html, body { margin: 0 !important; padding: 0 !important; overflow: hidden !impo
             </div>
           )}
 
-          {/* Staff row */}
+          {/* Staff card */}
           {staffGenerated && (
-            <div className={`flex items-center justify-between rounded-2xl border-2 px-8 py-6 shadow-sm ${canReleaseStaff ? 'border-green-300 bg-green-50 dark:bg-green-950/20 dark:border-green-800' : 'border-amber-200 dark:border-amber-900 bg-amber-50/50 dark:bg-amber-950/10'}`}>
+            <div className={`flex items-center justify-between rounded-2xl border-2 px-8 py-6 shadow-sm ${canReleaseStaff ? 'border-green-300 bg-green-50 dark:bg-green-950/20 dark:border-green-800' : 'border-border bg-muted/30 dark:bg-muted/10'}`}>
               <div className="flex items-center gap-5">
-                <div className={`h-16 w-16 rounded-2xl flex items-center justify-center flex-shrink-0 ${canReleaseStaff ? 'bg-green-100 dark:bg-green-900' : 'bg-amber-100 dark:bg-amber-900'}`}>
-                  <User className={`h-8 w-8 ${canReleaseStaff ? 'text-green-600 dark:text-green-300' : 'text-amber-600 dark:text-amber-300'}`} />
+                <div className={`h-16 w-16 rounded-2xl flex items-center justify-center flex-shrink-0 ${canReleaseStaff ? 'bg-green-100 dark:bg-green-900' : 'bg-amber-100 dark:bg-amber-900/40'}`}>
+                  <User className={`h-8 w-8 ${canReleaseStaff ? 'text-green-600 dark:text-green-300' : 'text-amber-600 dark:text-amber-400'}`} />
                 </div>
                 <div>
                   <p className="font-bold text-foreground text-xl">Barangay Staff</p>
@@ -2022,14 +2024,14 @@ html, body { margin: 0 !important; padding: 0 !important; overflow: hidden !impo
 
       {/* Release Ready Banner */}
       {canRelease && currentPeriod && currentPeriod.status !== 'Released' && (
-        <div className="flex flex-col md:flex-row items-center justify-between rounded-xl border border-blue-200 dark:border-blue-900 bg-blue-50 dark:bg-blue-950/20 px-6 py-5 shadow-sm">
+        <div className="flex flex-col md:flex-row items-center justify-between rounded-xl border border-border bg-muted/30 px-6 py-5 shadow-sm">
           <div className="flex items-center gap-4 mb-4 md:mb-0">
-            <div className="bg-blue-100 dark:bg-blue-900/50 p-3 rounded-full">
-              <CheckCircle2 className="h-7 w-7 text-blue-600 dark:text-blue-400 flex-shrink-0" />
+            <div className="bg-muted/60 p-3 rounded-full">
+              <CheckCircle2 className="h-7 w-7 text-foreground flex-shrink-0" />
             </div>
             <div>
               <p className="text-xl font-bold text-foreground">Ready to Release</p>
-              <p className="text-base text-blue-700 dark:text-blue-400 mt-0.5">Payroll period has ended — you can now release</p>
+              <p className="text-base text-muted-foreground mt-0.5">Payroll period has ended — you can now release</p>
             </div>
           </div>
           <Button
@@ -2577,7 +2579,13 @@ html, body { margin: 0 !important; padding: 0 !important; overflow: hidden !impo
                       className="pl-9 h-9 bg-muted/50"
                     />
                   </div>
-                  <Dialog>
+                  <Dialog onOpenChange={(open) => {
+                    if (!open) {
+                      setSelectedPeriodBreakdownFilter(null)
+                      setPersonnelSearchTerm('')
+                      setSelectedPersonnelForPeriods(null)
+                    }
+                  }}>
                     <DialogTrigger asChild>
                       <Button disabled={archivedPayrolls.length === 0} className="h-9 gap-2 font-semibold bg-green-600 hover:bg-green-700 text-white">
                         <FileText className="h-4 w-4" />
@@ -2586,29 +2594,26 @@ html, body { margin: 0 !important; padding: 0 !important; overflow: hidden !impo
                     </DialogTrigger>
                     <DialogContent className="!max-w-none w-[98vw] h-[95vh] !max-h-none overflow-hidden flex flex-col" style={{ maxWidth: '98vw', width: '98vw', height: '95vh', maxHeight: '95vh' }}>
                       <DialogHeader className="border-b pb-4">
-                        <DialogTitle className="text-xl font-semibold">View Payroll for Staff</DialogTitle>
+                        <DialogTitle className="text-xl font-semibold flex items-center gap-3">
+                          {/* Combined Officials + Staff icon */}
+                          <div className="relative flex-shrink-0">
+                            <div className="h-8 w-8 rounded-full bg-blue-100 dark:bg-blue-900/30 flex items-center justify-center">
+                              <Landmark className="h-4 w-4 text-blue-600 dark:text-blue-400" />
+                            </div>
+                            <div className="absolute -bottom-1 -right-1 h-5 w-5 rounded-full bg-amber-100 dark:bg-amber-900/30 flex items-center justify-center border-2 border-background">
+                              <User className="h-2.5 w-2.5 text-amber-600 dark:text-amber-400" />
+                            </div>
+                          </div>
+                          View Payroll for Staff &amp; Officials
+                        </DialogTitle>
                         <DialogDescription>
-                          Select a staff member, then choose a payroll period to view their payroll details
+                          Select a staff member or official, then choose a payroll period to view their payroll details
                         </DialogDescription>
                       </DialogHeader>
                       <div className="grid grid-cols-2 gap-6 flex-1 overflow-hidden p-4">
                         {/* Left: Personnel List */}
                         <div className="border-r pr-4">
-                          <div className="flex items-center gap-2 mb-4">
-                            <Users className="h-4 w-4 text-muted-foreground" />
-                            <h3 className="font-semibold text-sm text-muted-foreground uppercase">Select Staff</h3>
-                          </div>
 
-                          {/* Search Bar */}
-                          <div className="relative mb-4">
-                            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                            <Input
-                              placeholder="Search staff..."
-                              className="pl-9 h-9 bg-muted/50"
-                              value={personnelSearchTerm}
-                              onChange={(e) => setPersonnelSearchTerm(e.target.value)}
-                            />
-                          </div>
 
                           {/* Grand Total Card */}
                           {(() => {
@@ -2620,25 +2625,125 @@ html, body { margin: 0 !important; padding: 0 !important; overflow: hidden !impo
                             }, 0)
 
                             return (
-                              <div className="mb-4 p-4 bg-green-50 dark:bg-green-950/20 border border-green-200 dark:border-green-800 rounded-md">
-                                <div className="flex items-center justify-between">
+                              <div className="mb-4 bg-muted/40 border border-border rounded-md overflow-hidden">
+                                <div className="flex items-center justify-between p-4">
                                   <div>
-                                    <p className="text-xs font-semibold text-green-700 dark:text-green-400 uppercase">Grand Total</p>
+                                    <p className="text-xs font-semibold text-foreground uppercase">Grand Total</p>
                                     <p className="text-xs text-muted-foreground mt-0.5">{archivedPayrolls.length} periods</p>
                                   </div>
                                   <div className="text-right">
-                                    <p className="text-2xl font-bold text-green-700 dark:text-green-400">{formatCurrency(grandTotal)}</p>
+                                    <p className="text-2xl font-bold text-green-600 dark:text-green-400">{formatCurrency(grandTotal)}</p>
                                   </div>
                                 </div>
+                                {/* Period-by-period breakdown - collapsible */}
+                                {archivedPayrolls.length > 0 && (
+                                  <div className="border-t border-border">
+                                    {/* Clickable header to toggle */}
+                                    <button
+                                      type="button"
+                                      onClick={() => setShowPeriodBreakdown(prev => !prev)}
+                                      className="w-full flex items-center justify-between px-4 py-3 hover:bg-muted/60 transition-colors"
+                                    >
+                                      <p className="text-xs font-bold text-muted-foreground uppercase tracking-wider">Period Breakdown</p>
+                                      <svg
+                                        className={`h-4 w-4 text-muted-foreground transition-transform duration-200 ${showPeriodBreakdown ? 'rotate-180' : ''}`}
+                                        fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}
+                                      >
+                                        <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
+                                      </svg>
+                                    </button>
+                                    {showPeriodBreakdown && (
+                                    <>
+                                    {/* Search bar for periods */}
+                                    <div className="relative px-3 pb-2">
+                                      <Search className="absolute left-6 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                                      <input
+                                        type="text"
+                                        placeholder="Search period..."
+                                        value={archivedBreakdownSearchTerm}
+                                        onChange={(e) => setArchivedBreakdownSearchTerm(e.target.value)}
+                                        className="w-full pl-9 pr-3 py-2.5 text-sm rounded-md border border-border bg-background text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring"
+                                      />
+                                    </div>
+                                    <div className="max-h-56 overflow-y-auto">
+                                      {archivedPayrolls
+                                        .filter((payroll: any) => {
+                                          if (!archivedBreakdownSearchTerm) return true
+                                          const s = archivedBreakdownSearchTerm.toLowerCase()
+                                          const start = formatDateForDisplay(new Date(payroll.periodStart)).toLowerCase()
+                                          const end = formatDateForDisplay(new Date(payroll.periodEnd)).toLowerCase()
+                                          return start.includes(s) || end.includes(s)
+                                        })
+                                        .map((payroll: any, idx: number) => {
+                                          const periodTotal = payroll.payrolls?.reduce((sum: number, person: any) =>
+                                            sum + Number(person.netPay || 0), 0
+                                          ) || 0
+                                          const staffCount = payroll.payrolls?.length || 0
+                                          return (
+                                            <div 
+                                              key={payroll.id} 
+                                              onClick={() => {
+                                                if (selectedPeriodBreakdownFilter === payroll.id) {
+                                                  setSelectedPeriodBreakdownFilter(null);
+                                                } else {
+                                                  setSelectedPeriodBreakdownFilter(payroll.id);
+                                                  setSelectedPersonnelForPeriods(null);
+                                                }
+                                              }}
+                                              className={`flex items-center justify-between px-4 py-3 border-b border-border/50 last:border-b-0 transition-colors cursor-pointer ${
+                                                selectedPeriodBreakdownFilter === payroll.id ? 'bg-muted/80 border-l-4 border-l-primary/60' : 'hover:bg-muted/50 border-l-4 border-l-transparent'
+                                              }`}
+                                            >
+                                              <div className="flex items-center gap-3 min-w-0">
+                                                <span className="text-xs font-bold text-muted-foreground shrink-0">#{idx + 1}</span>
+                                                <div className="min-w-0">
+                                                  <p className="text-sm font-semibold text-foreground truncate">
+                                                    {formatDateForDisplay(new Date(payroll.periodStart))} – {formatDateForDisplay(new Date(payroll.periodEnd))}
+                                                  </p>
+                                                  <p className="text-xs text-muted-foreground mt-0.5">{staffCount} staff distributed</p>
+                                                </div>
+                                              </div>
+                                              <span className="text-sm font-bold text-green-600 dark:text-green-400 shrink-0 ml-2">{formatCurrency(periodTotal)}</span>
+                                            </div>
+                                          )
+                                        })}
+                                      {archivedPayrolls.filter((payroll: any) => {
+                                        if (!archivedBreakdownSearchTerm) return true
+                                        const s = archivedBreakdownSearchTerm.toLowerCase()
+                                        const start = formatDateForDisplay(new Date(payroll.periodStart)).toLowerCase()
+                                        const end = formatDateForDisplay(new Date(payroll.periodEnd)).toLowerCase()
+                                        return start.includes(s) || end.includes(s)
+                                      }).length === 0 && (
+                                        <p className="text-center text-sm text-muted-foreground py-4">No periods match your search</p>
+                                      )}
+                                    </div>
+                                    </>
+                                    )}
+                                  </div>
+                                )}
                               </div>
                             )
                           })()}
 
+                          {/* Search Bar - below Grand Total */}
+                          <div className="relative mb-4">
+                            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                            <Input
+                              placeholder="Search staff..."
+                              className="pl-9 h-9 bg-muted/50"
+                              value={personnelSearchTerm}
+                              onChange={(e) => setPersonnelSearchTerm(e.target.value)}
+                            />
+                          </div>
+
                           <div className="space-y-2 max-h-[75vh] overflow-y-auto">
                             {(() => {
-                              // Get unique personnel from all archived payrolls
+                              // Process ALL archived payrolls to list all staff on the left
+                              const payrollsToProcess = archivedPayrolls;
+
+                              // Get unique personnel from filtered payrolls
                               const personnelMap = new Map()
-                              archivedPayrolls.forEach(payroll => {
+                              payrollsToProcess.forEach(payroll => {
                                 payroll.payrolls?.forEach((person: any) => {
                                   if (!personnelMap.has(person.users_id)) {
                                     personnelMap.set(person.users_id, person)
@@ -2659,8 +2764,8 @@ html, body { margin: 0 !important; padding: 0 !important; overflow: hidden !impo
                               return uniquePersonnel.map((person: any) => {
                                 const isSelected = selectedPersonnelForPeriods?.users_id === person.users_id
 
-                                // Calculate total net pay for this personnel across all periods
-                                const totalNetPay = archivedPayrolls.reduce((total, payroll) => {
+                                // Calculate total net pay for this personnel across filtered periods
+                                const totalNetPay = payrollsToProcess.reduce((total, payroll) => {
                                   const personnelInPeriod = payroll.payrolls?.find((p: any) => p.users_id === person.users_id)
                                   return total + (personnelInPeriod ? Number(personnelInPeriod.netPay || 0) : 0)
                                 }, 0)
@@ -2669,24 +2774,40 @@ html, body { margin: 0 !important; padding: 0 !important; overflow: hidden !impo
                                   <div
                                     key={person.users_id}
                                     onClick={() => {
-                                      setSelectedPersonnelForPeriods(person)
-                                      // Get all periods for this personnel
-                                      const personnelPeriods = archivedPayrolls.filter(payroll =>
-                                        payroll.payrolls?.some((p: any) => p.users_id === person.users_id)
-                                      )
-                                      setArchivedPersonnelList(personnelPeriods)
+                                      if (selectedPersonnelForPeriods?.users_id === person.users_id) {
+                                        setSelectedPersonnelForPeriods(null);
+                                      } else {
+                                        setSelectedPersonnelForPeriods(person);
+                                        setSelectedPeriodBreakdownFilter(null);
+                                        // Get all periods for this personnel
+                                        const personnelPeriods = archivedPayrolls.filter(payroll =>
+                                          payroll.payrolls?.some((p: any) => p.users_id === person.users_id)
+                                        );
+                                        setArchivedPersonnelList(personnelPeriods);
+                                      }
                                     }}
                                     className={`
                                           rounded-lg border-2 cursor-pointer transition-all overflow-hidden shadow-sm
                                           ${isSelected
-                                        ? 'border-blue-500 bg-blue-50 dark:bg-blue-950/20'
-                                        : 'border-border hover:border-blue-400 hover:shadow-md bg-card'
+                                        ? 'border-border bg-muted/60'
+                                        : 'border-border hover:border-border hover:shadow-md hover:bg-muted/40 bg-card'
                                       }
                                         `}
                                   >
                                     <div className="flex items-stretch">
-                                      <div className={`w-1 flex-shrink-0 rounded-l-lg ${isSelected ? 'bg-blue-500' : 'bg-muted-foreground/20'}`} />
+                                      <div className={`w-1 flex-shrink-0 rounded-l-lg ${isSelected ? 'bg-foreground/30' : 'bg-muted-foreground/20'}`} />
                                       <div className="flex items-center justify-between gap-3 flex-1 p-3">
+                                        {/* Department icon */}
+                                        <div className={`flex-shrink-0 h-9 w-9 rounded-full flex items-center justify-center ${
+                                          person.user?.personnelType?.department === 'Barangay Officials'
+                                            ? 'bg-blue-100 dark:bg-blue-900/30'
+                                            : 'bg-amber-100 dark:bg-amber-900/30'
+                                        }`}>
+                                          {person.user?.personnelType?.department === 'Barangay Officials'
+                                            ? <Landmark className="h-4 w-4 text-blue-600 dark:text-blue-400" />
+                                            : <User className="h-4 w-4 text-amber-600 dark:text-amber-400" />
+                                          }
+                                        </div>
                                         <div className="flex-1 min-w-0">
                                           <p className="font-semibold text-sm truncate">{person.user?.name || 'N/A'}</p>
                                           {person.user?.personnelType?.department && (
@@ -2718,13 +2839,24 @@ html, body { margin: 0 !important; padding: 0 !important; overflow: hidden !impo
                         {/* Right: Period List for selected personnel */}
                         <div className="pl-4">
                           <div className="flex items-center gap-2 mb-4">
-                            <Calendar className="h-4 w-4 text-muted-foreground" />
-                            <h3 className="font-semibold text-sm text-muted-foreground uppercase">
-                              {selectedPersonnelForPeriods ? 'Select Payroll Period' : 'Select Staff First'}
-                            </h3>
+                            {selectedPeriodBreakdownFilter && !selectedPersonnelForPeriods ? (
+                              <>
+                                <User className="h-4 w-4 text-muted-foreground" />
+                                <h3 className="font-semibold text-sm text-muted-foreground uppercase">
+                                  Staff in Selected Period
+                                </h3>
+                              </>
+                            ) : (
+                              <>
+                                <Calendar className="h-4 w-4 text-muted-foreground" />
+                                <h3 className="font-semibold text-sm text-muted-foreground uppercase">
+                                  {selectedPersonnelForPeriods ? 'Select Payroll Period' : 'Select Staff or Period First'}
+                                </h3>
+                              </>
+                            )}
                           </div>
 
-                          {selectedPersonnelForPeriods && (
+                          {selectedPersonnelForPeriods ? (
                             <>
                               {/* Total Net Pay Card for Selected Personnel */}
                               {(() => {
@@ -2736,16 +2868,16 @@ html, body { margin: 0 !important; padding: 0 !important; overflow: hidden !impo
                                 const periodCount = archivedPersonnelList.length
 
                                 return (
-                                  <div className="mb-4 p-4 bg-blue-50 dark:bg-blue-950/20 border border-blue-200 dark:border-blue-800 rounded-md">
+                                  <div className="mb-4 p-4 bg-muted/40 border border-border rounded-md">
                                     <div className="flex items-center justify-between">
                                       <div>
-                                        <p className="text-xs font-semibold text-blue-700 dark:text-blue-400 uppercase">
+                                        <p className="text-xs font-semibold text-foreground uppercase">
                                           {selectedPersonnelForPeriods.user?.name || 'Staff'} - Total Net Pay
                                         </p>
                                         <p className="text-xs text-muted-foreground mt-0.5">{periodCount} period{periodCount !== 1 ? 's' : ''}</p>
                                       </div>
                                       <div className="text-right">
-                                        <p className="text-2xl font-bold text-blue-700 dark:text-blue-400">{formatCurrency(totalNetPay)}</p>
+                                        <p className="text-2xl font-bold text-green-600 dark:text-green-400">{formatCurrency(totalNetPay)}</p>
                                       </div>
                                     </div>
                                   </div>
@@ -2761,68 +2893,157 @@ html, body { margin: 0 !important; padding: 0 !important; overflow: hidden !impo
                                   onChange={(e) => setPeriodSearchTerm(e.target.value)}
                                 />
                               </div>
+
+                              <div className="space-y-2 max-h-[75vh] overflow-y-auto">
+                                {archivedPersonnelList.length > 0 ? (
+                                  (() => {
+                                    let filteredPayrolls = archivedPersonnelList
+
+                                    // Filter by search term
+                                    if (periodSearchTerm) {
+                                      const searchLower = periodSearchTerm.toLowerCase()
+                                      filteredPayrolls = filteredPayrolls.filter((payroll: any) => {
+                                        const periodStart = formatDateForDisplay(new Date(payroll.periodStart)).toLowerCase()
+                                        const periodEnd = formatDateForDisplay(new Date(payroll.periodEnd)).toLowerCase()
+                                        const releasedAt = formatDateForDisplay(new Date(payroll.releasedAt)).toLowerCase()
+                                        return periodStart.includes(searchLower) ||
+                                          periodEnd.includes(searchLower) ||
+                                          releasedAt.includes(searchLower)
+                                      })
+                                    }
+
+                                    return filteredPayrolls.map((payroll: any) => {
+                                      // Find this personnel's data in this period
+                                      const personnelData = payroll.payrolls?.find((p: any) => p.users_id === selectedPersonnelForPeriods.users_id)
+                                      const netPay = Number(personnelData?.netPay || 0)
+
+                                      return (
+                                        <div
+                                          key={payroll.id}
+                                          onClick={() => {
+                                            setSelectedArchivedPeriod(payroll)
+                                            setSelectedArchivedEntry(personnelData)
+                                            clearArchiveNotification()
+                                          }}
+                                          className="p-3 bg-background border border-border rounded-md cursor-pointer hover:bg-muted/50 transition-all shadow-sm"
+                                        >
+                                          <div className="flex items-center justify-between gap-3">
+                                            <div className="flex-1">
+                                              <p className="font-semibold text-sm">
+                                                {formatDateForDisplay(new Date(payroll.periodStart))} - {formatDateForDisplay(new Date(payroll.periodEnd))}
+                                              </p>
+                                              <p className="text-xs text-muted-foreground mt-0.5">
+                                                Released {formatDateForDisplay(new Date(payroll.releasedAt))}
+                                              </p>
+                                            </div>
+                                            <div className="text-right">
+                                              <p className="text-sm font-bold text-green-600 dark:text-green-400">
+                                                {formatCurrency(netPay)}
+                                              </p>
+                                              <p className="text-xs text-muted-foreground">Net Pay</p>
+                                            </div>
+                                          </div>
+                                        </div>
+                                      )
+                                    })
+                                  })()
+                                ) : (
+                                  <p className="text-center text-muted-foreground py-8 text-sm">No payroll periods found for this staff member</p>
+                                )}
+                              </div>
                             </>
-                          )}
+                          ) : selectedPeriodBreakdownFilter ? (
+                            (() => {
+                              const selectedPeriodData = archivedPayrolls.find(p => p.id === selectedPeriodBreakdownFilter);
+                              if (!selectedPeriodData) return null;
+                              
+                              const periodTotal = selectedPeriodData.payrolls?.reduce((sum: number, person: any) => sum + Number(person.netPay || 0), 0) || 0;
+                              const staffCount = selectedPeriodData.payrolls?.length || 0;
 
-                          <div className="space-y-2 max-h-[75vh] overflow-y-auto">
-                            {selectedPersonnelForPeriods && archivedPersonnelList.length > 0 ? (
-                              (() => {
-                                let filteredPayrolls = archivedPersonnelList
-
-                                // Filter by search term
-                                if (periodSearchTerm) {
-                                  const searchLower = periodSearchTerm.toLowerCase()
-                                  filteredPayrolls = filteredPayrolls.filter((payroll: any) => {
-                                    const periodStart = formatDateForDisplay(new Date(payroll.periodStart)).toLowerCase()
-                                    const periodEnd = formatDateForDisplay(new Date(payroll.periodEnd)).toLowerCase()
-                                    const releasedAt = formatDateForDisplay(new Date(payroll.releasedAt)).toLowerCase()
-                                    return periodStart.includes(searchLower) ||
-                                      periodEnd.includes(searchLower) ||
-                                      releasedAt.includes(searchLower)
-                                  })
-                                }
-
-                                return filteredPayrolls.map((payroll: any) => {
-                                  // Find this personnel's data in this period
-                                  const personnelData = payroll.payrolls?.find((p: any) => p.users_id === selectedPersonnelForPeriods.users_id)
-                                  const netPay = Number(personnelData?.netPay || 0)
-
-                                  return (
-                                    <div
-                                      key={payroll.id}
-                                      onClick={() => {
-                                        setSelectedArchivedPeriod(payroll)
-                                        setSelectedArchivedEntry(personnelData)
-                                        clearArchiveNotification()
-                                      }}
-                                      className="p-3 bg-background border border-border rounded-md cursor-pointer hover:border-primary hover:bg-accent transition-all"
-                                    >
-                                      <div className="flex items-center justify-between gap-3">
-                                        <div className="flex-1">
-                                          <p className="font-semibold text-sm">
-                                            {formatDateForDisplay(new Date(payroll.periodStart))} - {formatDateForDisplay(new Date(payroll.periodEnd))}
-                                          </p>
-                                          <p className="text-xs text-muted-foreground mt-0.5">
-                                            Released {formatDateForDisplay(new Date(payroll.releasedAt))}
-                                          </p>
-                                        </div>
-                                        <div className="text-right">
-                                          <p className="text-sm font-bold text-green-600 dark:text-green-400">
-                                            {formatCurrency(netPay)}
-                                          </p>
-                                          <p className="text-xs text-muted-foreground">Net Pay</p>
-                                        </div>
+                              return (
+                                <>
+                                  {/* Total Net Pay Card for Selected Period */}
+                                  <div className="mb-4 p-4 bg-muted/40 border border-border rounded-md">
+                                    <div className="flex items-center justify-between">
+                                      <div>
+                                        <p className="text-xs font-semibold text-foreground uppercase">
+                                          {formatDateForDisplay(new Date(selectedPeriodData.periodStart))} - {formatDateForDisplay(new Date(selectedPeriodData.periodEnd))}
+                                        </p>
+                                        <p className="text-xs text-muted-foreground mt-0.5">{staffCount} staff distributed</p>
+                                      </div>
+                                      <div className="text-right">
+                                        <p className="text-2xl font-bold text-green-600 dark:text-green-400">{formatCurrency(periodTotal)}</p>
                                       </div>
                                     </div>
-                                  )
-                                })
-                              })()
-                            ) : selectedPersonnelForPeriods ? (
-                              <p className="text-center text-muted-foreground py-8 text-sm">No payroll periods found for this staff member</p>
-                            ) : (
-                              <p className="text-center text-muted-foreground py-8 text-sm">Select a staff member to view their payroll periods</p>
-                            )}
-                          </div>
+                                  </div>
+
+                                  <div className="relative mb-4">
+                                    <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                                    <Input
+                                      placeholder="Search staff in period..."
+                                      className="pl-9 h-9 bg-muted/50"
+                                      value={personnelSearchTerm}
+                                      onChange={(e) => setPersonnelSearchTerm(e.target.value)}
+                                    />
+                                  </div>
+
+                                  <div className="space-y-2 max-h-[75vh] overflow-y-auto pr-2">
+                                    {(() => {
+                                      let staffList = selectedPeriodData.payrolls || [];
+                                      if (personnelSearchTerm) {
+                                        const searchLower = personnelSearchTerm.toLowerCase();
+                                        staffList = staffList.filter((person: any) =>
+                                          person.user?.name?.toLowerCase().includes(searchLower) ||
+                                          person.user?.personnelType?.department?.toLowerCase().includes(searchLower)
+                                        );
+                                      }
+                                      
+                                      if (staffList.length === 0) {
+                                        return <p className="text-center text-muted-foreground py-8 text-sm">No staff found for this search</p>
+                                      }
+
+                                      return staffList.map((person: any) => {
+                                        const netPay = Number(person.netPay || 0);
+                                        return (
+                                          <div
+                                            key={person.users_id}
+                                            onClick={() => {
+                                              setSelectedPersonnelForPeriods(person)
+                                              setSelectedPeriodBreakdownFilter(null)
+                                              const personnelPeriods = archivedPayrolls.filter(payroll =>
+                                                payroll.payrolls?.some((p: any) => p.users_id === person.users_id)
+                                              )
+                                              setArchivedPersonnelList(personnelPeriods)
+                                            }}
+                                            className="p-3 bg-background border border-border rounded-md cursor-pointer hover:bg-muted/50 transition-all shadow-sm"
+                                          >
+                                            <div className="flex items-center justify-between gap-3">
+                                              <div className="flex-1 min-w-0">
+                                                <p className="font-semibold text-sm truncate">{person.user?.name || 'Unknown Staff'}</p>
+                                                {person.user?.personnelType?.department && (
+                                                  <p className="text-xs text-muted-foreground mt-0.5 truncate">
+                                                    {person.user.personnelType.department}
+                                                  </p>
+                                                )}
+                                              </div>
+                                              <div className="text-right flex-shrink-0">
+                                                <p className="text-sm font-bold text-green-600 dark:text-green-400">
+                                                  {formatCurrency(netPay)}
+                                                </p>
+                                                <p className="text-xs text-muted-foreground">Net Pay</p>
+                                              </div>
+                                            </div>
+                                          </div>
+                                        )
+                                      })
+                                    })()}
+                                  </div>
+                                </>
+                              )
+                            })()
+                          ) : (
+                            <p className="text-center text-muted-foreground py-8 text-sm">Select a staff member or period to view their details</p>
+                          )}
                         </div>
                       </div>
                     </DialogContent>
@@ -2843,6 +3064,36 @@ html, body { margin: 0 !important; padding: 0 !important; overflow: hidden !impo
               </div>
             </CardHeader>
             <CardContent className="p-0">
+              {/* LATEST RELEASED PAYROLL SUMMARY */}
+              {archivedPayrolls.length > 0 && (() => {
+                const latestArchive = [...archivedPayrolls].sort((a, b) => new Date(b.periodEnd).getTime() - new Date(a.periodEnd).getTime())[0];
+                const latestTotal = latestArchive?.payrolls?.reduce((sum: number, p: any) => sum + Number(p.netPay || 0), 0) || 0;
+                
+                return (
+                  <div className="mx-4 mt-4 mb-2">
+                    <div className="bg-card border rounded-xl shadow-sm relative overflow-hidden w-full">
+                      <div className="absolute left-0 top-0 bottom-0 w-1.5 bg-green-500" />
+                      <div className="p-6 flex flex-col md:flex-row md:items-center justify-between gap-4">
+                        <div>
+                          <p className="text-sm font-medium pb-2">
+                            Latest Released Payroll
+                          </p>
+                          <p className="text-sm text-muted-foreground flex items-center">
+                            <span className="mr-1 text-blue-500">↗</span>
+                            {formatDateForDisplay(new Date(latestArchive.periodStart))} - {formatDateForDisplay(new Date(latestArchive.periodEnd))}
+                          </p>
+                        </div>
+                        <div className="text-left md:text-right">
+                          <p className="text-3xl font-bold text-green-600 dark:text-green-400">
+                            {formatCurrency(latestTotal)}
+                          </p>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                )
+              })()}
+
               {/* BLGU Filter Tabs */}
               <div className="flex gap-2 px-4 pt-4 pb-3">
                 {(['all', 'Barangay Officials', 'Barangay Staff'] as const).map(filter => (
@@ -2850,7 +3101,7 @@ html, body { margin: 0 !important; padding: 0 !important; overflow: hidden !impo
                     key={filter}
                     type="button"
                     onClick={() => setArchiveBlguFilter(filter)}
-                    className={`px-4 py-1.5 rounded-full text-xs font-semibold border transition-all ${
+                    className={`px-4 py-2 h-10 min-w-[100px] flex justify-center items-center rounded-md text-sm font-medium border shadow-sm transition-all ${
                       archiveBlguFilter === filter
                         ? 'bg-primary text-primary-foreground border-primary'
                         : 'bg-background text-muted-foreground border-border hover:border-primary/50 hover:text-foreground'
@@ -2884,7 +3135,7 @@ html, body { margin: 0 !important; padding: 0 !important; overflow: hidden !impo
                       </TableHead>
                       <TableHead className="font-semibold text-xs uppercase tracking-wider">Period</TableHead>
                       <TableHead className="font-semibold text-xs uppercase tracking-wider">BLGU</TableHead>
-                      <TableHead className="font-semibold text-xs uppercase tracking-wider">Staff</TableHead>
+                      <TableHead className="font-semibold text-xs uppercase tracking-wider">Staff & Officials</TableHead>
                       <TableHead className="font-semibold text-xs uppercase tracking-wider text-right pr-8">Net Pay</TableHead>
                       <TableHead className="font-semibold text-xs uppercase tracking-wider pl-8">Released</TableHead>
                       <TableHead className="font-semibold text-xs uppercase tracking-wider">View</TableHead>
@@ -2973,7 +3224,7 @@ html, body { margin: 0 !important; padding: 0 !important; overflow: hidden !impo
 
                             <TableCell className="py-5">
                               <Badge variant="secondary" className="font-semibold bg-muted/50 text-muted-foreground border-border">
-                                {payroll.totalEmployees} Staff
+                                {payroll.totalEmployees} {payroll.blgu === 'Barangay Officials' ? (payroll.totalEmployees === 1 ? 'Official' : 'Officials') : 'Staff'}
                               </Badge>
                             </TableCell>
                             <TableCell className="py-5 text-right pr-8">
@@ -3677,7 +3928,7 @@ html, body { margin: 0 !important; padding: 0 !important; overflow: hidden !impo
               <div className="space-y-1">
                 <DialogTitle className="text-2xl font-bold flex items-center gap-2">
                   <FileText className="h-6 w-6 text-primary" />
-                  Payslip Preview
+                  Payslip (Honorarium) Preview
                 </DialogTitle>
                 <DialogDescription className="text-sm">
                   Review and verify payslips before printing. Use the controls below to navigate and zoom.
@@ -3702,49 +3953,56 @@ html, body { margin: 0 !important; padding: 0 !important; overflow: hidden !impo
                 </select>
               </div>
 
-              {/* Search */}
-              {previewMode === 'single' && (
-                <div className="flex items-center gap-2 bg-muted/50 rounded-lg px-3 py-2 flex-1 max-w-md">
-                  <Search className="h-4 w-4 text-muted-foreground" />
-                  <input
-                    className="bg-transparent text-sm flex-1 focus:outline-none placeholder:text-muted-foreground/60"
-                    placeholder="Search by name or email..."
-                    value={previewSearch}
-                    onChange={(e) => {
-                      setPreviewSearch(e.target.value)
-                      setTimeout(() => {
-                        try {
-                          const doc = iframeRef.current?.contentDocument
-                          if (!doc) return
-                          const text = e.target.value.trim().toLowerCase()
-                          doc.querySelectorAll('[data-search-highlight]')?.forEach(el => {
-                            el.removeAttribute('data-search-highlight')
-                              ; (el as HTMLElement).style.backgroundColor = ''
-                          })
-                          if (!text) return
-                          const walker = doc.createTreeWalker(doc.body, NodeFilter.SHOW_TEXT)
-                          let node: Node | null
-                          const matches: HTMLElement[] = []
-                          while ((node = walker.nextNode())) {
-                            const value = (node.textContent || '').toLowerCase()
-                            if (value.includes(text)) {
-                              const parent = (node.parentElement as HTMLElement)
-                              if (parent) {
-                                parent.setAttribute('data-search-highlight', '1')
-                                parent.style.backgroundColor = 'rgba(250, 204, 21, 0.35)'
-                                matches.push(parent)
-                              }
+              {/* Search - always visible */}
+              <div className="flex items-center gap-2 bg-background border border-border rounded-lg px-3 py-2 flex-1 max-w-md shadow-sm focus-within:ring-2 focus-within:ring-ring focus-within:border-transparent transition-all">
+                <Search className="h-4 w-4 text-muted-foreground flex-shrink-0" />
+                <input
+                  className="bg-transparent text-sm flex-1 focus:outline-none placeholder:text-muted-foreground text-foreground"
+                  placeholder="Search staff by name or email..."
+                  value={previewSearch}
+                  onChange={(e) => {
+                    setPreviewSearch(e.target.value)
+                    setTimeout(() => {
+                      try {
+                        const doc = iframeRef.current?.contentDocument
+                        if (!doc) return
+                        const text = e.target.value.trim().toLowerCase()
+                        doc.querySelectorAll('[data-search-highlight]')?.forEach(el => {
+                          el.removeAttribute('data-search-highlight')
+                            ; (el as HTMLElement).style.backgroundColor = ''
+                        })
+                        if (!text) return
+                        const walker = doc.createTreeWalker(doc.body, NodeFilter.SHOW_TEXT)
+                        let node: Node | null
+                        const matches: HTMLElement[] = []
+                        while ((node = walker.nextNode())) {
+                          const value = (node.textContent || '').toLowerCase()
+                          if (value.includes(text)) {
+                            const parent = (node.parentElement as HTMLElement)
+                            if (parent) {
+                              parent.setAttribute('data-search-highlight', '1')
+                              parent.style.backgroundColor = 'rgba(250, 204, 21, 0.35)'
+                              matches.push(parent)
                             }
                           }
-                          if (matches.length > 0) {
-                            matches[0].scrollIntoView({ behavior: 'smooth', block: 'center' })
-                          }
-                        } catch { }
-                      }, 50)
-                    }}
-                  />
-                </div>
-              )}
+                        }
+                        if (matches.length > 0) {
+                          matches[0].scrollIntoView({ behavior: 'smooth', block: 'center' })
+                        }
+                      } catch { }
+                    }, 50)
+                  }}
+                />
+                {previewSearch && (
+                  <button
+                    type="button"
+                    onClick={() => setPreviewSearch('')}
+                    className="text-muted-foreground hover:text-foreground transition-colors flex-shrink-0"
+                  >
+                    <X className="h-3.5 w-3.5" />
+                  </button>
+                )}
+              </div>
 
               {/* Zoom Controls */}
               <div className="flex items-center gap-2 bg-muted/50 rounded-lg px-3 py-2 ml-auto">
