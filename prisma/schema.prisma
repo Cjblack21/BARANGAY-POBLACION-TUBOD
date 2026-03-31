@@ -3,7 +3,7 @@ generator client {
 }
 
 datasource db {
-  provider = "mysql"
+  provider = "postgresql"
   url      = env("DATABASE_URL")
 }
 
@@ -17,7 +17,6 @@ model activity_logs {
   users            users                @relation(fields: [users_id], references: [users_id], onDelete: Cascade)
 
   @@index([createdAt], map: "activity_logs_created_at_idx")
-  @@index([users_id], map: "activity_logs_users_id_fkey")
 }
 
 model attendances {
@@ -32,7 +31,6 @@ model attendances {
   users          users              @relation(fields: [users_id], references: [users_id])
 
   @@unique([users_id, date])
-  @@index([users_id], map: "attendances_users_id_fkey")
 }
 
 model attendance_settings {
@@ -77,8 +75,6 @@ model deductions {
   deduction_types    deduction_types @relation(fields: [deduction_types_id], references: [deduction_types_id])
   users              users           @relation(fields: [users_id], references: [users_id])
 
-  @@index([deduction_types_id], map: "deductions_deduction_types_id_fkey")
-  @@index([users_id], map: "deductions_users_id_fkey")
 }
 
 model departments {
@@ -110,7 +106,7 @@ model header_settings {
   customText      String?  @default("")
   createdAt       DateTime @default(now())
   updatedAt       DateTime
-  workingDays     String   @db.LongText
+  workingDays     String   @db.Text
 }
 
 model holidays {
@@ -139,7 +135,6 @@ model loans {
   updatedAt             DateTime
   users                 users        @relation(fields: [users_id], references: [users_id])
 
-  @@index([users_id], map: "loans_users_id_fkey")
 }
 
 model overload_pays {
@@ -155,7 +150,6 @@ model overload_pays {
   isRecurring      Boolean   @default(false)
   users            users     @relation(fields: [users_id], references: [users_id])
 
-  @@index([users_id], map: "overload_pays_users_id_fkey")
 }
 
 model payroll_entries {
@@ -171,12 +165,11 @@ model payroll_entries {
   processedAt        DateTime               @default(now())
   releasedAt         DateTime?
   archivedAt         DateTime?
-  breakdownSnapshot  String?                @db.LongText
+  breakdownSnapshot  String?                @db.Text
   createdAt          DateTime               @default(now())
   updatedAt          DateTime
   users              users                  @relation(fields: [users_id], references: [users_id])
 
-  @@index([users_id], map: "payroll_entries_users_id_fkey")
 }
 
 model payroll_schedules {
@@ -207,7 +200,6 @@ model sessions {
   expires      DateTime
   users        users    @relation(fields: [users_id], references: [users_id], onDelete: Cascade)
 
-  @@index([users_id], map: "sessions_users_id_fkey")
 }
 
 model user_settings {
@@ -249,7 +241,6 @@ model users {
   user_settings      user_settings?
   personnel_types    personnel_types?  @relation(fields: [personnel_types_id], references: [personnel_types_id])
 
-  @@index([personnel_types_id], map: "users_personnel_types_id_fkey")
 }
 
 enum activity_logs_action {
