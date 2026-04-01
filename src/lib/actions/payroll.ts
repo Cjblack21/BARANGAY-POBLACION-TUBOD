@@ -1580,7 +1580,8 @@ export async function releasePayrollWithAudit(
 
   } catch (error) {
     console.error('Error in releasePayrollWithAudit:', error)
-    return { success: false, error: 'Failed to release payroll' }
+    const msg = error instanceof Error ? error.message : String(error)
+    return { success: false, error: `Release failed: ${msg}` }
   }
 }
 
