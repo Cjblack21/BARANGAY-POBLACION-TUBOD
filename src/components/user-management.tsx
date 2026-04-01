@@ -207,8 +207,8 @@ export function UserManagement() {
   useEffect(() => {
     let filtered = personnel
 
-    // Filter to show only active staff
-    filtered = filtered.filter(person => person.isActive)
+    // Filter to show only active staff (exclude admins)
+    filtered = filtered.filter(person => person.isActive && person.role !== 'ADMIN')
 
     // Apply search filter
     if (searchTerm) {
@@ -1074,10 +1074,10 @@ export function UserManagement() {
           <div className="flex flex-col md:flex-row items-start md:items-end justify-between gap-6 w-full">
             <div>
               <CardTitle>
-                Active Staff ({filteredPersonnel.length})
+                Active Staff & Officials ({filteredPersonnel.length})
               </CardTitle>
               <CardDescription className="mt-1">
-                Showing {filteredPersonnel.length} of {personnel.filter(p => p.isActive).length} active staff
+                Showing {filteredPersonnel.length} of {personnel.filter(p => p.isActive && p.role !== 'ADMIN').length} active staff & officials
               </CardDescription>
             </div>
             
