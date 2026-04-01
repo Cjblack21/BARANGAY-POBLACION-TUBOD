@@ -141,7 +141,7 @@ export function UserManagement() {
   const [filteredPersonnel, setFilteredPersonnel] = useState<User[]>([])
   const [loading, setLoading] = useState(true)
   const [searchTerm, setSearchTerm] = useState('')
-  const [roleFilter, setRoleFilter] = useState<string>('ALL')
+  const [blguFilter, setBlguFilter] = useState<string>('ALL')
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false)
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false)
   const [isViewDialogOpen, setIsViewDialogOpen] = useState(false)
@@ -196,7 +196,14 @@ export function UserManagement() {
     }
   }
 
-  // Filter personnel based on search and role
+  // Helper to get BLGU office from a person
+  const getPersonOffice = (person: User): string => {
+    const personnelTypeName = person.personnel_types?.name || person.personnelType?.name || ''
+    const nameParts = personnelTypeName.split(': ')
+    return nameParts.length === 2 ? nameParts[0] : (person.personnel_types?.department || person.personnelType?.department || 'N/A')
+  }
+
+  // Filter personnel based on search and BLGU
   useEffect(() => {
     let filtered = personnel
 
@@ -211,13 +218,15 @@ export function UserManagement() {
       )
     }
 
-    // Apply role filter
-    if (roleFilter !== 'ALL') {
-      filtered = filtered.filter(person => person.role === roleFilter)
+    // Apply BLGU filter
+    if (blguFilter === 'BARANGAY_OFFICIALS') {
+      filtered = filtered.filter(person => getPersonOffice(person) === 'Barangay Officials')
+    } else if (blguFilter === 'BARANGAY_STAFF') {
+      filtered = filtered.filter(person => getPersonOffice(person) === 'Barangay Staff')
     }
 
     setFilteredPersonnel(filtered)
-  }, [personnel, searchTerm, roleFilter])
+  }, [personnel, searchTerm, blguFilter])
 
   // Load personnel on mount
   useEffect(() => {
@@ -1087,16 +1096,31 @@ export function UserManagement() {
                 </div>
               </div>
               <div className="flex flex-col gap-2 w-[280px]">
-                <Label className="text-sm font-medium text-muted-foreground ml-1">Filter by System Role</Label>
+                <Label className="text-sm font-medium text-muted-foreground ml-1">Filter by BLGU</Label>
                 <SSRSafe>
-                  <Select value={roleFilter} onValueChange={setRoleFilter}>
+                  <Select value={blguFilter} onValueChange={setBlguFilter}>
                     <SelectTrigger className="h-10 border-slate-300 dark:border-slate-700 focus-visible:ring-1 focus-visible:ring-slate-400 focus-visible:ring-offset-0 focus:ring-1 focus:ring-slate-400 focus:ring-offset-0">
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="ALL">All System Roles</SelectItem>
-                      <SelectItem value="ADMIN">Admin Only</SelectItem>
-                      <SelectItem value="PERSONNEL">Staff Only</SelectItem>
+                      <SelectItem value="ALL">
+                        <div className="flex items-center gap-2">
+                          <span>👥</span>
+                          <span>All Staff & Officials</span>
+                        </div>
+                      </SelectItem>
+                      <SelectItem value="BARANGAY_OFFICIALS">
+                        <div className="flex items-center gap-2">
+                          <span>🏛️</span>
+                          <span>Barangay Officials</span>
+                        </div>
+                      </SelectItem>
+                      <SelectItem value="BARANGAY_STAFF">
+                        <div className="flex items-center gap-2">
+                          <span>👤</span>
+                          <span>Barangay Staff</span>
+                        </div>
+                      </SelectItem>
                     </SelectContent>
                   </Select>
                 </SSRSafe>
@@ -1321,6 +1345,7 @@ export function UserManagement() {
                       value={formData.name}
                       onChange={(e) => setFormData({ ...formData, name: e.target.value })}
                       className="mt-1.5"
+                      autoComplete="off"
                     />
                   </div>
                   <div className="col-span-2 sm:col-span-1">
@@ -1331,6 +1356,7 @@ export function UserManagement() {
                       value={formData.email}
                       onChange={(e) => setFormData({ ...formData, email: e.target.value })}
                       className="mt-1.5"
+                      autoComplete="off"
                     />
                   </div>
                 </div>
@@ -1411,6 +1437,7 @@ export function UserManagement() {
                         onChange={(e) => setFormData({ ...formData, password: e.target.value })}
                         placeholder="Leave empty to keep current password"
                         className="mt-1.5 pr-10"
+                        autoComplete="new-password"
                       />
                       <button
                         type="button"

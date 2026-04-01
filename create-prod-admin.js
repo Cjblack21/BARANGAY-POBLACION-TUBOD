@@ -10,20 +10,28 @@ const prisma = new PrismaClient({
 })
 
 async function main() {
-    console.log('🔧 Creating/updating admin account...')
+    console.log('🗑️  Deleting old admin accounts...')
+
+    // Delete old accounts by email
+    const deleted = await prisma.users.deleteMany({
+        where: {
+            email: {
+                in: ['adminpoblacion@gmail.com', 'Adminpoblacion@pms.com', 'adminpoblacion@pms.com']
+            }
+        }
+    })
+    console.log(`✅ Deleted ${deleted.count} old account(s)`)
+
+    // Also clean up any account with ID 1
+    await prisma.users.deleteMany({
+        where: { users_id: '1' }
+    }).catch(() => {}) // ignore if not found
+
+    console.log('🔧 Creating fresh admin account...')
     const hashedPassword = await bcrypt.hash('admin123', 12)
 
-    // Upsert by users_id - will create if not exists, update if exists
-    const admin = await prisma.users.upsert({
-        where: { users_id: '1' },
-        update: {
-            email: 'Adminpoblacion@pms.com',
-            password: hashedPassword,
-            name: 'Admin Poblacion',
-            role: 'ADMIN',
-            isActive: true,
-        },
-        create: {
+    const admin = await prisma.users.create({
+        data: {
             users_id: '1',
             email: 'Adminpoblacion@pms.com',
             password: hashedPassword,
@@ -31,13 +39,14 @@ async function main() {
             role: 'ADMIN',
             isActive: true,
             updatedAt: new Date(),
-        },
+        }
     })
 
-    console.log('✅ Admin account ready!')
-    console.log('Email:    Adminpoblacion@pms.com')
-    console.log('Password: admin123')
-    console.log('ID:       1')
+    console.log('✅ Admin account created!')
+    console.log('   Email:    Adminpoblacion@pms.com')
+    console.log('   Password: admin123')
+    console.log('   ID:       1')
+    console.log('   Name:     Admin Poblacion')
 }
 
 main()
