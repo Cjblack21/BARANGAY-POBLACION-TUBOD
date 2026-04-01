@@ -1459,18 +1459,46 @@ export async function generatePayslips(periodStart?: string, periodEnd?: string)
       }
     })
 
+    // Batch fetch all related data at once
+    const userIds = payrollEntries.map(e => e.users_id)
+
+    const [allLoans, allOtherDeductions] = await Promise.all([
+      prisma.loans.findMany({
+        where: {
+          users_id: { in: userIds },
+          status: 'ACTIVE'
+        }
+      }),
+      prisma.deductions.findMany({
+        where: {
+          users_id: { in: userIds },
+          appliedAt: {
+            gte: startDate,
+            lte: endDate
+          }
+        }
+      })
+    ])
+
+    const loansByUser = allLoans.reduce((acc, l) => {
+      acc[l.users_id] = acc[l.users_id] || []
+      acc[l.users_id].push(l)
+      return acc
+    }, {} as Record<string, typeof allLoans>)
+
+    const otherDeductionsByUser = allOtherDeductions.reduce((acc, d) => {
+      acc[d.users_id] = acc[d.users_id] || []
+      acc[d.users_id].push(d)
+      return acc
+    }, {} as Record<string, typeof allOtherDeductions>)
+
     // Calculate actual work hours and deductions for each entry
-    const payslips = await Promise.all(payrollEntries.map(async (entry: any) => {
+    const payslips = payrollEntries.map((entry: any) => {
       // Attendance system removed - no work hours tracking
       const totalWorkHours = 0
 
       // Get loan deductions for this user
-      const loans = await prisma.loans.findMany({
-        where: {
-          users_id: entry.users_id,
-          status: 'ACTIVE'
-        }
-      })
+      const loans = loansByUser[entry.users_id] || []
 
       let loanDeductions = 0
       const payslipPeriodDays = Math.floor((endDate.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24)) + 1
@@ -1481,15 +1509,7 @@ export async function generatePayslips(periodStart?: string, periodEnd?: string)
       })
 
       // Calculate other deductions (non-attendance, non-loan)
-      const otherDeductions = await prisma.deductions.findMany({
-        where: {
-          users_id: entry.users_id,
-          appliedAt: {
-            gte: startDate,
-            lte: endDate
-          }
-        }
-      })
+      const otherDeductions = otherDeductionsByUser[entry.users_id] || []
 
       const otherDeductionsTotal = otherDeductions.reduce((sum, deduction) => {
         return sum + Number(deduction.amount)
@@ -1514,7 +1534,7 @@ export async function generatePayslips(periodStart?: string, periodEnd?: string)
           companyAddress: headerSettings.schoolAddress
         }
       }
-    }))
+    })
 
     return {
       success: true,
