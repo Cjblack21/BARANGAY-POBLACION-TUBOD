@@ -1282,11 +1282,11 @@ export async function releasePayrollWithAudit(
       console.log(`📦 Auto-archived ${archivedResult.count} previous RELEASED payroll entries`)
     }
 
-    // Release all PENDING entries for this period
+    // Release selected PENDING entries
+    const entryIdsToRelease = entriesToRelease.map(e => e.payroll_entries_id)
     const updateResult = await prisma.payroll_entries.updateMany({
       where: {
-        periodStart: { gte: startOfDayPH },
-        periodEnd: { lte: endOfDayPH },
+        payroll_entries_id: { in: entryIdsToRelease },
         status: 'PENDING'
       },
       data: { status: 'RELEASED', releasedAt: new Date() }
