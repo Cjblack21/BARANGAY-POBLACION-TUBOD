@@ -756,145 +756,123 @@ export async function generatePayroll(customPeriodStart?: string, customPeriodEn
     })
     console.log(`🗑️ Deleted ${deletedEntries.count} PENDING entries${blgu ? ` for ${blgu}` : ''} to prevent duplicates`)
 
-    let createdCount = 0
+    // Optimized: Batch fetch all related data
+    const userIds = users.map(u => u.users_id)
+
+    const [allDeductions, allLoans, allOverloads] = await Promise.all([
+      prisma.deductions.findMany({
+        where: {
+          users_id: { in: userIds },
+          archivedAt: null,
+          deduction_types: {
+            NOT: {
+              OR: [
+                { name: { contains: 'Late' } },
+                { name: { contains: 'Absent' } },
+                { name: { contains: 'Early' } },
+                { name: { contains: 'Tardiness' } },
+                { name: { contains: 'Partial' } }
+              ]
+            }
+          }
+        },
+        include: {
+          deduction_types: { select: { name: true, description: true } }
+        }
+      }),
+      prisma.loans.findMany({
+        where: { users_id: { in: userIds }, status: 'ACTIVE' }
+      }),
+      prisma.overload_pays.findMany({
+        where: { users_id: { in: userIds }, archivedAt: null },
+        select: { overload_pays_id: true, users_id: true, amount: true, notes: true, type: true }
+      })
+    ])
+
+    const deductionsByUser = allDeductions.reduce((acc, d) => {
+      acc[d.users_id] = acc[d.users_id] || []
+      acc[d.users_id].push(d)
+      return acc
+    }, {} as Record<string, typeof allDeductions>)
+
+    const loansByUser = allLoans.reduce((acc, l) => {
+      acc[l.users_id] = acc[l.users_id] || []
+      acc[l.users_id].push(l)
+      return acc
+    }, {} as Record<string, typeof allLoans>)
+
+    const overloadsByUser = allOverloads.reduce((acc, o) => {
+      acc[o.users_id] = acc[o.users_id] || []
+      acc[o.users_id].push(o)
+      return acc
+    }, {} as Record<string, typeof allOverloads>)
 
     // Always create NEW payroll entries for each user
-    for (const user of users) {
-      try {
-        const basicSalary = user.personnel_types?.basicSalary ? Number(user.personnel_types.basicSalary) : 0
+    const entriesToCreate = users.map(user => {
+      const basicSalary = user.personnel_types?.basicSalary ? Number(user.personnel_types.basicSalary) : 0
+      
+      const deductions = deductionsByUser[user.users_id] || []
+      const totalDeductions = deductions.reduce((sum, d) => sum + Number(d.amount), 0)
 
-        console.log(`💰 ${user.name} - Personnel Type: ${user.personnel_types?.name}, Basic Salary from DB: ₱${basicSalary.toFixed(2)}`)
+      const loans = loansByUser[user.users_id] || []
+      const loanPayments = loans.reduce((sum, l) => sum + ((Number(l.amount) * Number(l.monthlyPaymentPercent)) / 100), 0)
 
-        // Get deductions for this user (EXCLUDE attendance-related deductions)
-        // Attendance deductions will be applied during release if user chooses to include them
-        const deductions = await prisma.deductions.findMany({
-          where: {
-            users_id: user.users_id,
-            archivedAt: null,
-            deduction_types: {
-              NOT: {
-                OR: [
-                  { name: { contains: 'Late' } },
-                  { name: { contains: 'Absent' } },
-                  { name: { contains: 'Early' } },
-                  { name: { contains: 'Tardiness' } },
-                  { name: { contains: 'Partial' } }
-                ]
-              }
-            }
-          },
-          include: {
-            deduction_types: {
-              select: {
-                name: true,
-                description: true
-              }
-            }
-          }
-        })
+      const overloadPays = overloadsByUser[user.users_id] || []
+      const totalOverloadPay = overloadPays.reduce((sum, op) => sum + Number(op.amount), 0)
 
-        console.log(`📋 Non-Attendance Deductions for ${user.name}:`)
-        deductions.forEach(d => {
-          console.log(`  - ${d.deduction_types.name}: ₱${Number(d.amount).toFixed(2)} (${d.notes || 'No notes'})`)
-        })
+      const grossSalary = basicSalary + totalOverloadPay
+      const netPay = grossSalary - totalDeductions - loanPayments
 
-        const totalDeductions = deductions.reduce((sum, d) => sum + Number(d.amount), 0)
-        console.log(`  📊 Total Non-Attendance Deductions: ₱${totalDeductions.toFixed(2)} (from ${deductions.length} deduction entries)`)
-        console.log(`  ℹ️  Attendance deductions will be applied during release if selected`)
-
-        // Get loans for this user
-        const loans = await prisma.loans.findMany({
-          where: {
-            users_id: user.users_id,
-            status: 'ACTIVE'
-          }
-        })
-        const loanPayments = loans.reduce((sum, l) => {
-          const monthly = (Number(l.amount) * Number(l.monthlyPaymentPercent)) / 100
-          return sum + monthly
-        }, 0)
-        console.log(`  📊 Total Loan Payments: ₱${loanPayments.toFixed(2)} (from ${loans.length} active loans)`)
-
-        // Get overload pay
-        const overloadPays = await prisma.overload_pays.findMany({
-          where: {
-            users_id: user.users_id,
-            archivedAt: null
-          },
-          select: {
-            overload_pays_id: true,
-            amount: true,
-            notes: true,
-            type: true
-          }
-        })
-        const totalOverloadPay = overloadPays.reduce((sum, op) => sum + Number(op.amount), 0)
-
-        const grossSalary = basicSalary + totalOverloadPay
-        const netPay = grossSalary - totalDeductions - loanPayments
-        const totalDeductionsToStore = totalDeductions + loanPayments
-
-        console.log(`💰 Creating payroll for ${user.name}:`)
-        console.log(`  📊 Gross Salary: ₱${grossSalary.toFixed(2)} (Basic: ₱${basicSalary.toFixed(2)} + Overload: ₱${totalOverloadPay.toFixed(2)})`)
-        console.log(`  📊 Total Deductions to Store: ₱${totalDeductionsToStore.toFixed(2)} (Deductions: ₱${totalDeductions.toFixed(2)} + Loans: ₱${loanPayments.toFixed(2)})`)
-        console.log(`  📊 Net Pay: ₱${netPay.toFixed(2)}`)
-
-        // Create breakdown snapshot with detailed deduction information
-        const breakdownSnapshot = {
-          basicSalary: basicSalary,
-          overloadPay: totalOverloadPay,
-          overloadPayDetails: overloadPays.map(op => ({
-            type: op.notes || op.type || 'Additional Pay',
-            amount: Number(op.amount)
-          })),
-          loanDeductions: loanPayments,
-          loanDetails: loans.map(l => ({
-            amount: Number(l.amount),
-            monthlyPaymentPercent: Number(l.monthlyPaymentPercent),
-            payment: (Number(l.amount) * Number(l.monthlyPaymentPercent)) / 100,
-            purpose: l.purpose
-          })),
-          otherDeductions: totalDeductions,
-          otherDeductionDetails: deductions.map(d => ({
-            type: d.deduction_types.name,
-            amount: Number(d.amount),
-            description: d.deduction_types.description || '',
-            isMandatory: false // Will be determined from deduction_types if needed
-          })),
-          attendanceDeductions: 0, // Will be added during release if selected
-          attendanceDeductionDetails: [], // Will be populated during release if selected
-          totalDeductions: totalDeductions + loanPayments,
-          netPay: netPay
-        }
-
-        // Always create a new entry
-        const payrollEntryId = `PE-${user.users_id}-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`
-        await prisma.payroll_entries.create({
-          data: {
-            payroll_entries_id: payrollEntryId,
-            users_id: user.users_id,
-            periodStart: periodStart,
-            periodEnd: periodEnd,
-            basicSalary: basicSalary,  // Store actual basic salary, not gross
-            overtime: totalOverloadPay,
-            deductions: totalDeductions + loanPayments,
-            netPay: netPay,
-            status: 'PENDING',
-            breakdownSnapshot: JSON.stringify(breakdownSnapshot),
-            createdAt: new Date(),
-            updatedAt: new Date()
-          }
-        })
-
-        createdCount++
-        console.log(`✅ Created payroll entry for ${user.name}`)
-      } catch (error) {
-        console.error(`❌ Error creating payroll for ${user.name}:`, error)
-        throw error
+      const breakdownSnapshot = {
+        basicSalary: basicSalary,
+        overloadPay: totalOverloadPay,
+        overloadPayDetails: overloadPays.map(op => ({
+          type: op.notes || op.type || 'Additional Pay',
+          amount: Number(op.amount)
+        })),
+        loanDeductions: loanPayments,
+        loanDetails: loans.map(l => ({
+          amount: Number(l.amount),
+          monthlyPaymentPercent: Number(l.monthlyPaymentPercent),
+          payment: (Number(l.amount) * Number(l.monthlyPaymentPercent)) / 100,
+          purpose: l.purpose
+        })),
+        otherDeductions: totalDeductions,
+        otherDeductionDetails: deductions.map((d: any) => ({
+          type: d.deduction_types.name,
+          amount: Number(d.amount),
+          description: d.deduction_types.description || '',
+          isMandatory: false
+        })),
+        attendanceDeductions: 0,
+        attendanceDeductionDetails: [],
+        totalDeductions: totalDeductions + loanPayments,
+        netPay: netPay
       }
+
+      return {
+        payroll_entries_id: `PE-${user.users_id}-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`,
+        users_id: user.users_id,
+        periodStart: periodStart,
+        periodEnd: periodEnd,
+        basicSalary: basicSalary,
+        overtime: totalOverloadPay,
+        deductions: totalDeductions + loanPayments,
+        netPay: netPay,
+        status: 'PENDING' as any,
+        breakdownSnapshot: JSON.stringify(breakdownSnapshot),
+        createdAt: new Date(),
+        updatedAt: new Date()
+      }
+    })
+
+    if (entriesToCreate.length > 0) {
+      await prisma.payroll_entries.createMany({
+        data: entriesToCreate
+      })
     }
 
-    console.log(`✅ Successfully created ${createdCount} payroll entries`)
+    console.log(`✅ Successfully created ${entriesToCreate.length} payroll entries`)
 
     // Auto-archive all RELEASED payroll entries when generating new payroll
     // This ensures personnel only see the latest released payroll
