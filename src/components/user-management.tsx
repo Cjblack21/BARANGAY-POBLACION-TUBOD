@@ -836,6 +836,7 @@ export function UserManagement() {
                           onChange={(e) => setFormData({ ...formData, name: e.target.value })}
                           placeholder="e.g., Juan Dela Cruz"
                           className="mt-1.5"
+                          autoComplete="off"
                         />
                       </div>
                       <div className="col-span-2 sm:col-span-1">
@@ -849,6 +850,7 @@ export function UserManagement() {
                           onChange={(e) => setFormData({ ...formData, email: e.target.value })}
                           placeholder="e.g., juan.delacruz@example.com"
                           className="mt-1.5"
+                          autoComplete="off"
                         />
                       </div>
                     </div>
@@ -932,6 +934,7 @@ export function UserManagement() {
                             placeholder="Minimum 6 characters"
                             className="mt-1.5 pr-10"
                             required
+                            autoComplete="new-password"
                           />
                           <button
                             type="button"
