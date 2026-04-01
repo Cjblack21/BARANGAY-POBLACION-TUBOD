@@ -528,7 +528,14 @@ html, body { margin: 0 !important; padding: 0 !important; overflow: hidden !impo
   }
 
   // Show release confirmation modal
-  const showReleaseConfirmation = async () => {
+  const showReleaseConfirmation = async (targetBlgu?: 'Barangay Officials' | 'Barangay Staff' | any) => {
+    // Determine the target based on string strictly (ignoring React.MouseEvent)
+    if (typeof targetBlgu === 'string') {
+      setSelectedBlguRelease(targetBlgu)
+    } else {
+      setSelectedBlguRelease('')
+    }
+    
     // Fetch attendance deductions to show in modal
     try {
       const res = await fetch('/api/admin/attendance-deductions')
@@ -1976,7 +1983,7 @@ html, body { margin: 0 !important; padding: 0 !important; overflow: hidden !impo
               <div className="text-right flex-shrink-0">
                 {canReleaseOfficials ? (
                   <Button
-                    onClick={showReleaseConfirmation}
+                    onClick={() => showReleaseConfirmation('Barangay Officials')}
                     className="bg-green-600 hover:bg-green-700 text-white font-semibold py-6 px-6 text-lg shadow-sm"
                   >
                     <CheckCircle2 className="h-5 w-5 mr-2" />
@@ -2007,7 +2014,7 @@ html, body { margin: 0 !important; padding: 0 !important; overflow: hidden !impo
               <div className="text-right flex-shrink-0">
                 {canReleaseStaff ? (
                   <Button
-                    onClick={showReleaseConfirmation}
+                    onClick={() => showReleaseConfirmation('Barangay Staff')}
                     className="bg-green-600 hover:bg-green-700 text-white font-semibold py-6 px-6 text-lg shadow-sm"
                   >
                     <CheckCircle2 className="h-5 w-5 mr-2" />
