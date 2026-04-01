@@ -3898,9 +3898,6 @@ html, body { margin: 0 !important; padding: 0 !important; overflow: hidden !impo
             </div>
             <div>
               <DialogTitle className="text-2xl font-bold">Payroll Released Successfully!</DialogTitle>
-              <DialogDescription className="text-base text-muted-foreground mt-3">
-                Payslips are ready for {totalEmployees} staff.
-              </DialogDescription>
               {currentPeriod?.periodStart && currentPeriod?.periodEnd && (
                 <div className="text-sm text-muted-foreground mt-3 font-medium">
                   Period: {formatDateForDisplay(new Date(currentPeriod.periodStart))} — {formatDateForDisplay(new Date(currentPeriod.periodEnd))}
