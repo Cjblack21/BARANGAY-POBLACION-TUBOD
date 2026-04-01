@@ -601,33 +601,44 @@ html, body { margin: 0 !important; padding: 0 !important; overflow: hidden !impo
       setHasViewedNewestPayroll(false) // Reset when new payroll is released
       localStorage.setItem('hasNewArchivedPayroll', 'true') // Set sidebar notification
 
-      // Update payroll period settings with the new period dates
-      setPayrollPeriodStart(nextStart)
-      setPayrollPeriodEnd(nextEnd)
+      if (!selectedBlguRelease || selectedBlguRelease === '') {
+        // Update payroll period settings with the new period dates (Full Release)
+        setPayrollPeriodStart(nextStart)
+        setPayrollPeriodEnd(nextEnd)
+        
+        // Save the new period to localStorage for persistence
+        localStorage.setItem('payroll_period_start', nextStart)
+        localStorage.setItem('payroll_period_end', nextEnd)
+        
+        // Update current period to show the NEXT period (ready for new generation)
+        setCurrentPeriod({
+          periodStart: nextStart,
+          periodEnd: nextEnd,
+          type: currentPeriod?.type || 'Semi-Monthly',
+          status: 'Pending'
+        })
+        
+        // Clear current payroll entries since they're now archived
+        setPayrollEntries([])
+        
+        // Reset states for next generation
+        setHasGeneratedForSettings(false)
+        setTimeUntilRelease('')
+        setCanRelease(false)
+        setHasShownReleaseModal(false)
+        setHasAutoReleased(false)
+        
+        console.log('✅ Payroll released and archived! Ready to generate for next period:', { nextStart, nextEnd })
+      } else {
+        // Partial Release: Just refresh data to show one group as released
+        console.log(`✅ Partial release for ${selectedBlguRelease} successful. Keeping period for the other group.`)
+        await loadPayrollData(currentPeriod?.periodStart, currentPeriod?.periodEnd)
+      }
 
-      // Save the new period to localStorage for persistence
-      localStorage.setItem('payroll_period_start', nextStart)
-      localStorage.setItem('payroll_period_end', nextEnd)
-
-      // Update current period to show the NEXT period (ready for new generation)
-      setCurrentPeriod({
-        periodStart: nextStart,
-        periodEnd: nextEnd,
-        type: currentPeriod?.type || 'Semi-Monthly',
-        status: 'Pending'
-      })
-
-      // Clear current payroll entries since they're now archived
-      setPayrollEntries([])
-
-      // Reset states for next generation
-      setHasGeneratedForSettings(false)
-      setTimeUntilRelease('')
-      setCanRelease(false)
-      setHasShownReleaseModal(false)
-      setHasAutoReleased(false)
-
-      console.log('✅ Payroll released and archived! Ready to generate for next period:', { nextStart, nextEnd })
+      // Ensure the modal correctly shows the actual number of employees released
+      if (result.releasedCount) {
+        setTotalEmployees(result.releasedCount)
+      }
 
       // Load archived payrolls to get the newly created archive
       // Add a small delay to ensure the archive is created in the database
