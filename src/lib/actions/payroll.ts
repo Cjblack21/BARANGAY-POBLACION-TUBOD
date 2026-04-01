@@ -1196,20 +1196,50 @@ export async function releasePayrollWithAudit(
       console.log(`📋 Filtered to ${entriesToRelease.length} entries for BLGU: ${blgu}`)
     }
 
-    // PgBouncer-safe: Run all operations sequentially (no interactive transaction)
+    // PgBouncer-safe & Optimized: Batch fetch data to minimize DB round trips
+    console.log('📋 Fetching data for all entries to be released...')
+    
+    const userIds = entriesToRelease.map(e => e.users_id)
+    const entryIds = entriesToRelease.map(e => e.payroll_entries_id)
+
+    const [allDeductions, allCurrentEntries, allLoans] = await Promise.all([
+      prisma.deductions.findMany({
+        where: { users_id: { in: userIds }, archivedAt: null },
+        include: { deduction_types: { select: { name: true, description: true, isMandatory: true } } }
+      }),
+      prisma.payroll_entries.findMany({
+        where: { payroll_entries_id: { in: entryIds } }
+      }),
+      prisma.loans.findMany({
+        where: { users_id: { in: userIds }, status: 'ACTIVE', archivedAt: null }
+      })
+    ])
+
+    // Group data by user/entry
+    const deductionsByUser = allDeductions.reduce((acc, d) => {
+      acc[d.users_id] = acc[d.users_id] || []
+      acc[d.users_id].push(d)
+      return acc
+    }, {} as Record<string, typeof allDeductions>)
+
+    const loansByUser = allLoans.reduce((acc, l) => {
+      acc[l.users_id] = acc[l.users_id] || []
+      acc[l.users_id].push(l)
+      return acc
+    }, {} as Record<string, typeof allLoans>)
+
+    const entriesById = allCurrentEntries.reduce((acc, e) => {
+      acc[e.payroll_entries_id] = e
+      return acc
+    }, {} as Record<string, typeof allCurrentEntries[0]>)
+
     console.log('📋 Updating breakdown snapshots with current deductions...')
 
-    for (const entry of entriesToRelease) {
-      const allCurrentDeductions = await prisma.deductions.findMany({
-        where: { users_id: entry.users_id, archivedAt: null },
-        include: {
-          deduction_types: { select: { name: true, description: true, isMandatory: true } }
-        }
-      })
-
-      const currentEntry = await prisma.payroll_entries.findUnique({
-        where: { payroll_entries_id: entry.payroll_entries_id }
-      })
+    // Parallelize updates instead of sequential await
+    await Promise.all(entriesToRelease.map(async (entry) => {
+      const personalDeductions = deductionsByUser[entry.users_id] || []
+      const currentEntry = entriesById[entry.payroll_entries_id]
+      const activeLoans = loansByUser[entry.users_id] || []
 
       let breakdownData: any = {}
       if (currentEntry?.breakdownSnapshot) {
@@ -1222,12 +1252,7 @@ export async function releasePayrollWithAudit(
         }
       }
 
-      const personalDeductions = allCurrentDeductions
       const totalPersonalDeductions = personalDeductions.reduce((sum, d) => sum + Number(d.amount), 0)
-
-      const activeLoans = await prisma.loans.findMany({
-        where: { users_id: entry.users_id, status: 'ACTIVE', archivedAt: null }
-      })
 
       const totalLoanPayments = activeLoans.reduce((sum, loan) => {
         return sum + (Number(loan.amount) * Number(loan.monthlyPaymentPercent)) / 100
@@ -1268,7 +1293,7 @@ export async function releasePayrollWithAudit(
       })
 
       console.log(`  📋 Updated ${entry.users_id}: Deductions: ₱${totalPersonalDeductions}, Loans: ₱${totalLoanPayments}, Net Pay: ₱${newNetPay}`)
-    }
+    }))
 
     // Archive old RELEASED payrolls from before this period
     const archivedResult = await prisma.payroll_entries.updateMany({
@@ -1291,12 +1316,8 @@ export async function releasePayrollWithAudit(
     console.log(`✅ Released ${updateResult.count} payroll entries`)
 
     // Update loan balances for released users
-    const releasedUserIds = entriesToRelease.map(e => e.users_id)
-    const activeLoansAll = await prisma.loans.findMany({
-      where: { users_id: { in: releasedUserIds }, status: 'ACTIVE', archivedAt: null }
-    })
-
-    for (const loan of activeLoansAll) {
+    console.log(`💰 Updating ${allLoans.length} active loans...`)
+    await Promise.all(allLoans.map(async (loan) => {
       const payment = (Number(loan.amount) * Number(loan.monthlyPaymentPercent)) / 100
       const newBalance = Math.max(0, Number(loan.balance) - payment)
       const isFullyPaid = newBalance <= 0
@@ -1308,108 +1329,48 @@ export async function releasePayrollWithAudit(
           archivedAt: isFullyPaid ? new Date() : null
         }
       })
-      console.log(`💳 Loan ${loan.loans_id}: ₱${Number(loan.balance).toFixed(2)} → ₱${newBalance.toFixed(2)}${isFullyPaid ? ' COMPLETED' : ''}`)
-    }
+      console.log(`💳 Loan ${loan.loans_id}: updated to ₱${newBalance.toFixed(2)}${isFullyPaid ? ' COMPLETED' : ''}`)
+    }))
 
-    // Archive non-mandatory deductions after payroll is released
-    // This moves them to archived section so they don't appear in future payrolls
     console.log('📦 Archiving non-mandatory deductions from released payroll...')
+    
+    // Using already fetched allDeductions!
+    const nonMandatoryIds = allDeductions.filter(d => 
+      !d.deduction_types.isMandatory &&
+      !d.deduction_types.name.includes('Late') &&
+      !d.deduction_types.name.includes('Absent') &&
+      !d.deduction_types.name.includes('Early') &&
+      !d.deduction_types.name.includes('Partial') &&
+      !d.deduction_types.name.includes('Tardiness') &&
+      !d.deductions_id.startsWith('auto-')
+    ).map(d => d.deductions_id)
 
-    for (const entry of entriesToRelease) {
-      // Get all non-mandatory deductions for this user in this period
-      const userDeductions = await prisma.deductions.findMany({
-        where: {
-          users_id: entry.users_id,
-          archivedAt: null,
-          OR: [
-            {
-              deduction_types: {
-                isMandatory: false
-              },
-              appliedAt: {
-                gte: startOfDayPH,
-                lte: endOfDayPH
-              }
-            }
-          ]
-        },
-        include: {
-          deduction_types: {
-            select: {
-              name: true,
-              isMandatory: true
-            }
-          }
-        }
+    if (nonMandatoryIds.length > 0) {
+      await prisma.deductions.updateMany({
+        where: { deductions_id: { in: nonMandatoryIds } },
+        data: { archivedAt: new Date() }
       })
-
-      const nonMandatory = userDeductions.filter((d: any) =>
-        !d.deduction_types.isMandatory &&
-        !d.deduction_types.name.includes('Late') &&
-        !d.deduction_types.name.includes('Absent') &&
-        !d.deduction_types.name.includes('Early') &&
-        !d.deduction_types.name.includes('Partial') &&
-        !d.deduction_types.name.includes('Tardiness')
-      )
-
-      if (nonMandatory.length > 0) {
-        const idsToArchive = nonMandatory
-          .map((d: any) => d.deductions_id)
-          .filter((id: any) => !id.startsWith('auto-'))
-
-        if (idsToArchive.length > 0) {
-          console.log(`📦 Archiving ${idsToArchive.length} non-mandatory deductions for user ${entry.users_id}:`)
-          nonMandatory.forEach((d: any) => {
-            console.log(`   - ${d.deduction_types.name}: ₱${d.amount}`)
-          })
-
-          // ARCHIVE the deductions by setting archivedAt timestamp
-          await prisma.deductions.updateMany({
-            where: {
-              deductions_id: { in: idsToArchive }
-            },
-            data: {
-              archivedAt: new Date()
-            }
-          })
-          console.log(`📦 ✅ Archived ${idsToArchive.length} non-mandatory deductions for user ${entry.users_id}`)
-        }
-      }
+      console.log(`📦 ✅ Archived ${nonMandatoryIds.length} non-mandatory deductions`)
     }
 
-    // Archive ALL attendance-related deductions after payroll is released
-    // This prevents attendance deductions from stacking up across multiple payroll periods
     console.log('📦 Archiving attendance-related deductions from released payroll...')
-
-    for (const entry of entriesToRelease) {
-      // Archive ALL attendance deductions for this user (regardless of mandatory status or date)
-      const attendanceArchiveResult = await prisma.deductions.updateMany({
-        where: {
-          users_id: entry.users_id,
-          archivedAt: null,
-          deduction_types: {
-            OR: [
-              { name: { contains: 'Attendance' } },
-              { name: { contains: 'Late' } },
-              { name: { contains: 'Absent' } },
-              { name: { contains: 'Tardiness' } },
-              { name: { contains: 'Early' } }
-            ]
-          }
-          // ❌ REMOVED DATE FILTER - Archive ALL attendance deductions, not just those in the period
-          // This ensures attendance deductions don't carry over to next payroll
-        },
-        data: {
-          archivedAt: new Date()
+    const attendanceArchiveResult = await prisma.deductions.updateMany({
+      where: {
+        users_id: { in: userIds },
+        archivedAt: null,
+        deduction_types: {
+          OR: [
+            { name: { contains: 'Attendance' } },
+            { name: { contains: 'Late' } },
+            { name: { contains: 'Absent' } },
+            { name: { contains: 'Tardiness' } },
+            { name: { contains: 'Early' } }
+          ]
         }
-      })
-
-      if (attendanceArchiveResult.count > 0) {
-        console.log(`📦 ✅ Archived ${attendanceArchiveResult.count} attendance deduction(s) for user ${entry.users_id}`)
-      } else {
-        console.log(`📦 ℹ️ No attendance deductions to archive for user ${entry.users_id}`)
-      }
-    }
+      },
+      data: { archivedAt: new Date() }
+    })
+    console.log(`📦 ✅ Archived ${attendanceArchiveResult.count} attendance deductions`)
 
     // Send notification to all personnel whose payroll was released
     if (entriesToRelease.length > 0) {
@@ -1417,19 +1378,15 @@ export async function releasePayrollWithAudit(
       const periodStart = new Date(entriesToRelease[0].periodStart).toLocaleDateString()
       const periodEnd = new Date(entriesToRelease[0].periodEnd).toLocaleDateString()
 
-      // Send notification to each personnel
-      for (const entry of entriesToRelease) {
-        try {
-          await createNotification({
-            title: 'Payroll Released',
-            message: `Your payroll for ${periodStart} - ${periodEnd} has been released. View your payslip now.`,
-            type: 'success',
-            userId: entry.users_id
-          })
-        } catch (notifError) {
-          console.error(`Failed to create notification for user ${entry.users_id}:`, notifError)
-        }
-      }
+      console.log(`✅ Sending notifications to ${entriesToRelease.length} personnel...`)
+      await Promise.all(entriesToRelease.map(entry => 
+        createNotification({
+          title: 'Payroll Released',
+          message: `Your payroll for ${periodStart} - ${periodEnd} has been released. View your payslip now.`,
+          type: 'success',
+          userId: entry.users_id
+        }).catch(err => console.error(err))
+      ))
       console.log(`✅ Sent payroll release notifications to ${entriesToRelease.length} personnel`)
 
       // Send notification to admin
