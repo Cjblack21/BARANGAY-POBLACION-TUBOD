@@ -49,6 +49,7 @@ import {
   Archive,
   Trash2,
   User,
+  Users,
   Upload,
   Lock,
   Shield,
@@ -1105,19 +1106,19 @@ export function UserManagement() {
                     <SelectContent>
                       <SelectItem value="ALL">
                         <div className="flex items-center gap-2">
-                          <span>👥</span>
+                          <Users className="h-4 w-4 text-slate-500" />
                           <span>All Staff & Officials</span>
                         </div>
                       </SelectItem>
                       <SelectItem value="BARANGAY_OFFICIALS">
                         <div className="flex items-center gap-2">
-                          <span>🏛️</span>
+                          <Landmark className="h-4 w-4 text-blue-600" />
                           <span>Barangay Officials</span>
                         </div>
                       </SelectItem>
                       <SelectItem value="BARANGAY_STAFF">
                         <div className="flex items-center gap-2">
-                          <span>👤</span>
+                          <User className="h-4 w-4 text-amber-500" />
                           <span>Barangay Staff</span>
                         </div>
                       </SelectItem>
