@@ -1196,240 +1196,120 @@ export async function releasePayrollWithAudit(
       console.log(`📋 Filtered to ${entriesToRelease.length} entries for BLGU: ${blgu}`)
     }
 
-    // Atomically: release current period entries and persist next period in AttendanceSettings
-    const updateResult = await prisma.$transaction(async (tx) => {
-      // FIRST: Update ALL deductions in the breakdown snapshot (including personal deductions added after generation)
-      console.log('📋 Updating breakdown snapshots with current deductions...')
+    // PgBouncer-safe: Run all operations sequentially (no interactive transaction)
+    console.log('📋 Updating breakdown snapshots with current deductions...')
 
-      for (const entry of entriesToRelease) {
-        // Get ALL current non-archived deductions for this user (both attendance and personal)
-        const allCurrentDeductions = await tx.deductions.findMany({
-          where: {
-            users_id: entry.users_id,
-            archivedAt: null
-          },
-          include: {
-            deduction_types: {
-              select: {
-                name: true,
-                description: true,
-                isMandatory: true
-              }
-            }
-          }
-        })
-
-        // Get the current payroll entry to access existing breakdown
-        const currentEntry = await tx.payroll_entries.findUnique({
-          where: { payroll_entries_id: entry.payroll_entries_id }
-        })
-
-        // Parse existing breakdown snapshot or create new one
-        let breakdownData: any = {}
-        if (currentEntry?.breakdownSnapshot) {
-          try {
-            breakdownData = typeof currentEntry.breakdownSnapshot === 'string'
-              ? JSON.parse(currentEntry.breakdownSnapshot)
-              : currentEntry.breakdownSnapshot
-          } catch (e) {
-            console.error('Failed to parse existing breakdown snapshot:', e)
-          }
-        }
-
-        // ⚠️ ATTENDANCE DEDUCTION AUTO-CALCULATION DISABLED
-        // All deductions are treated as personal/manual deductions
-        // No automatic attendance-based deductions are included
-        const attendanceDeductions: any[] = []
-        const personalDeductions = allCurrentDeductions
-
-        const totalAttendanceDeductions = 0
-        const totalPersonalDeductions = personalDeductions.reduce((sum, d) => sum + Number(d.amount), 0)
-        const totalAllDeductions = totalPersonalDeductions
-
-        // Get loans
-        const activeLoans = await tx.loans.findMany({
-          where: {
-            users_id: entry.users_id,
-            status: 'ACTIVE',
-            archivedAt: null
-          }
-        })
-
-        const totalLoanPayments = activeLoans.reduce((sum, loan) => {
-          const monthlyPayment = (Number(loan.amount) * Number(loan.monthlyPaymentPercent)) / 100
-          return sum + monthlyPayment
-        }, 0)
-
-        // Update breakdown with non-attendance deductions only (mandatory + other)
-        // Attendance deductions are stored separately to avoid duplicates
-        breakdownData.deductionDetails = personalDeductions.map(d => ({
-          id: d.deductions_id,
-          type: d.deduction_types.name,
-          amount: Number(d.amount),
-          description: d.deduction_types.description || '',
-          appliedAt: d.appliedAt.toISOString(),
-          notes: d.notes,
-          isMandatory: d.deduction_types.isMandatory
-        }))
-
-        // Add attendance deduction details separately for payslip display
-        breakdownData.attendanceDeductionDetails = attendanceDeductions.map(d => ({
-          type: d.deduction_types.name,
-          amount: Number(d.amount),
-          description: d.deduction_types.description || '',
-          appliedAt: d.appliedAt.toISOString(),
-          notes: d.notes
-        }))
-
-        // Add loan details for payslip display
-        breakdownData.loanDetails = activeLoans.map(loan => ({
-          amount: Number(loan.amount),
-          monthlyPaymentPercent: Number(loan.monthlyPaymentPercent),
-          payment: (Number(loan.amount) * Number(loan.monthlyPaymentPercent)) / 100,
-          purpose: loan.purpose,
-          balance: Number(loan.balance)
-        }))
-
-        breakdownData.databaseDeductions = totalPersonalDeductions
-        breakdownData.attendanceDeductions = includeAttendanceDeductions ? totalAttendanceDeductions : 0
-        breakdownData.loanPayments = totalLoanPayments
-
-        // Calculate total deductions based on whether attendance deductions are included
-        const actualDeductionsToApply = includeAttendanceDeductions
-          ? (totalAttendanceDeductions + totalPersonalDeductions)
-          : totalPersonalDeductions
-        breakdownData.totalDeductions = actualDeductionsToApply + totalLoanPayments
-
-        // Recalculate net pay based on current breakdown
-        const grossSalary = Number(currentEntry?.basicSalary || 0) + Number(currentEntry?.overtime || 0)
-        const newNetPay = grossSalary - breakdownData.totalDeductions
-
-        // Update the payroll entry with updated breakdown and recalculated totals
-        await tx.payroll_entries.update({
-          where: { payroll_entries_id: entry.payroll_entries_id },
-          data: {
-            deductions: breakdownData.totalDeductions,
-            netPay: newNetPay,
-            breakdownSnapshot: JSON.stringify(breakdownData)
-          }
-        })
-
-        console.log(`  📋 Updated ${entry.users_id}: Personal Deductions: ₱${totalPersonalDeductions}, Attendance: ₱${totalAttendanceDeductions}, Loans: ₱${totalLoanPayments}, Net Pay: ₱${newNetPay}`)
-      }
-
-      // SECOND: Check what entries exist for this period
-      const existingEntries = await tx.payroll_entries.findMany({
-        where: {
-          periodStart: { gte: startOfDayPH },
-          periodEnd: { lte: endOfDayPH }
-        },
-        select: {
-          payroll_entries_id: true,
-          users_id: true,
-          status: true,
-          periodStart: true,
-          periodEnd: true
+    for (const entry of entriesToRelease) {
+      const allCurrentDeductions = await prisma.deductions.findMany({
+        where: { users_id: entry.users_id, archivedAt: null },
+        include: {
+          deduction_types: { select: { name: true, description: true, isMandatory: true } }
         }
       })
-      console.log(`📋 Found ${existingEntries.length} payroll entries for period ${startOfDayPH.toISOString()} to ${endOfDayPH.toISOString()}`)
-      console.log(`📋 Entry statuses:`, existingEntries.map(e => e.status))
 
-      // SECOND: Auto-archive all previous RELEASED payrolls (before releasing new ones)
-      const archivedResult = await tx.payroll_entries.updateMany({
-        where: {
-          status: 'RELEASED',
-          // Archive payrolls from periods before the current one
-          periodEnd: { lt: startOfDayPH }
-        },
+      const currentEntry = await prisma.payroll_entries.findUnique({
+        where: { payroll_entries_id: entry.payroll_entries_id }
+      })
+
+      let breakdownData: any = {}
+      if (currentEntry?.breakdownSnapshot) {
+        try {
+          breakdownData = typeof currentEntry.breakdownSnapshot === 'string'
+            ? JSON.parse(currentEntry.breakdownSnapshot)
+            : currentEntry.breakdownSnapshot
+        } catch (e) {
+          console.error('Failed to parse breakdown snapshot:', e)
+        }
+      }
+
+      const personalDeductions = allCurrentDeductions
+      const totalPersonalDeductions = personalDeductions.reduce((sum, d) => sum + Number(d.amount), 0)
+
+      const activeLoans = await prisma.loans.findMany({
+        where: { users_id: entry.users_id, status: 'ACTIVE', archivedAt: null }
+      })
+
+      const totalLoanPayments = activeLoans.reduce((sum, loan) => {
+        return sum + (Number(loan.amount) * Number(loan.monthlyPaymentPercent)) / 100
+      }, 0)
+
+      breakdownData.deductionDetails = personalDeductions.map(d => ({
+        id: d.deductions_id,
+        type: d.deduction_types.name,
+        amount: Number(d.amount),
+        description: d.deduction_types.description || '',
+        appliedAt: d.appliedAt.toISOString(),
+        notes: d.notes,
+        isMandatory: d.deduction_types.isMandatory
+      }))
+      breakdownData.attendanceDeductionDetails = []
+      breakdownData.loanDetails = activeLoans.map(loan => ({
+        amount: Number(loan.amount),
+        monthlyPaymentPercent: Number(loan.monthlyPaymentPercent),
+        payment: (Number(loan.amount) * Number(loan.monthlyPaymentPercent)) / 100,
+        purpose: loan.purpose,
+        balance: Number(loan.balance)
+      }))
+      breakdownData.databaseDeductions = totalPersonalDeductions
+      breakdownData.attendanceDeductions = 0
+      breakdownData.loanPayments = totalLoanPayments
+      breakdownData.totalDeductions = totalPersonalDeductions + totalLoanPayments
+
+      const grossSalary = Number(currentEntry?.basicSalary || 0) + Number(currentEntry?.overtime || 0)
+      const newNetPay = grossSalary - breakdownData.totalDeductions
+
+      await prisma.payroll_entries.update({
+        where: { payroll_entries_id: entry.payroll_entries_id },
         data: {
-          status: 'ARCHIVED',
-          archivedAt: new Date()
+          deductions: breakdownData.totalDeductions,
+          netPay: newNetPay,
+          breakdownSnapshot: JSON.stringify(breakdownData)
         }
       })
 
-      if (archivedResult.count > 0) {
-        console.log(`📦 Auto-archived ${archivedResult.count} previous RELEASED payroll entries`)
-      }
+      console.log(`  📋 Updated ${entry.users_id}: Deductions: ₱${totalPersonalDeductions}, Loans: ₱${totalLoanPayments}, Net Pay: ₱${newNetPay}`)
+    }
 
-      // THEN: Release all pending entries for current period
-      const res = await tx.payroll_entries.updateMany({
-        where: {
-          periodStart: { gte: startOfDayPH },
-          periodEnd: { lte: endOfDayPH },
-          status: { in: ['PENDING'] }
-        },
-        data: {
-          status: 'RELEASED',
-          releasedAt: new Date()
-        }
-      })
-
-      console.log(`✅ Released ${res.count} payroll entries (changed status from PENDING to RELEASED)`)
-
-      // Get user IDs from released entries to ensure we only update their loans
-      const releasedUserIds = entriesToRelease.map(e => e.users_id)
-      console.log(`📋 Updating loans for ${releasedUserIds.length} users:`, releasedUserIds)
-
-      // Update loan balances for all users with active loans who are in this payroll
-      const activeLoans = await tx.loans.findMany({
-        where: {
-          users_id: { in: releasedUserIds },
-          status: 'ACTIVE',
-          archivedAt: null
-        }
-      })
-
-      console.log(`💰 Found ${activeLoans.length} active loans to update`)
-
-      // Use full monthly salary
-      const periodDays = Math.floor((endOfDayPH.getTime() - startOfDayPH.getTime()) / (1000 * 60 * 60 * 24)) + 1
-      const payrollFactor = 1.0
-
-      // Update each active loan
-      for (const loan of activeLoans) {
-        const loanAmount = Number(loan.amount)
-        const monthlyPaymentPercent = Number(loan.monthlyPaymentPercent)
-        const monthlyPayment = (loanAmount * monthlyPaymentPercent) / 100
-        const paymentAmount = monthlyPayment * payrollFactor
-
-        // Calculate new balance
-        const currentBalance = Number(loan.balance)
-        const newBalance = Math.max(0, currentBalance - paymentAmount)
-
-        console.log(`💳 Processing loan ${loan.loans_id}:`)
-        console.log(`   User: ${loan.users_id}`)
-        console.log(`   Original Amount: ₱${loanAmount.toFixed(2)}`)
-        console.log(`   Current Balance: ₱${currentBalance.toFixed(2)}`)
-        console.log(`   Monthly Payment %: ${monthlyPaymentPercent}%`)
-        console.log(`   Payment Amount: ₱${paymentAmount.toFixed(2)}`)
-        console.log(`   New Balance: ₱${newBalance.toFixed(2)}`)
-
-        // Check if loan is fully paid
-        const isFullyPaid = newBalance <= 0
-
-        // Update loan - auto-archive when completed
-        const updatedLoan = await tx.loans.update({
-          where: { loans_id: loan.loans_id },
-          data: {
-            balance: newBalance,
-            status: isFullyPaid ? 'COMPLETED' : 'ACTIVE',
-            archivedAt: isFullyPaid ? new Date() : null
-          }
-        })
-
-        if (isFullyPaid) {
-          console.log(`🎉 Loan ${loan.loans_id} COMPLETED and AUTO-ARCHIVED: ₱${currentBalance.toFixed(2)} → ₱0.00 (final payment: ₱${paymentAmount.toFixed(2)})`)
-        } else {
-          console.log(`✅ Updated loan ${loan.loans_id}: ₱${currentBalance.toFixed(2)} → ₱${newBalance.toFixed(2)} (paid: ₱${paymentAmount.toFixed(2)})`)
-        }
-        console.log(`   Database updated balance: ₱${Number(updatedLoan.balance).toFixed(2)}`)
-      }
-
-      // Period management removed - attendance settings no longer used
-      // Next period will be automatically determined on next payroll generation
-
-      return res
+    // Archive old RELEASED payrolls from before this period
+    const archivedResult = await prisma.payroll_entries.updateMany({
+      where: { status: 'RELEASED', periodEnd: { lt: startOfDayPH } },
+      data: { status: 'ARCHIVED', archivedAt: new Date() }
     })
+    if (archivedResult.count > 0) {
+      console.log(`📦 Auto-archived ${archivedResult.count} previous RELEASED payroll entries`)
+    }
+
+    // Release all PENDING entries for this period
+    const updateResult = await prisma.payroll_entries.updateMany({
+      where: {
+        periodStart: { gte: startOfDayPH },
+        periodEnd: { lte: endOfDayPH },
+        status: 'PENDING'
+      },
+      data: { status: 'RELEASED', releasedAt: new Date() }
+    })
+    console.log(`✅ Released ${updateResult.count} payroll entries`)
+
+    // Update loan balances for released users
+    const releasedUserIds = entriesToRelease.map(e => e.users_id)
+    const activeLoansAll = await prisma.loans.findMany({
+      where: { users_id: { in: releasedUserIds }, status: 'ACTIVE', archivedAt: null }
+    })
+
+    for (const loan of activeLoansAll) {
+      const payment = (Number(loan.amount) * Number(loan.monthlyPaymentPercent)) / 100
+      const newBalance = Math.max(0, Number(loan.balance) - payment)
+      const isFullyPaid = newBalance <= 0
+      await prisma.loans.update({
+        where: { loans_id: loan.loans_id },
+        data: {
+          balance: newBalance,
+          status: isFullyPaid ? 'COMPLETED' : 'ACTIVE',
+          archivedAt: isFullyPaid ? new Date() : null
+        }
+      })
+      console.log(`💳 Loan ${loan.loans_id}: ₱${Number(loan.balance).toFixed(2)} → ₱${newBalance.toFixed(2)}${isFullyPaid ? ' COMPLETED' : ''}`)
+    }
 
     // Archive non-mandatory deductions after payroll is released
     // This moves them to archived section so they don't appear in future payrolls
