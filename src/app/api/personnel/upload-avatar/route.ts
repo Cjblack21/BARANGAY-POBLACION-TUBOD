@@ -2,7 +2,6 @@ import { NextResponse } from "next/server"
 import { getServerSession } from "next-auth"
 import { authOptions } from "@/lib/auth"
 import { prisma } from "@/lib/prisma"
-import { writeFile, mkdir } from "fs/promises"
 import path from "path"
 
 export async function POST(request: Request) {
@@ -19,59 +18,53 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "No file uploaded" }, { status: 400 })
     }
 
-    // Validate file type
     if (!file.type.startsWith("image/")) {
       return NextResponse.json({ error: "File must be an image" }, { status: 400 })
     }
 
-    // Validate file size (35MB)
     if (file.size > 35 * 1024 * 1024) {
       return NextResponse.json({ error: "File size must be less than 35MB" }, { status: 400 })
     }
 
-    // Create unique filename
     const bytes = await file.arrayBuffer()
-    const buffer = Buffer.from(bytes)
     const timestamp = Date.now()
-    const filename = `${session.user.id}_${timestamp}${path.extname(file.name)}`
+    const ext = path.extname(file.name)
+    const filename = `${session.user.id}_${timestamp}${ext}`
+    const storagePath = `avatars/${filename}`
 
-    // Ensure uploads directory exists
-    const uploadsDir = path.join(process.cwd(), "public", "uploads", "avatars")
-    try {
-      await mkdir(uploadsDir, { recursive: true })
-    } catch (mkdirError) {
-      console.error("Failed to create uploads directory:", mkdirError)
-      return NextResponse.json({ error: "Server storage error: could not create upload directory" }, { status: 500 })
+    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!
+    const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY!
+
+    // Upload via Supabase Storage REST API
+    const uploadRes = await fetch(
+      `${supabaseUrl}/storage/v1/object/uploads/${storagePath}`,
+      {
+        method: "POST",
+        headers: {
+          "Authorization": `Bearer ${serviceKey}`,
+          "Content-Type": file.type,
+          "x-upsert": "true",
+        },
+        body: bytes,
+      }
+    )
+
+    if (!uploadRes.ok) {
+      const err = await uploadRes.text()
+      console.error("Supabase upload error:", err)
+      return NextResponse.json({ error: "Failed to upload image" }, { status: 500 })
     }
 
-    // Save file
-    const filepath = path.join(uploadsDir, filename)
-    await writeFile(filepath, buffer)
+    const publicUrl = `${supabaseUrl}/storage/v1/object/public/uploads/${storagePath}`
 
-    const avatarUrl = `/uploads/avatars/${filename}`
-
-    // Update user avatar in database
     await prisma.users.update({
       where: { users_id: session.user.id },
-      data: { avatar: avatarUrl },
+      data: { avatar: publicUrl }
     })
 
-    return NextResponse.json({
-      message: "Avatar uploaded successfully",
-      avatarUrl
-    })
+    return NextResponse.json({ message: "Avatar uploaded successfully", avatarUrl: publicUrl })
   } catch (error) {
     console.error("Error uploading avatar:", error)
-    return NextResponse.json(
-      { error: "Failed to upload avatar" },
-      { status: 500 }
-    )
+    return NextResponse.json({ error: "Failed to upload avatar" }, { status: 500 })
   }
-}
-export const config = {
-  api: {
-    bodyParser: {
-      sizeLimit: '40mb',
-    },
-  },
 }
