@@ -151,17 +151,17 @@ export function generatePayslipHTML(
             ` : ''}
           </div>
           <!-- Center text -->
-          <div style="text-align: center; flex: 1;">
-            <div style="font-weight: bold; font-size: 12px; margin-bottom: 2px;">
+          <div style="text-align: center; flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center;">
+            <div style="font-weight: bold; font-size: 12px; margin-bottom: 2px; text-align: center; width: 100%;">
               ${headerSettings?.schoolName || 'BARANGAY POBLACION TUBOD'}
             </div>
-            <div style="font-size: 12px; color: #666; margin-bottom: 1px;">
+            <div style="font-size: 12px; color: #666; margin-bottom: 1px; text-align: center; width: 100%;">
               ${headerSettings?.schoolAddress || ''}
             </div>
-            <div style="font-size: 12px; color: #666; margin-bottom: 2px;">
+            <div style="font-size: 12px; color: #666; margin-bottom: 2px; text-align: center; width: 100%;">
               ${headerSettings?.systemName || 'Payroll Management System'}
             </div>
-            <div style="font-weight: bold; font-size: 12px; letter-spacing: 2px;">
+            <div style="font-weight: bold; font-size: 12px; letter-spacing: 2px; text-align: center; width: 100%;">
               HONORARIUM
             </div>
           </div>
@@ -307,7 +307,7 @@ export function generatePayslipHTML(
         </div>
 
         <!-- Signatures -->
-        <div style="margin-top: 4px; display: flex; justify-content: space-around; align-items: flex-end; gap: 12px; padding-top: 6px;">
+        <div style="margin-top: auto; display: flex; justify-content: space-around; align-items: flex-end; gap: 12px; padding-top: 6px; padding-bottom: 8px;">
           <div style="flex: 1; text-align: center; font-size: 12px;">
             <div style="border-top: 1px solid #000; margin: 10px 6px 2px 6px;"></div>
             <div style="font-weight: bold; font-size: 12px;">EMMA L. MACTAO</div>
