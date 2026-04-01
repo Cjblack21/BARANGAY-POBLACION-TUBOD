@@ -10,30 +10,38 @@ const prisma = new PrismaClient({
 })
 
 async function main() {
-    console.log('🗑️  Deleting old admin accounts...')
+    console.log('🗑️  Cleaning up old admin accounts...')
 
-    // Delete old accounts by email
-    const deleted = await prisma.users.deleteMany({
+    // Delete old admin accounts
+    await prisma.users.deleteMany({
         where: {
             email: {
-                in: ['adminpoblacion@gmail.com', 'Adminpoblacion@pms.com', 'adminpoblacion@pms.com']
+                in: [
+                    'adminpoblacion@gmail.com',
+                    'Adminpoblacion@pms.com',
+                    'adminpoblacion@pms.com',
+                    'Adminpob@pms.com',
+                    'adminpob@pms.com',
+                ]
             }
         }
-    })
-    console.log(`✅ Deleted ${deleted.count} old account(s)`)
+    }).catch(() => {})
 
-    // Also clean up any account with ID 1
+    await prisma.users.deleteMany({
+        where: { users_id: '00001' }
+    }).catch(() => {})
+
     await prisma.users.deleteMany({
         where: { users_id: '1' }
-    }).catch(() => {}) // ignore if not found
+    }).catch(() => {})
 
-    console.log('🔧 Creating fresh admin account...')
+    console.log('🔧 Creating new admin account...')
     const hashedPassword = await bcrypt.hash('admin123', 12)
 
-    const admin = await prisma.users.create({
+    await prisma.users.create({
         data: {
-            users_id: '1',
-            email: 'Adminpoblacion@pms.com',
+            users_id: '00001',
+            email: 'Adminpob@pms.com',
             password: hashedPassword,
             name: 'Admin Poblacion',
             role: 'ADMIN',
@@ -43,10 +51,9 @@ async function main() {
     })
 
     console.log('✅ Admin account created!')
-    console.log('   Email:    Adminpoblacion@pms.com')
+    console.log('   Email:    Adminpob@pms.com')
     console.log('   Password: admin123')
-    console.log('   ID:       1')
-    console.log('   Name:     Admin Poblacion')
+    console.log('   ID:       00001')
 }
 
 main()

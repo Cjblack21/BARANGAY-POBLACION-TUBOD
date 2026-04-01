@@ -1013,13 +1013,12 @@ export async function releasePayroll(entryIds: string[]): Promise<{
       }
     }
 
-    // Fallback: update any remaining entries without snapshot
+    // Update ALL selected entries to RELEASED (whether or not they have a snapshot)
     await prisma.payroll_entries.updateMany({
       where: {
         payroll_entries_id: {
           in: entryIds
-        },
-        breakdownSnapshot: null
+        }
       },
       data: {
         status: 'RELEASED',
