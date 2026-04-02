@@ -117,37 +117,10 @@ export const authOptions: NextAuthOptions = {
       return true // Allow other providers (credentials)
     },
     async jwt({ token, user, account, profile, trigger }) {
-      console.log('JWT callback called:', {
-        hasAccount: !!account,
-        provider: account?.provider,
-        hasProfile: !!profile,
-        hasUser: !!user,
-        trigger,
-        existingPicture: token.picture
-      })
-
-      // Always refresh avatar from database on every request
-      if (token.userId) {
-        try {
-          const freshUser = await prisma.users.findUnique({
-            where: { users_id: token.userId as string },
-            select: { avatar: true }
-          })
-          if (freshUser) {
-            token.avatar = freshUser.avatar
-          }
-        } catch (error) {
-          console.error("Error refreshing avatar:", error)
-        }
-      }
-
+      // Only hit the DB on initial sign-in or when explicitly triggered
       if (account?.provider === "google" && profile) {
         const googleProfile = profile as any
-        console.log('Processing Google OAuth user:', googleProfile.email)
-        console.log('Google profile picture URL:', googleProfile.picture)
-        console.log('Full Google profile:', googleProfile)
 
-        // Check if user exists in database with timeout
         try {
           const existingUser = await Promise.race([
             prisma.users.findUnique({
@@ -159,17 +132,11 @@ export const authOptions: NextAuthOptions = {
           ]) as any
 
           if (existingUser) {
-            console.log('Existing user found:', existingUser.users_id, existingUser.role)
-            // User exists, use their data
             token.role = existingUser.role
             token.userId = existingUser.users_id
             token.avatar = existingUser.avatar
-            // Still keep the picture from Google for display
             token.picture = googleProfile.picture
           } else {
-            console.log('New user, setting up for account setup')
-            console.log('Storing picture URL:', googleProfile.picture)
-            // New user, mark as needing setup
             token.role = "SETUP_REQUIRED"
             token.email = googleProfile.email
             token.name = googleProfile.name
@@ -177,35 +144,33 @@ export const authOptions: NextAuthOptions = {
           }
         } catch (error) {
           console.error("Error checking user in JWT callback:", error)
-          // Fallback to setup required to prevent auth failure
           token.role = "SETUP_REQUIRED"
           token.email = googleProfile.email
           token.name = googleProfile.name
           token.picture = googleProfile.picture
         }
       } else if (user) {
-        console.log('Processing credentials user:', user.id, user.role)
+        // Credentials sign-in — store user data in token once
         token.role = user.role
         token.userId = user.id
         token.avatar = user.avatar
+      } else if (trigger === "update" && token.userId) {
+        // Only refresh avatar when explicitly triggered (e.g. profile update)
+        try {
+          const freshUser = await prisma.users.findUnique({
+            where: { users_id: token.userId as string },
+            select: { avatar: true }
+          })
+          if (freshUser) token.avatar = freshUser.avatar
+        } catch (error) {
+          console.error("Error refreshing avatar:", error)
+        }
       }
-
-      console.log('JWT token final state:', {
-        role: token.role,
-        userId: token.userId,
-        hasEmail: !!token.email,
-        avatar: token.avatar,
-        picture: token.picture
-      })
 
       return token
     },
     async session({ session, token }) {
-      console.log('Session callback - token.picture:', token.picture)
-      console.log('Session callback - token.role:', token.role)
-
       if (token) {
-        // Ensure userId is set - critical for API routes
         const userId = (token.userId as string) || (token.sub as string) || ''
         session.user.id = userId
         session.user.role = token.role as users_role || 'SETUP_REQUIRED'
@@ -215,15 +180,11 @@ export const authOptions: NextAuthOptions = {
           session.user.email = token.email as string || ''
           session.user.name = token.name as string || ''
           session.user.image = token.picture as string || ''
-          console.log('Setting SETUP_REQUIRED user image to:', session.user.image)
         } else {
-          // For existing users, use their stored avatar or image
           session.user.image = token.avatar as string || null
-          console.log('Setting existing user image to:', session.user.image)
         }
       }
 
-      console.log('Final session.user.image:', session.user.image)
       return session
     },
     async redirect({ url, baseUrl }) {
