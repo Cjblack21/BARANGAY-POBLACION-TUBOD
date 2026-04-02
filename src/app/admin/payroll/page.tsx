@@ -529,13 +529,20 @@ html, body { margin: 0 !important; padding: 0 !important; overflow: hidden !impo
 
   // Show release confirmation modal
   const showReleaseConfirmation = async (targetBlgu?: 'Barangay Officials' | 'Barangay Staff' | any) => {
-    // Determine the target based on string strictly (ignoring React.MouseEvent)
+    // Auto-select based on what has been generated
     if (typeof targetBlgu === 'string') {
       setSelectedBlguRelease(targetBlgu)
+    } else if (officialsGenerated && !staffGenerated) {
+      // Only Officials generated — pre-select Officials
+      setSelectedBlguRelease('Barangay Officials')
+    } else if (staffGenerated && !officialsGenerated) {
+      // Only Staff generated — pre-select Staff
+      setSelectedBlguRelease('Barangay Staff')
     } else {
+      // Both generated — default to All BLGU
       setSelectedBlguRelease('')
     }
-    
+
     // Fetch attendance deductions to show in modal
     try {
       const res = await fetch('/api/admin/attendance-deductions')
@@ -4639,68 +4646,87 @@ html, body { margin: 0 !important; padding: 0 !important; overflow: hidden !impo
                   Select BLGU to Release
                 </Label>
                 <div className="grid grid-cols-3 gap-3">
-                  
-                  {/* All BLGU card */}
-                  <button
-                    type="button"
-                    onClick={() => setSelectedBlguRelease('')}
-                    className={`relative flex items-center gap-3 w-full h-20 px-4 rounded-xl border-2 text-left transition-all duration-200 focus:outline-none cursor-pointer ${
-                      !selectedBlguRelease
-                        ? 'border-green-500 bg-green-50 dark:bg-green-950/30 shadow-lg ring-2 ring-green-200 dark:ring-green-800'
-                        : 'border-border bg-card hover:border-green-400 hover:bg-green-50/40 hover:shadow-md'
-                    }`}
-                  >
-                    <div className={`flex-shrink-0 h-10 w-10 rounded-full flex items-center justify-center ${!selectedBlguRelease ? 'bg-green-500' : 'bg-muted'}`}>
-                      <Users className={`h-5 w-5 ${!selectedBlguRelease ? 'text-white' : 'text-muted-foreground'}`} />
-                    </div>
-                    <div>
-                      <div className={`font-bold text-sm ${!selectedBlguRelease ? 'text-green-700 dark:text-green-400' : 'text-foreground'}`}>All BLGU</div>
-                    </div>
-                    {!selectedBlguRelease && (
-                      <CheckCircle2 className="absolute top-2 right-2 h-4 w-4 text-green-500" />
-                    )}
-                  </button>
 
-                  {/* Officials & Staff cards */}
+                  {/* All BLGU card — only enabled when both groups are generated */}
+                  {(() => {
+                    const allDisabled = !(officialsGenerated && staffGenerated)
+                    const isSelected = !selectedBlguRelease
+                    return (
+                      <button
+                        type="button"
+                        onClick={() => !allDisabled && setSelectedBlguRelease('')}
+                        disabled={allDisabled}
+                        className={`relative flex items-center gap-3 w-full h-20 px-4 rounded-xl border-2 text-left transition-all duration-200 focus:outline-none ${
+                          allDisabled
+                            ? 'border-border bg-muted/30 opacity-40 cursor-not-allowed'
+                            : isSelected
+                              ? 'border-green-500 bg-green-50 dark:bg-green-950/30 shadow-lg ring-2 ring-green-200 dark:ring-green-800 cursor-pointer'
+                              : 'border-border bg-card hover:border-green-400 hover:bg-green-50/40 hover:shadow-md cursor-pointer'
+                        }`}
+                      >
+                        <div className={`flex-shrink-0 h-10 w-10 rounded-full flex items-center justify-center ${isSelected && !allDisabled ? 'bg-green-500' : 'bg-muted'}`}>
+                          <Users className={`h-5 w-5 ${isSelected && !allDisabled ? 'text-white' : 'text-muted-foreground'}`} />
+                        </div>
+                        <div>
+                          <div className={`font-bold text-sm ${isSelected && !allDisabled ? 'text-green-700 dark:text-green-400' : 'text-foreground'}`}>All BLGU</div>
+                          {allDisabled && (
+                            <div className="text-xs text-muted-foreground">Only 1 group generated</div>
+                          )}
+                        </div>
+                        {isSelected && !allDisabled && (
+                          <CheckCircle2 className="absolute top-2 right-2 h-4 w-4 text-green-500" />
+                        )}
+                      </button>
+                    )
+                  })()}
+
+                  {/* Officials & Staff cards — disabled if not generated */}
                   {(['Barangay Officials', 'Barangay Staff'] as const).map(blgu => {
-                    const isOfficials = blgu === 'Barangay Officials';
-                    const isSelected = selectedBlguRelease === blgu;
-                    
+                    const isOfficials = blgu === 'Barangay Officials'
+                    const isGenerated = isOfficials ? officialsGenerated : staffGenerated
+                    const isSelected = selectedBlguRelease === blgu
+
                     return (
                       <button
                         key={blgu}
                         type="button"
-                        onClick={() => setSelectedBlguRelease(prev => prev === blgu ? '' : blgu)}
+                        onClick={() => isGenerated && setSelectedBlguRelease(blgu)}
+                        disabled={!isGenerated}
                         className={`relative flex items-center gap-3 w-full h-20 px-4 rounded-xl border-2 text-left transition-all duration-200 focus:outline-none ${
-                          isSelected
-                            ? isOfficials
-                              ? 'border-blue-500 bg-blue-50 dark:bg-blue-950/30 shadow-lg ring-2 ring-blue-200 dark:ring-blue-800 cursor-pointer'
-                              : 'border-amber-500 bg-amber-50 dark:bg-amber-950/30 shadow-lg ring-2 ring-amber-200 dark:ring-amber-800 cursor-pointer'
-                            : 'border-border bg-card hover:shadow-md cursor-pointer ' + (isOfficials ? 'hover:border-blue-400 hover:bg-blue-50/40' : 'hover:border-amber-400 hover:bg-amber-50/40')
+                          !isGenerated
+                            ? 'border-border bg-muted/30 opacity-40 cursor-not-allowed'
+                            : isSelected
+                              ? isOfficials
+                                ? 'border-blue-500 bg-blue-50 dark:bg-blue-950/30 shadow-lg ring-2 ring-blue-200 dark:ring-blue-800 cursor-pointer'
+                                : 'border-amber-500 bg-amber-50 dark:bg-amber-950/30 shadow-lg ring-2 ring-amber-200 dark:ring-amber-800 cursor-pointer'
+                              : 'border-border bg-card hover:shadow-md cursor-pointer ' + (isOfficials ? 'hover:border-blue-400 hover:bg-blue-50/40' : 'hover:border-amber-400 hover:bg-amber-50/40')
                         }`}
                       >
                         <div className={`flex-shrink-0 h-10 w-10 rounded-full flex items-center justify-center ${
-                          isSelected
+                          isSelected && isGenerated
                             ? isOfficials ? 'bg-blue-500' : 'bg-amber-500'
                             : isOfficials ? 'bg-blue-100 dark:bg-blue-900/40' : 'bg-amber-100 dark:bg-amber-900/40'
                         }`}>
                           {isOfficials
-                            ? <Landmark className={`h-5 w-5 ${isSelected ? 'text-white' : 'text-blue-600 dark:text-blue-400'}`} />
-                            : <User className={`h-5 w-5 ${isSelected ? 'text-white' : 'text-amber-600 dark:text-amber-400'}`} />
+                            ? <Landmark className={`h-5 w-5 ${isSelected && isGenerated ? 'text-white' : 'text-blue-600 dark:text-blue-400'}`} />
+                            : <User className={`h-5 w-5 ${isSelected && isGenerated ? 'text-white' : 'text-amber-600 dark:text-amber-400'}`} />
                           }
                         </div>
                         <div>
                           <div className={`font-bold text-sm ${
-                            isSelected
+                            isSelected && isGenerated
                               ? isOfficials ? 'text-blue-700 dark:text-blue-400' : 'text-amber-700 dark:text-amber-400'
                               : 'text-foreground'
                           }`}>{blgu}</div>
                           <div className="text-xs text-muted-foreground">
-                            {isOfficials ? 'Kagawad, Secretary, etc.' : 'Collector, Encoder, etc.'}
+                            {!isGenerated ? 'Not generated' : isOfficials ? 'Kagawad, Secretary, etc.' : 'Collector, Encoder, etc.'}
                           </div>
                         </div>
-                        {isSelected && (
+                        {isSelected && isGenerated && (
                           <CheckCircle2 className={`absolute top-2 right-2 h-4 w-4 ${isOfficials ? 'text-blue-500' : 'text-amber-500'}`} />
+                        )}
+                        {!isGenerated && (
+                          <span className="absolute top-2 right-2 text-xs font-medium text-muted-foreground bg-muted border border-border rounded px-1.5 py-0.5">Not Generated</span>
                         )}
                       </button>
                     )
