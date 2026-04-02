@@ -2043,29 +2043,7 @@ html, body { margin: 0 !important; padding: 0 !important; overflow: hidden !impo
         </div>
       )}
 
-      {/* Release Ready Banner */}
-      {canRelease && currentPeriod && currentPeriod.status !== 'Released' && (
-        <div className="flex flex-col md:flex-row items-center justify-between rounded-xl border border-border bg-muted/30 px-6 py-5 shadow-sm">
-          <div className="flex items-center gap-4 mb-4 md:mb-0">
-            <div className="bg-muted/60 p-3 rounded-full">
-              <CheckCircle2 className="h-7 w-7 text-foreground flex-shrink-0" />
-            </div>
-            <div>
-              <p className="text-xl font-bold text-foreground">Ready to Release</p>
-              <p className="text-base text-muted-foreground mt-0.5">Payroll period has ended — you can now release</p>
-            </div>
-          </div>
-          <Button
-            onClick={showReleaseConfirmation}
-            size="lg"
-            className="bg-green-600 hover:bg-green-700 text-white shadow-md text-base px-8 py-6 w-full md:w-auto"
-            disabled={loading}
-          >
-            <Save className="h-5 w-5 mr-2" />
-            Release Payroll
-          </Button>
-        </div>
-      )}
+
 
       {/* Current Period Info */}
       {currentPeriod && (
