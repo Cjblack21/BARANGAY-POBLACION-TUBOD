@@ -261,23 +261,45 @@ export function UserManagement() {
       })()
   }, [])
 
-  // Helper: detect restricted positions (only 1 allowed)
+  // Helper: detect positions that have a slot limit
   const isRestrictedPositionName = (name: string) => {
     const n = name.toLowerCase()
-    return n.includes('punong barangay') || n.includes('sk chairman') || n.includes('sk kagawad')
+    return (
+      n.includes('punong barangay') ||
+      n.includes('sk chairman') ||
+      n.includes('sk kagawad') ||
+      n.includes('barangay kagawad') ||
+      n.includes('barangay treasurer') ||
+      n.includes('barangay secretary')
+    )
   }
 
-  // Helper: get display label for restricted position
+  // Helper: get the maximum allowed count for a position
+  const getPositionLimit = (name: string): number => {
+    const n = name.toLowerCase()
+    if (n.includes('barangay kagawad')) return 7
+    return 1 // all other restricted positions allow only 1
+  }
+
+  // Helper: get display label for a restricted position
   const getRestrictedLabel = (name: string) => {
     const n = name.toLowerCase()
     if (n.includes('punong barangay')) return 'Punong Barangay'
     if (n.includes('sk chairman') || n.includes('sk kagawad')) return 'Brgy SK Chairman'
-    return ''
+    if (n.includes('barangay kagawad')) return 'Barangay Kagawad'
+    if (n.includes('barangay treasurer')) return 'Barangay Treasurer'
+    if (n.includes('barangay secretary')) return 'Barangay Secretary'
+    return name
   }
 
-  // Helper: check if a personnel_types_id is already taken by an active staff
-  const isPositionAlreadyTaken = (personnelTypesId: string) => {
-    return personnel.some(p => p.isActive && p.personnel_types_id === personnelTypesId)
+  // Helper: count how many active staff currently hold a given personnel type
+  const getActiveCountForPosition = (personnelTypesId: string): number => {
+    return personnel.filter(p => p.isActive && p.personnel_types_id === personnelTypesId).length
+  }
+
+  // Helper: check if a position is full (reached its limit)
+  const isPositionAlreadyTaken = (personnelTypesId: string, positionName: string): boolean => {
+    return getActiveCountForPosition(personnelTypesId) >= getPositionLimit(positionName)
   }
 
   // Handle create personnel
@@ -296,13 +318,18 @@ export function UserManagement() {
       return
     }
 
-    // Restrict Punong Barangay and SK Chairman to only 1 active staff
+    // Enforce position slot limits before creating
     if (formData.personnel_types_id) {
       const selectedType = personnelTypes.find(t => t.personnel_types_id === formData.personnel_types_id)
       if (selectedType && isRestrictedPositionName(selectedType.name)) {
-        if (isPositionAlreadyTaken(formData.personnel_types_id)) {
+        const limit = getPositionLimit(selectedType.name)
+        const currentCount = getActiveCountForPosition(formData.personnel_types_id)
+        if (currentCount >= limit) {
           const label = getRestrictedLabel(selectedType.name)
-          toast.error(`Only 1 ${label} can be added. This position is already taken by an active staff member.`)
+          const msg = limit === 1
+            ? `Only 1 ${label} can be added. This position is already filled.`
+            : `${label} is limited to ${limit} members. All ${limit} slots are already filled.`
+          toast.error(msg)
           return
         }
       }
@@ -1021,19 +1048,26 @@ export function UserManagement() {
                               const office = nameParts.length === 2 ? nameParts[0] : (type.department || 'N/A')
                               const position = nameParts.length === 2 ? nameParts[1] : type.name
                               const isRestricted = isRestrictedPositionName(type.name)
-                              const isTaken = isRestricted && isPositionAlreadyTaken(type.personnel_types_id)
+                              const limit = isRestricted ? getPositionLimit(type.name) : Infinity
+                              const activeCount = isRestricted ? getActiveCountForPosition(type.personnel_types_id) : 0
+                              const isFull = isRestricted && activeCount >= limit
                               return (
                                 <SelectItem
                                   key={type.personnel_types_id}
                                   value={type.personnel_types_id}
-                                  disabled={isTaken}
-                                  className={isTaken ? 'opacity-50 cursor-not-allowed' : ''}
+                                  disabled={isFull}
+                                  className={isFull ? 'opacity-50 cursor-not-allowed' : ''}
                                 >
                                   <div className="flex items-center justify-between w-full gap-2">
                                     <span>{office} - {position}</span>
-                                    {isTaken && (
+                                    {isFull && (
                                       <span className="text-xs font-medium text-red-500 bg-red-50 border border-red-200 rounded px-1.5 py-0.5 ml-2 flex-shrink-0">
-                                        Position Filled
+                                        {limit === 1 ? 'Position Filled' : `${activeCount}/${limit} Filled`}
+                                      </span>
+                                    )}
+                                    {isRestricted && !isFull && limit > 1 && (
+                                      <span className="text-xs font-medium text-amber-600 bg-amber-50 border border-amber-200 rounded px-1.5 py-0.5 ml-2 flex-shrink-0">
+                                        {activeCount}/{limit}
                                       </span>
                                     )}
                                   </div>
