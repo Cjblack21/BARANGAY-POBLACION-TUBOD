@@ -1,8 +1,6 @@
 "use client"
 
 import {
-  AreaChart,
-  Area,
   BarChart,
   Bar,
   XAxis,
@@ -11,6 +9,8 @@ import {
   Tooltip,
   Legend,
   ResponsiveContainer,
+  Cell,
+  LabelList,
 } from "recharts"
 
 type PayrollTrendEntry = {
@@ -28,74 +28,135 @@ type DeductionEntry = {
 }
 
 function formatCurrency(value: number) {
-  return `₱${value.toLocaleString()}`
+  if (value >= 1000000) return `₱${(value / 1000000).toFixed(1)}M`
+  if (value >= 1000) return `₱${(value / 1000).toFixed(0)}k`
+  return `₱${value}`
+}
+
+// Custom tooltip for payroll trend
+function PayrollTooltip({ active, payload, label }: any) {
+  if (!active || !payload?.length) return null
+  return (
+    <div className="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg shadow-lg p-3 text-sm">
+      <p className="font-semibold text-slate-800 dark:text-white mb-2">{label}</p>
+      {payload.map((entry: any) => (
+        <div key={entry.dataKey} className="flex items-center gap-2 mb-1">
+          <span className="inline-block w-3 h-3 rounded-sm" style={{ backgroundColor: entry.fill }} />
+          <span className="text-slate-600 dark:text-slate-300">{entry.name}:</span>
+          <span className="font-semibold" style={{ color: entry.fill }}>
+            ₱{Number(entry.value).toLocaleString()}
+          </span>
+        </div>
+      ))}
+    </div>
+  )
 }
 
 export function PayrollTrendChart({ data }: { data: PayrollTrendEntry[] }) {
   return (
     <ResponsiveContainer width="100%" height={280}>
-      <AreaChart data={data} margin={{ top: 10, right: 16, left: 0, bottom: 0 }}>
-        <defs>
-          <linearGradient id="colorGross" x1="0" y1="0" x2="0" y2="1">
-            <stop offset="5%" stopColor="#3b82f6" stopOpacity={0.3} />
-            <stop offset="95%" stopColor="#3b82f6" stopOpacity={0.02} />
-          </linearGradient>
-          <linearGradient id="colorNet" x1="0" y1="0" x2="0" y2="1">
-            <stop offset="5%" stopColor="#22c55e" stopOpacity={0.3} />
-            <stop offset="95%" stopColor="#22c55e" stopOpacity={0.02} />
-          </linearGradient>
-          <linearGradient id="colorDeductions" x1="0" y1="0" x2="0" y2="1">
-            <stop offset="5%" stopColor="#ef4444" stopOpacity={0.3} />
-            <stop offset="95%" stopColor="#ef4444" stopOpacity={0.02} />
-          </linearGradient>
-        </defs>
-        <CartesianGrid strokeDasharray="3 3" className="stroke-muted" />
-        <XAxis dataKey="month" tick={{ fontSize: 12 }} />
-        <YAxis tickFormatter={(v) => `₱${(v / 1000).toFixed(0)}k`} tick={{ fontSize: 11 }} />
-        <Tooltip formatter={(v: number) => formatCurrency(v)} />
-        <Legend />
-        <Area
-          type="monotone"
-          dataKey="grossPay"
-          name="Gross Pay"
-          stroke="#3b82f6"
-          fill="url(#colorGross)"
-          strokeWidth={2}
+      <BarChart
+        data={data}
+        margin={{ top: 24, right: 16, left: 8, bottom: 4 }}
+        barCategoryGap="25%"
+        barGap={3}
+      >
+        <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e2e8f0" />
+        <XAxis
+          dataKey="month"
+          tick={{ fontSize: 12, fill: "#64748b" }}
+          axisLine={false}
+          tickLine={false}
         />
-        <Area
-          type="monotone"
-          dataKey="netPay"
-          name="Net Pay"
-          stroke="#22c55e"
-          fill="url(#colorNet)"
-          strokeWidth={2}
+        <YAxis
+          tickFormatter={formatCurrency}
+          tick={{ fontSize: 11, fill: "#64748b" }}
+          axisLine={false}
+          tickLine={false}
+          width={60}
         />
-        <Area
-          type="monotone"
-          dataKey="deductions"
-          name="Deductions"
-          stroke="#ef4444"
-          fill="url(#colorDeductions)"
-          strokeWidth={2}
+        <Tooltip content={<PayrollTooltip />} cursor={{ fill: "rgba(0,0,0,0.04)" }} />
+        <Legend
+          wrapperStyle={{ fontSize: 13, paddingTop: 12 }}
+          iconType="square"
+          iconSize={12}
         />
-      </AreaChart>
+        <Bar dataKey="grossPay" name="Gross Pay" fill="#3b82f6" radius={[4, 4, 0, 0]}>
+          <LabelList
+            dataKey="grossPay"
+            position="top"
+            formatter={(v: number) => (v > 0 ? formatCurrency(v) : "")}
+            style={{ fontSize: 10, fill: "#3b82f6", fontWeight: 600 }}
+          />
+        </Bar>
+        <Bar dataKey="netPay" name="Net Pay" fill="#22c55e" radius={[4, 4, 0, 0]}>
+          <LabelList
+            dataKey="netPay"
+            position="top"
+            formatter={(v: number) => (v > 0 ? formatCurrency(v) : "")}
+            style={{ fontSize: 10, fill: "#22c55e", fontWeight: 600 }}
+          />
+        </Bar>
+        <Bar dataKey="deductions" name="Deductions" fill="#ef4444" radius={[4, 4, 0, 0]}>
+          <LabelList
+            dataKey="deductions"
+            position="top"
+            formatter={(v: number) => (v > 0 ? formatCurrency(v) : "")}
+            style={{ fontSize: 10, fill: "#ef4444", fontWeight: 600 }}
+          />
+        </Bar>
+      </BarChart>
     </ResponsiveContainer>
   )
 }
 
+// Distinct colors for each deduction type bar
+const BAR_COLORS = [
+  "#6366f1", "#f59e0b", "#10b981", "#ef4444",
+  "#3b82f6", "#ec4899", "#14b8a6", "#f97316",
+]
+
 export function DeductionBreakdownChart({ data }: { data: DeductionEntry[] }) {
+  const sliced = data.slice(0, 8)
   return (
-    <ResponsiveContainer width="100%" height={250}>
+    <ResponsiveContainer width="100%" height={260}>
       <BarChart
-        data={data.slice(0, 8)}
-        layout="vertical"
-        margin={{ top: 4, right: 24, left: 8, bottom: 4 }}
+        data={sliced}
+        margin={{ top: 20, right: 16, left: 8, bottom: 40 }}
+        barCategoryGap="30%"
       >
-        <CartesianGrid strokeDasharray="3 3" horizontal={false} className="stroke-muted" />
-        <XAxis type="number" tickFormatter={(v) => `₱${(v / 1000).toFixed(0)}k`} tick={{ fontSize: 11 }} />
-        <YAxis type="category" dataKey="typeName" width={130} tick={{ fontSize: 11 }} />
-        <Tooltip formatter={(v: number) => formatCurrency(v)} />
-        <Bar dataKey="totalAmount" name="Total Amount" fill="#8b5cf6" radius={[0, 4, 4, 0]} />
+        <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e2e8f0" />
+        <XAxis
+          dataKey="typeName"
+          tick={{ fontSize: 11, fill: "#64748b" }}
+          axisLine={false}
+          tickLine={false}
+          angle={-30}
+          textAnchor="end"
+          interval={0}
+        />
+        <YAxis
+          tickFormatter={formatCurrency}
+          tick={{ fontSize: 11, fill: "#64748b" }}
+          axisLine={false}
+          tickLine={false}
+          width={58}
+        />
+        <Tooltip
+          formatter={(v: number) => [`₱${Number(v).toLocaleString()}`, "Total Amount"]}
+          cursor={{ fill: "rgba(0,0,0,0.04)" }}
+        />
+        <Bar dataKey="totalAmount" name="Total Amount" radius={[4, 4, 0, 0]}>
+          {sliced.map((_, index) => (
+            <Cell key={index} fill={BAR_COLORS[index % BAR_COLORS.length]} />
+          ))}
+          <LabelList
+            dataKey="totalAmount"
+            position="top"
+            formatter={(v: number) => (v > 0 ? formatCurrency(v) : "")}
+            style={{ fontSize: 10, fontWeight: 600, fill: "#475569" }}
+          />
+        </Bar>
       </BarChart>
     </ResponsiveContainer>
   )
