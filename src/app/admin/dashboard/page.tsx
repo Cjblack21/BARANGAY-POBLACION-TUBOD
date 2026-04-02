@@ -11,7 +11,8 @@ import {
   ArrowUpRight,
   ArrowDownRight,
   FileText,
-  Home
+  Home,
+  Landmark
 } from "lucide-react"
 import { AdminDashboardCharts } from "@/components/admin-dashboard-charts"
 import { AdminCalendar } from "@/components/admin-calendar"
@@ -34,13 +35,23 @@ export default async function AdminDashboard() {
 
   const stats = [
     {
-      title: "Total Staff",
-      value: dashboardStats.totalPersonnel.toString(),
-      description: `Officials: ${dashboardStats.officialsCount} • Staff: ${dashboardStats.staffCount}`,
-      icon: Users,
+      title: "Barangay Officials",
+      value: dashboardStats.officialsCount.toString(),
+      description: "Active officials",
+      icon: Landmark,
       trend: "stable",
       color: "text-blue-600",
       borderColor: "border-l-blue-500",
+      href: "/admin/user-management"
+    },
+    {
+      title: "Barangay Staff",
+      value: dashboardStats.staffCount.toString(),
+      description: "Active staff members",
+      icon: Users,
+      trend: "stable",
+      color: "text-amber-600",
+      borderColor: "border-l-amber-500",
       href: "/admin/user-management"
     },
     {
