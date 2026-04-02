@@ -2488,11 +2488,11 @@ html, body { margin: 0 !important; padding: 0 !important; overflow: hidden !impo
                                 <TableCell className="py-4">
                                   <div className="flex items-center gap-3">
                                     <div className="relative h-10 w-10 rounded-full overflow-hidden bg-muted flex-shrink-0">
-                                      {entry.avatar ? (
+                                      {entry.avatar && entry.avatar.trim().length > 0 && entry.avatar !== "null" ? (
                                         <img src={entry.avatar} alt={entry.name} className="h-full w-full object-cover" />
                                       ) : (
-                                        <div className="h-full w-full flex items-center justify-center bg-primary/10 text-primary font-semibold text-sm">
-                                          {entry.name?.charAt(0).toUpperCase() || 'U'}
+                                        <div className="h-full w-full flex items-center justify-center bg-slate-500 text-white font-semibold text-sm">
+                                          {entry.name?.split(' ').filter(Boolean).map((n: string) => n.charAt(0)).join('').substring(0, 2).toUpperCase() || 'U'}
                                         </div>
                                       )}
                                     </div>
