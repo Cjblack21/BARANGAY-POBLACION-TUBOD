@@ -268,10 +268,24 @@ export default function PersonnelPayrollPage() {
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center min-h-screen">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-gray-900 mx-auto"></div>
-          <p className="mt-2 text-gray-600">Loading payroll data...</p>
+      <div className="flex-1 space-y-6 p-4 pt-6 animate-pulse">
+        <div className="h-9 w-64 bg-muted rounded-md" />
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+          {Array.from({ length: 4 }).map((_, i) => (
+            <div key={i} className="rounded-xl border border-l-4 border-l-muted bg-card p-4">
+              <div className="h-3 w-28 bg-muted/60 rounded mb-3" />
+              <div className="h-8 w-24 bg-muted rounded" />
+            </div>
+          ))}
+        </div>
+        <div className="rounded-xl border bg-card p-6 space-y-4">
+          <div className="h-5 w-40 bg-muted rounded" />
+          <div className="flex gap-4 border-b pb-3">
+            <div className="h-4 w-28 bg-muted rounded" />
+            <div className="h-4 w-28 bg-muted rounded" />
+          </div>
+          <div className="h-36 bg-muted/20 rounded-xl" />
+          <div className="h-36 bg-muted/20 rounded-xl" />
         </div>
       </div>
     )
