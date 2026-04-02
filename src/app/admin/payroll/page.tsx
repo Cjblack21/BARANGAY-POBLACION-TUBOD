@@ -1735,6 +1735,12 @@ html, body { margin: 0 !important; padding: 0 !important; overflow: hidden !impo
               // Persist to localStorage so subsequent loads are instant
               localStorage.setItem('payroll_period_start', savedPeriodStart)
               localStorage.setItem('payroll_period_end', savedPeriodEnd)
+              
+              localStorage.setItem('payroll_period_end_officials', savedPeriodEnd)
+              localStorage.setItem('payroll_period_end_staff', savedPeriodEnd)
+              setPeriodEndOfficials(savedPeriodEnd)
+              setPeriodEndStaff(savedPeriodEnd)
+
               if (dbSettings.payrollReleaseTime) {
                 localStorage.setItem('payroll_release_time_officials', dbSettings.payrollReleaseTime)
                 localStorage.setItem('payroll_release_time_staff', dbSettings.payrollReleaseTime)
