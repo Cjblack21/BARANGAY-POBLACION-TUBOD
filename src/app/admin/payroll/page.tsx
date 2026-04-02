@@ -1844,10 +1844,6 @@ html, body { margin: 0 !important; padding: 0 !important; overflow: hidden !impo
         setTimeUntilRelease('Release available now!')
         if (!canRelease) {
           setCanRelease(true)
-          if (hasGeneratedForSettings && currentPeriod.status !== 'Released' && !hasAutoReleased) {
-            setHasAutoReleased(true)
-            handleAutoReleasePayroll()
-          }
         }
         return
       }
