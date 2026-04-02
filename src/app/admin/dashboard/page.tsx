@@ -35,23 +35,13 @@ export default async function AdminDashboard() {
 
   const stats = [
     {
-      title: "Barangay Officials",
-      value: dashboardStats.officialsCount.toString(),
-      description: "Active officials",
-      icon: Landmark,
+      title: "Total Staff",
+      value: dashboardStats.totalPersonnel.toString(),
+      description: `Officials: ${dashboardStats.officialsCount} • Staff: ${dashboardStats.staffCount}`,
+      icon: Users,
       trend: "stable",
       color: "text-blue-600",
       borderColor: "border-l-blue-500",
-      href: "/admin/user-management"
-    },
-    {
-      title: "Barangay Staff",
-      value: dashboardStats.staffCount.toString(),
-      description: "Active staff members",
-      icon: Users,
-      trend: "stable",
-      color: "text-amber-600",
-      borderColor: "border-l-amber-500",
       href: "/admin/user-management"
     },
     {
