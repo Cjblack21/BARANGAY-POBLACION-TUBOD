@@ -15,6 +15,11 @@ import {
   AvatarFallback,
   AvatarImage,
 } from "@/components/ui/avatar"
+
+function getInitials(name: string): string {
+  if (!name) return 'U';
+  return name.split(' ').filter(Boolean).map(n => n.charAt(0)).join('').substring(0, 2).toUpperCase() || 'U';
+}
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -57,7 +62,7 @@ export function NavUser({
             >
               <Avatar className="h-10 w-10 rounded-lg">
                 <AvatarImage src={user.avatar} alt={user.name} />
-                <AvatarFallback className="rounded-lg">CN</AvatarFallback>
+                <AvatarFallback className="rounded-lg bg-slate-800 text-white dark:bg-slate-800 dark:text-white">{getInitials(user.name)}</AvatarFallback>
               </Avatar>
               <div className="grid flex-1 text-left text-sm leading-tight">
                 <span className="truncate font-medium">{user.name}</span>
@@ -76,7 +81,7 @@ export function NavUser({
               <div className="flex items-center gap-3 px-2 py-2 text-left text-sm">
                 <Avatar className="h-10 w-10 rounded-lg">
                   <AvatarImage src={user.avatar} alt={user.name} />
-                  <AvatarFallback className="rounded-lg">CN</AvatarFallback>
+                  <AvatarFallback className="rounded-lg bg-slate-800 text-white dark:bg-slate-800 dark:text-white">{getInitials(user.name)}</AvatarFallback>
                 </Avatar>
                 <div className="grid flex-1 text-left text-sm leading-tight">
                   <span className="truncate font-semibold text-[15px]">{user.name}</span>
