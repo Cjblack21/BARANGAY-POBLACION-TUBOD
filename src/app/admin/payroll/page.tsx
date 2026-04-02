@@ -531,7 +531,7 @@ html, body { margin: 0 !important; padding: 0 !important; overflow: hidden !impo
   const showReleaseConfirmation = async (targetBlgu?: 'Barangay Officials' | 'Barangay Staff' | any) => {
     // Auto-select based on what has been generated
     if (typeof targetBlgu === 'string') {
-      setSelectedBlguRelease(targetBlgu)
+      setSelectedBlguRelease(targetBlgu as 'Barangay Officials' | 'Barangay Staff' | '')
     } else if (officialsGenerated && !staffGenerated) {
       // Only Officials generated — pre-select Officials
       setSelectedBlguRelease('Barangay Officials')
@@ -608,7 +608,7 @@ html, body { margin: 0 !important; padding: 0 !important; overflow: hidden !impo
       setHasViewedNewestPayroll(false) // Reset when new payroll is released
       localStorage.setItem('hasNewArchivedPayroll', 'true') // Set sidebar notification
 
-      if (!selectedBlguRelease || selectedBlguRelease === '') {
+      if (!selectedBlguRelease) {
         // Update payroll period settings with the new period dates (Full Release)
         setPayrollPeriodStart(nextStart)
         setPayrollPeriodEnd(nextEnd)

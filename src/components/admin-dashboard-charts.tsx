@@ -1,17 +1,11 @@
 "use client"
 
-import { useEffect, useState } from "react"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import {
   LineChart,
   Line,
-  AreaChart,
-  Area,
   BarChart,
   Bar,
-  PieChart,
-  Pie,
-  Cell,
   XAxis,
   YAxis,
   CartesianGrid,
@@ -27,44 +21,7 @@ interface ChartData {
   loanTrendsData: Array<{ month: string; loans: number; amount: number }>
 }
 
-export function AdminDashboardCharts() {
-  const [chartData, setChartData] = useState<ChartData>({
-    attendanceData: [],
-    payrollData: [],
-    departmentData: [],
-    loanTrendsData: []
-  })
-  const [loading, setLoading] = useState(true)
-
-  useEffect(() => {
-    async function fetchChartData() {
-      try {
-        const response = await fetch('/api/dashboard/charts')
-        const data = await response.json()
-        setChartData(data)
-      } catch (error) {
-        console.error('Error fetching chart data:', error)
-      } finally {
-        setLoading(false)
-      }
-    }
-
-    fetchChartData()
-  }, [])
-
-  if (loading) {
-    return <div className="space-y-6">
-      {[1, 2, 3, 4].map((i) => (
-        <Card key={i}>
-          <CardHeader>
-            <div className="h-4 bg-gray-200 rounded animate-pulse"></div>
-            <div className="h-3 bg-gray-100 rounded animate-pulse"></div>
-          </CardHeader>
-          <CardContent className="h-[300px] bg-gray-50 animate-pulse"></CardContent>
-        </Card>
-      ))}
-    </div>
-  }
+export function AdminDashboardCharts({ chartData }: { chartData: ChartData }) {
   return (
     <div className="space-y-6">
       {/* Payroll Trends */}
@@ -86,7 +43,7 @@ export function AdminDashboardCharts() {
                 }}
               />
               <Tooltip
-                formatter={(value) => [`₱${value.toLocaleString()}`, "Amount"]}
+                formatter={(value) => [`₱${Number(value).toLocaleString()}`, "Amount"]}
               />
               <Legend />
               <Line
@@ -121,7 +78,7 @@ export function AdminDashboardCharts() {
               />
               <Tooltip
                 formatter={(value, name) => [
-                  name === "loans" ? value : `₱${value.toLocaleString()}`,
+                  name === "loans" ? value : `₱${Number(value).toLocaleString()}`,
                   name === "loans" ? "Loans Count" : "Total Amount"
                 ]}
               />

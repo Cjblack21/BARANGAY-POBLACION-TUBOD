@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState } from "react"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Calendar } from "@/components/ui/calendar"
 import { Badge } from "@/components/ui/badge"
@@ -18,32 +18,19 @@ interface CalendarData {
   events: Array<{ date: Date; name: string; type: string; description?: string | null }>
 }
 
-export function AdminCalendar() {
+interface InitialData {
+  holidays: Array<{ date: Date; name: string; type: string; description: string | null }>
+  events: Array<{ date: Date; name: string; type: string; description: string | null }>
+}
+
+export function AdminCalendar({ initialData }: { initialData?: InitialData }) {
   const [selectedDate, setSelectedDate] = useState<Date | undefined>(new Date())
-  const [calendarData, setCalendarData] = useState<CalendarData>({
-    holidays: [],
-    events: []
-  })
-  const [, setLoading] = useState(true)
 
-  useEffect(() => {
-    async function fetchCalendarData() {
-      try {
-        const response = await fetch('/api/dashboard/calendar')
-        const data = await response.json()
-        setCalendarData({
-          holidays: data.holidays.map((h: { date: string; name: string; type: string; description?: string | null }) => ({ ...h, date: new Date(h.date) })),
-          events: data.events.map((e: { date: string; name: string; type: string; description?: string | null }) => ({ ...e, date: new Date(e.date) }))
-        })
-      } catch (error) {
-        console.error('Error fetching calendar data:', error)
-      } finally {
-        setLoading(false)
-      }
-    }
-
-    fetchCalendarData()
-  }, [])
+  // Use server-provided data when available, otherwise empty arrays
+  const calendarData: CalendarData = {
+    holidays: initialData?.holidays.map(h => ({ ...h, date: new Date(h.date) })) ?? [],
+    events: initialData?.events.map(e => ({ ...e, date: new Date(e.date) })) ?? [],
+  }
 
   // Combine holidays and events
   const calendarEvents: CalendarEvent[] = [

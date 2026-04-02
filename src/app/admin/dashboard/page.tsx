@@ -5,25 +5,46 @@ import {
   Users,
   Wallet,
   UserCheck,
-  UserX,
   Banknote,
   Calendar as CalendarIcon,
   ArrowUpRight,
   ArrowDownRight,
   FileText,
   Home,
-  Landmark
 } from "lucide-react"
 import { AdminDashboardCharts } from "@/components/admin-dashboard-charts"
 import { AdminCalendar } from "@/components/admin-calendar"
-import { getDashboardStats } from "@/lib/dashboard-data"
+import {
+  getDashboardStats,
+  getAttendanceTrends,
+  getPayrollTrends,
+  getDepartmentDistribution,
+  getLoanTrends,
+  getCalendarEvents,
+} from "@/lib/dashboard-data"
 import Link from "next/link"
 
 export default async function AdminDashboard() {
   const session = await getServerSession(authOptions)
 
-  // Get real data from database
-  const dashboardStats = await getDashboardStats()
+  // Fetch all data in parallel for maximum performance
+  const [
+    dashboardStats,
+    attendanceData,
+    payrollData,
+    departmentData,
+    loanTrendsData,
+    calendarData,
+  ] = await Promise.all([
+    getDashboardStats(),
+    getAttendanceTrends(),
+    getPayrollTrends(),
+    getDepartmentDistribution(),
+    getLoanTrends(),
+    getCalendarEvents(),
+  ])
+
+  const chartData = { attendanceData, payrollData, departmentData, loanTrendsData }
 
   const attendanceRate = dashboardStats.totalPersonnel > 0
     ? ((dashboardStats.attendanceToday / dashboardStats.totalPersonnel) * 100).toFixed(1)
@@ -140,10 +161,10 @@ export default async function AdminDashboard() {
       {/* Charts and Analytics Section */}
       <div className="grid gap-8 lg:grid-cols-3">
         <div className="lg:col-span-2">
-          <AdminDashboardCharts />
+          <AdminDashboardCharts chartData={chartData} />
         </div>
         <div className="lg:col-span-1">
-          <AdminCalendar />
+          <AdminCalendar initialData={calendarData} />
         </div>
       </div>
     </div>
