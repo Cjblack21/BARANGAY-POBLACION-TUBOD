@@ -753,9 +753,30 @@ export async function POST(request: NextRequest) {
             overflow: visible;
             position: absolute;
           }
+          .payslip-card::before {
+            content: '';
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 320px;
+            height: 320px;
+            background-image: url('/brgy-logo-transparent.png');
+            background-size: contain;
+            background-repeat: no-repeat;
+            background-position: center;
+            opacity: 0.15;
+            pointer-events: none;
+            z-index: 0;
+          }
+          .payslip-card > * {
+            position: relative;
+            z-index: 1;
+          }
           /* Only 2 payslips per page now - top and bottom */
           .payslip-card:nth-child(1) { top: 0.1in; left: 0.1in; }
           .payslip-card:nth-child(2) { top: 5.5in; left: 0.1in; }
+
           .payslip-header {
             text-align: center;
             margin-bottom: 8px;
