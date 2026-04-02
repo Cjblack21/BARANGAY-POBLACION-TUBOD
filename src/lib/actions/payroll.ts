@@ -685,27 +685,27 @@ export async function generatePayroll(customPeriodStart?: string, customPeriodEn
 
     // Use custom period dates if provided, otherwise use current semi-monthly period
     if (customPeriodStart && customPeriodEnd) {
-      periodStart = new Date(customPeriodStart)
-      periodEnd = new Date(customPeriodEnd)
+      periodStart = parsePhilippinesLocalDate(customPeriodStart, false)
+      periodEnd = parsePhilippinesLocalDate(customPeriodEnd, true)
       console.log('✅ Using custom period for payroll generation:', customPeriodStart, 'to', customPeriodEnd)
     } else {
       // Use current semi-monthly period for payroll generation
-      const now = new Date()
+      const now = getNowInPhilippines()
       const currentDay = now.getDate()
+      const year = now.getFullYear()
+      const month = now.getMonth() + 1 // 1-indexed for parse function
 
       // Determine semi-monthly period (1-15 or 16-end of month)
       if (currentDay <= 15) {
-        periodStart = new Date(now.getFullYear(), now.getMonth(), 1)
-        periodEnd = new Date(now.getFullYear(), now.getMonth(), 15)
+        periodStart = parsePhilippinesLocalDate(`${year}-${month}-01`, false)
+        periodEnd = parsePhilippinesLocalDate(`${year}-${month}-15`, true)
       } else {
-        periodStart = new Date(now.getFullYear(), now.getMonth(), 16)
-        periodEnd = new Date(now.getFullYear(), now.getMonth() + 1, 0)
+        periodStart = parsePhilippinesLocalDate(`${year}-${month}-16`, false)
+        const lastDayOfMonth = new Date(year, month, 0).getDate()
+        periodEnd = parsePhilippinesLocalDate(`${year}-${month}-${lastDayOfMonth}`, true)
       }
       console.log('✅ Using default semi-monthly period for payroll generation')
     }
-
-    periodStart.setHours(0, 0, 0, 0)
-    periodEnd.setHours(23, 59, 59, 999)
 
     console.log('📅 Generating payroll for period:', periodStart.toISOString(), 'to', periodEnd.toISOString())
 
