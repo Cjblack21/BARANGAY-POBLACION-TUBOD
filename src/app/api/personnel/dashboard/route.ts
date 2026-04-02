@@ -9,17 +9,13 @@ export const dynamic = 'force-dynamic'
 
 export async function GET() {
   try {
-    console.log('Dashboard API called')
     const session = await getServerSession(authOptions)
-    console.log('Session:', session?.user)
 
     if (!session || (session.user.role !== 'PERSONNEL' && session.user.role !== 'ADMIN')) {
-      console.log('Unauthorized access attempt')
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
     const userId = session.user.id
-    console.log('Fetching data for user:', userId)
 
     // Determine current period
     const now = new Date()
@@ -27,79 +23,42 @@ export async function GET() {
     const periodEnd = new Date(now.getFullYear(), now.getMonth() + 1, 0)
     periodEnd.setHours(23, 59, 59, 999)
 
-    // Get user details with personnel type
-    console.log('Fetching user from database...')
-    const user = await prisma.users.findUnique({
-      where: { users_id: userId },
-      include: {
-        personnel_types: {
-          select: {
-            name: true,
-            basicSalary: true,
-            department: true
+    const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1)
+    const endOfMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0, 23, 59, 59, 999)
+
+    // Run all DB queries in parallel
+    const [user, activeDeductions, activeLoans, thisMonthHolidays] = await Promise.all([
+      prisma.users.findUnique({
+        where: { users_id: userId },
+        include: {
+          personnel_types: {
+            select: { name: true, basicSalary: true, department: true }
           }
         }
-      }
-    })
-    console.log('User found:', user ? 'Yes' : 'No')
+      }),
+      prisma.deductions.findMany({
+        where: { users_id: userId, archivedAt: null },
+        include: { deduction_types: true },
+        orderBy: { appliedAt: 'desc' }
+      }),
+      prisma.loans.findMany({
+        where: { users_id: userId, status: { in: ['APPROVED', 'ACTIVE'] } },
+        orderBy: { createdAt: 'desc' }
+      }),
+      prisma.holidays.findMany({
+        where: { date: { gte: startOfMonth, lte: endOfMonth } },
+        orderBy: { date: 'asc' }
+      }),
+    ])
 
     if (!user) {
-      console.log('User not found in database')
       return NextResponse.json({ error: 'User not found' }, { status: 404 })
     }
 
     const basicSalary = user.personnel_types?.basicSalary ? Number(user.personnel_types.basicSalary) : 0
-    console.log('Basic salary:', basicSalary)
-
-    // Simplified dashboard - return basic info only
-    console.log('Preparing dashboard response...')
     const periodSalary = basicSalary
     const netPay = basicSalary
-
-    console.log('Returning dashboard data')
-    // Calculate biweekly salary (basicSalary / 2)
     const biweeklySalary = basicSalary / 2
-    
-    // Fetch Active Deductions (from `deductions` table linked to `deduction_types`)
-    const activeDeductions = await prisma.deductions.findMany({
-      where: {
-        users_id: userId,
-        archivedAt: null
-      },
-      include: {
-        deduction_types: true
-      },
-      orderBy: { appliedAt: 'desc' }
-    })
-
-    // Fetch Active Loans
-    const activeLoans = await prisma.loans.findMany({
-      where: {
-        users_id: userId,
-        status: { in: ['APPROVED', 'ACTIVE'] } 
-      },
-      orderBy: { createdAt: 'desc' }
-    })
-    
-    // Fetch this month's holidays
-    const startOfMonth = new Date();
-    startOfMonth.setDate(1);
-    startOfMonth.setHours(0, 0, 0, 0);
-    
-    const endOfMonth = new Date(startOfMonth);
-    endOfMonth.setMonth(endOfMonth.getMonth() + 1);
-    endOfMonth.setDate(0);
-    endOfMonth.setHours(23, 59, 59, 999);
-
-    const thisMonthHolidays = await prisma.holidays.findMany({
-      where: {
-        date: {
-          gte: startOfMonth,
-          lte: endOfMonth
-        }
-      },
-      orderBy: { date: 'asc' }
-    });
 
     return NextResponse.json({
       user: {
