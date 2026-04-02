@@ -152,12 +152,12 @@ export async function getAttendanceTrends() {
 
     const attendanceData = await prisma.$queryRaw`
       SELECT 
-        DATE_FORMAT(date, '%Y-%m') as month,
+        TO_CHAR("date", 'YYYY-MM') as month,
         SUM(CASE WHEN status = 'PRESENT' THEN 1 ELSE 0 END) as present,
         SUM(CASE WHEN status = 'ABSENT' THEN 1 ELSE 0 END) as absent
       FROM attendances 
-      WHERE date >= ${sixMonthsAgo}
-      GROUP BY DATE_FORMAT(date, '%Y-%m')
+      WHERE "date" >= ${sixMonthsAgo}
+      GROUP BY TO_CHAR("date", 'YYYY-MM')
       ORDER BY month
     ` as Array<{ month: string; present: bigint; absent: bigint }>
 
@@ -179,11 +179,11 @@ export async function getPayrollTrends() {
 
     const payrollData = await prisma.$queryRaw`
       SELECT 
-        DATE_FORMAT(processedAt, '%Y-%m') as month,
-        SUM(netPay) as amount
+        TO_CHAR("processedAt", 'YYYY-MM') as month,
+        SUM("netPay") as amount
       FROM payroll_entries 
-      WHERE processedAt >= ${sixMonthsAgo}
-      GROUP BY DATE_FORMAT(processedAt, '%Y-%m')
+      WHERE "processedAt" >= ${sixMonthsAgo}
+      GROUP BY TO_CHAR("processedAt", 'YYYY-MM')
       ORDER BY month
     ` as Array<{ month: string; amount: number }>
 
@@ -221,12 +221,12 @@ export async function getLoanTrends() {
 
     const loanData = await prisma.$queryRaw`
       SELECT 
-        DATE_FORMAT(createdAt, '%Y-%m') as month,
+        TO_CHAR("createdAt", 'YYYY-MM') as month,
         COUNT(*) as loans,
-        SUM(amount) as amount
+        SUM("amount") as amount
       FROM loans 
-      WHERE createdAt >= ${sixMonthsAgo}
-      GROUP BY DATE_FORMAT(createdAt, '%Y-%m')
+      WHERE "createdAt" >= ${sixMonthsAgo}
+      GROUP BY TO_CHAR("createdAt", 'YYYY-MM')
       ORDER BY month
     ` as Array<{ month: string; loans: bigint; amount: number }>
 
