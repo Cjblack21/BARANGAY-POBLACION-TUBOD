@@ -1284,14 +1284,28 @@ export async function releasePayrollWithAudit(
 
     // Release selected PENDING entries
     const entryIdsToRelease = entriesToRelease.map(e => e.payroll_entries_id)
+    const now = new Date()
     const updateResult = await prisma.payroll_entries.updateMany({
       where: {
         payroll_entries_id: { in: entryIdsToRelease },
         status: 'PENDING'
       },
-      data: { status: 'RELEASED', releasedAt: new Date() }
+      data: { status: 'RELEASED', releasedAt: now }
     })
     console.log(`✅ Released ${updateResult.count} payroll entries`)
+
+    // Immediately archive the just-released entries so that a page refresh
+    // does NOT re-display them in the "Current Payroll" view.
+    // The archived payrolls API already includes both RELEASED and ARCHIVED statuses,
+    // so payslip printing from the Archived Payrolls tab is unaffected.
+    const immediateArchiveResult = await prisma.payroll_entries.updateMany({
+      where: {
+        payroll_entries_id: { in: entryIdsToRelease },
+        status: 'RELEASED'
+      },
+      data: { status: 'ARCHIVED', archivedAt: now }
+    })
+    console.log(`📦 Immediately archived ${immediateArchiveResult.count} just-released payroll entries`)
 
     // Update loan balances for released users
     console.log(`💰 Updating ${allLoans.length} active loans...`)
@@ -1443,12 +1457,13 @@ export async function generatePayslips(periodStart?: string, periodEnd?: string)
       }
     }
 
-    // Get released payroll entries
+    // Get released/archived payroll entries for payslip generation
+    // Entries are immediately archived after release, so we include both statuses
     const payrollEntries = await prisma.payroll_entries.findMany({
       where: {
         periodStart: startDate,
         periodEnd: endDate,
-        status: 'RELEASED'
+        status: { in: ['RELEASED', 'ARCHIVED'] }
       },
       include: {
         users: {
