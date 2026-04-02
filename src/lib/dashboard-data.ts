@@ -14,6 +14,28 @@ export async function getDashboardStats() {
       where: { isActive: true, role: 'PERSONNEL' }
     })
 
+    // Get officials count
+    const officialsCount = await prisma.users.count({
+      where: { 
+        isActive: true, 
+        role: 'PERSONNEL',
+        personnel_types: {
+          department: 'Barangay Officials'
+        }
+      }
+    })
+
+    // Get staff count
+    const staffCount = await prisma.users.count({
+      where: { 
+        isActive: true, 
+        role: 'PERSONNEL',
+        personnel_types: {
+          department: 'Barangay Staff'
+        }
+      }
+    })
+
     // Get monthly payroll (current month)
     const monthlyPayroll = await prisma.payroll_entries.aggregate({
       where: {
@@ -94,6 +116,8 @@ export async function getDashboardStats() {
 
     return {
       totalPersonnel,
+      officialsCount,
+      staffCount,
       monthlyPayroll: monthlyPayroll._sum.netPay || 0,
       attendanceToday: currentAttendanceDeductions, // Current attendance deductions
       absentToday: archivedAttendanceDeductions, // Archived attendance deductions
@@ -107,6 +131,8 @@ export async function getDashboardStats() {
     console.error("Error fetching dashboard stats:", error)
     return {
       totalPersonnel: 0,
+      officialsCount: 0,
+      staffCount: 0,
       monthlyPayroll: 0,
       attendanceToday: 0,
       absentToday: 0,

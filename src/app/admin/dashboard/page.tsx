@@ -36,7 +36,7 @@ export default async function AdminDashboard() {
     {
       title: "Total Staff",
       value: dashboardStats.totalPersonnel.toString(),
-      description: "Active staff",
+      description: `Officials: ${dashboardStats.officialsCount} • Staff: ${dashboardStats.staffCount}`,
       icon: Users,
       trend: "stable",
       color: "text-blue-600",
