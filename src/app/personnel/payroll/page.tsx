@@ -5,7 +5,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog'
-import { Calendar, FileText, Clock, ChevronDown, ChevronUp, Trash2 } from 'lucide-react'
+import { Calendar, FileText, Clock, ChevronDown, ChevronUp, Trash2, Search } from 'lucide-react'
 import { format } from 'date-fns'
 import PayrollBreakdownDialog from '@/components/payroll/PayrollBreakdownDialog'
 
@@ -43,6 +43,7 @@ export default function PersonnelPayrollPage() {
   const [fetchedDetails, setFetchedDetails] = useState<any>(null)
   const [selectedPayrolls, setSelectedPayrolls] = useState<string[]>([])
   const [selectAll, setSelectAll] = useState(false)
+  const [archiveSearch, setArchiveSearch] = useState('')
 
   useEffect(() => {
     try {
@@ -551,64 +552,103 @@ export default function PersonnelPayrollPage() {
                     {formatCurrency(archivedPayrolls.reduce((sum: number, p: any) => sum + Number(p.netPay || 0), 0))}
                   </p>
                 </div>
-                {/* Removed Select All / Bulk Delete completely */}
-                <div className="space-y-3">
-                  {archivedPayrolls.map((payroll: any) => (
-                    <div key={payroll.payroll_entries_id} className="relative overflow-hidden border rounded-xl bg-card">
-                      <div className="relative p-4">
-                        <div className="flex items-start gap-3 mb-3">
-                          <div className="flex-1">
-                            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 mb-3">
-                              <div className="flex items-center gap-2">
-                                <div className="p-1.5 bg-blue-100 dark:bg-blue-900/30 rounded-lg">
-                                  <Calendar className="h-4 w-4 text-blue-600 dark:text-blue-400" />
+
+                {/* Search Bar */}
+                <div className="relative mb-4">
+                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                  <input
+                    type="text"
+                    value={archiveSearch}
+                    onChange={(e) => setArchiveSearch(e.target.value)}
+                    placeholder="Search by month or period (e.g. Nov, Dec, 2026)..."
+                    className="w-full pl-9 pr-4 py-2 text-sm rounded-lg border border-input bg-background ring-offset-background focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 placeholder:text-muted-foreground"
+                  />
+                </div>
+
+                {/* Filtered List */}
+                {(() => {
+                  const search = archiveSearch.toLowerCase().trim()
+                  const filtered = search
+                    ? archivedPayrolls.filter((p: any) => {
+                        const start = new Date(p.periodStart)
+                        const end = new Date(p.periodEnd)
+                        const startStr = start.toLocaleDateString('en-US', { month: 'long', year: 'numeric', day: 'numeric' }).toLowerCase()
+                        const endStr = end.toLocaleDateString('en-US', { month: 'long', year: 'numeric', day: 'numeric' }).toLowerCase()
+                        const shortStart = format(start, 'MMM dd, yyyy').toLowerCase()
+                        const shortEnd = format(end, 'MMM dd, yyyy').toLowerCase()
+                        return startStr.includes(search) || endStr.includes(search) || shortStart.includes(search) || shortEnd.includes(search)
+                      })
+                    : archivedPayrolls
+
+                  if (filtered.length === 0) {
+                    return (
+                      <div className="text-center py-10">
+                        <Search className="h-8 w-8 text-muted-foreground mx-auto mb-2" />
+                        <p className="text-sm text-muted-foreground">No payrolls match &quot;{archiveSearch}&quot;</p>
+                      </div>
+                    )
+                  }
+
+                  return (
+                    <div className="space-y-3">
+                      {filtered.map((payroll: any) => (
+                        <div key={payroll.payroll_entries_id} className="relative overflow-hidden border rounded-xl bg-card">
+                          <div className="relative p-4">
+                            <div className="flex items-start gap-3 mb-3">
+                              <div className="flex-1">
+                                <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 mb-3">
+                                  <div className="flex items-center gap-2">
+                                    <div className="p-1.5 bg-blue-100 dark:bg-blue-900/30 rounded-lg">
+                                      <Calendar className="h-4 w-4 text-blue-600 dark:text-blue-400" />
+                                    </div>
+                                    <div>
+                                      <p className="text-xs text-muted-foreground">Period</p>
+                                      <p className="font-semibold text-sm">
+                                        {formatDate(payroll.periodStart)} - {formatDate(payroll.periodEnd)}
+                                      </p>
+                                    </div>
+                                  </div>
+                                  <Badge variant={payroll.status === 'RELEASED' ? 'default' : 'secondary'}
+                                    className={payroll.status === 'RELEASED' ? 'bg-green-600 shadow-sm' : ''}>
+                                    {payroll.status}
+                                  </Badge>
                                 </div>
-                                <div>
-                                  <p className="text-xs text-muted-foreground">Period</p>
-                                  <p className="font-semibold text-sm">
-                                    {formatDate(payroll.periodStart)} - {formatDate(payroll.periodEnd)}
-                                  </p>
+                                <div className="bg-muted/50 rounded-lg p-3 flex items-center justify-between">
+                                  <div>
+                                    <p className="text-xs text-muted-foreground mb-0.5">Net Pay</p>
+                                    <p className="text-xl sm:text-2xl font-bold text-blue-600 dark:text-blue-500">
+                                      {formatCurrency(Number(payroll.netPay))}
+                                    </p>
+                                  </div>
+                                  <div className="flex gap-2">
+                                    <Button
+                                      variant="outline"
+                                      size="sm"
+                                      onClick={() => openPayslipDetails(payroll)}
+                                      className="shadow-sm"
+                                    >
+                                      <FileText className="h-4 w-4 sm:mr-2" />
+                                      <span className="hidden sm:inline">View</span>
+                                    </Button>
+                                    <Button
+                                      variant="ghost"
+                                      size="sm"
+                                      onClick={() => deletePayroll(payroll.payroll_entries_id)}
+                                      className="text-red-600 hover:text-red-700 hover:bg-red-50 dark:hover:bg-red-950/20"
+                                    >
+                                      <Trash2 className="h-4 w-4 sm:mr-2" />
+                                      <span className="hidden sm:inline">Delete</span>
+                                    </Button>
+                                  </div>
                                 </div>
-                              </div>
-                              <Badge variant={payroll.status === 'RELEASED' ? 'default' : 'secondary'}
-                                className={payroll.status === 'RELEASED' ? 'bg-green-600 shadow-sm' : ''}>
-                                {payroll.status}
-                              </Badge>
-                            </div>
-                            <div className="bg-muted/50 rounded-lg p-3 flex items-center justify-between">
-                              <div>
-                                <p className="text-xs text-muted-foreground mb-0.5">Net Pay</p>
-                                <p className="text-xl sm:text-2xl font-bold text-blue-600 dark:text-blue-500">
-                                  {formatCurrency(Number(payroll.netPay))}
-                                </p>
-                              </div>
-                              <div className="flex gap-2">
-                                <Button
-                                  variant="outline"
-                                  size="sm"
-                                  onClick={() => openPayslipDetails(payroll)}
-                                  className="shadow-sm"
-                                >
-                                  <FileText className="h-4 w-4 sm:mr-2" />
-                                  <span className="hidden sm:inline">View</span>
-                                </Button>
-                                <Button
-                                  variant="ghost"
-                                  size="sm"
-                                  onClick={() => deletePayroll(payroll.payroll_entries_id)}
-                                  className="text-red-600 hover:text-red-700 hover:bg-red-50 dark:hover:bg-red-950/20"
-                                >
-                                  <Trash2 className="h-4 w-4 sm:mr-2" />
-                                  <span className="hidden sm:inline">Delete</span>
-                                </Button>
                               </div>
                             </div>
                           </div>
                         </div>
-                      </div>
+                      ))}
                     </div>
-                  ))}
-                </div>
+                  )
+                })()}
               </>
             ) : (
               <p className="text-center text-muted-foreground py-8">
