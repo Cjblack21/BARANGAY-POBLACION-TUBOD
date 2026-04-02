@@ -134,14 +134,14 @@ export async function getMonthlyPayrollTrend() {
 
     const data = await prisma.$queryRaw`
       SELECT 
-        DATE_FORMAT(processedAt, '%Y-%m') as month,
-        SUM(basicSalary) as grossPay,
+        TO_CHAR("processedAt", 'YYYY-MM') as month,
+        SUM("basicSalary") as grossPay,
         SUM(deductions) as totalDeductions,
-        SUM(netPay) as netPay,
+        SUM("netPay") as netPay,
         COUNT(*) as entries
       FROM payroll_entries
-      WHERE processedAt >= ${sixMonthsAgo}
-      GROUP BY DATE_FORMAT(processedAt, '%Y-%m')
+      WHERE "processedAt" >= ${sixMonthsAgo}
+      GROUP BY TO_CHAR("processedAt", 'YYYY-MM')
       ORDER BY month ASC
     ` as Array<{
       month: string
