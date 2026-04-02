@@ -46,12 +46,24 @@ export async function GET(request: NextRequest) {
 
     console.log('🔍 Fetching payroll entries for period:', periodStart, 'to', periodEnd)
 
+    // Use date-range matching (startOfDay → endOfDay) so entries are found
+    // regardless of exact UTC timestamp stored in the DB
+    const periodStartOfDay = new Date(periodStart)
+    periodStartOfDay.setHours(0, 0, 0, 0)
+    const periodStartEndOfDay = new Date(periodStart)
+    periodStartEndOfDay.setHours(23, 59, 59, 999)
+
+    const periodEndStartOfDay = new Date(periodEnd)
+    periodEndStartOfDay.setHours(0, 0, 0, 0)
+    const periodEndEndOfDay = new Date(periodEnd)
+    periodEndEndOfDay.setHours(23, 59, 59, 999)
+
     // Fetch both PENDING and RELEASED payroll entries
     // Exclude ARCHIVED entries
     const payrollEntries = await prisma.payroll_entries.findMany({
       where: {
-        periodStart: periodStart,
-        periodEnd: periodEnd,
+        periodStart: { gte: periodStartOfDay, lte: periodStartEndOfDay },
+        periodEnd: { gte: periodEndStartOfDay, lte: periodEndEndOfDay },
         status: { not: 'ARCHIVED' } // Show PENDING and RELEASED, but not ARCHIVED
       },
       include: {

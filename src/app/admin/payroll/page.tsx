@@ -1710,9 +1710,44 @@ html, body { margin: 0 !important; padding: 0 !important; overflow: hidden !impo
   useEffect(() => {
     const initializePayroll = async () => {
       // Load saved period settings from localStorage
-      const savedPeriodStart = localStorage.getItem('payroll_period_start')
-      const savedPeriodEnd = localStorage.getItem('payroll_period_end')
+      let savedPeriodStart = localStorage.getItem('payroll_period_start')
+      let savedPeriodEnd = localStorage.getItem('payroll_period_end')
       const savedReleaseTime = localStorage.getItem('payroll_release_time')
+
+      // --- Fallback: if localStorage is empty, load from attendance_settings (DB) ---
+      if (!savedPeriodStart || !savedPeriodEnd) {
+        try {
+          const res = await fetch('/api/attendance/settings')
+          if (res.ok) {
+            const data = await res.json()
+            const dbSettings = data.settings
+            if (dbSettings?.periodStart && dbSettings?.periodEnd) {
+              // Convert DB dates to YYYY-MM-DD strings for consistency
+              const toDateStr = (d: string | Date) => {
+                const dt = new Date(d)
+                const y = dt.getFullYear()
+                const mo = String(dt.getMonth() + 1).padStart(2, '0')
+                const day = String(dt.getDate()).padStart(2, '0')
+                return `${y}-${mo}-${day}`
+              }
+              savedPeriodStart = toDateStr(dbSettings.periodStart)
+              savedPeriodEnd = toDateStr(dbSettings.periodEnd)
+              // Persist to localStorage so subsequent loads are instant
+              localStorage.setItem('payroll_period_start', savedPeriodStart)
+              localStorage.setItem('payroll_period_end', savedPeriodEnd)
+              if (dbSettings.payrollReleaseTime) {
+                localStorage.setItem('payroll_release_time_officials', dbSettings.payrollReleaseTime)
+                localStorage.setItem('payroll_release_time_staff', dbSettings.payrollReleaseTime)
+                setReleaseTimeOfficials(dbSettings.payrollReleaseTime)
+                setReleaseTimeStaff(dbSettings.payrollReleaseTime)
+              }
+              console.log('📅 Loaded period from DB attendance_settings:', savedPeriodStart, 'to', savedPeriodEnd)
+            }
+          }
+        } catch (e) {
+          console.error('Failed to load attendance settings from DB:', e)
+        }
+      }
 
       if (savedPeriodStart && savedPeriodEnd) {
         setPayrollPeriodStart(savedPeriodStart)
