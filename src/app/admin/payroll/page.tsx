@@ -185,7 +185,7 @@ export default function PayrollPage() {
   const [currentBlguFilter, setCurrentBlguFilter] = useState<'all' | 'Barangay Officials' | 'Barangay Staff'>('all')
   const todayPHString = useMemo(() => toPhilippinesDateString(new Date()), [])
 
-  // Per-BLGU generation tracking based on actual PENDING entries
+  // Per-BLGU generation tracking based on actual DB entries (PENDING or RELEASED)
   const officialsGenerated = useMemo(
     () => payrollEntries.some(e => e.department === 'Barangay Officials'),
     [payrollEntries]
@@ -193,6 +193,15 @@ export default function PayrollPage() {
   const staffGenerated = useMemo(
     () => payrollEntries.some(e => e.department === 'Barangay Staff'),
     [payrollEntries]
+  )
+  // Per-BLGU release tracking — true only when ALL entries for that group are Released
+  const officialsReleased = useMemo(
+    () => officialsGenerated && payrollEntries.filter(e => e.department === 'Barangay Officials').every(e => e.status === 'Released'),
+    [payrollEntries, officialsGenerated]
+  )
+  const staffReleased = useMemo(
+    () => staffGenerated && payrollEntries.filter(e => e.department === 'Barangay Staff').every(e => e.status === 'Released'),
+    [payrollEntries, staffGenerated]
   )
   const bothBlguGenerated = officialsGenerated && staffGenerated
   const [showGeneratedBanner, setShowGeneratedBanner] = useState(true)
@@ -2018,10 +2027,11 @@ html, body { margin: 0 !important; padding: 0 !important; overflow: hidden !impo
       )}
 
       {/* Release Countdown Timer — per BLGU group */}
-      {currentPeriod && currentPeriod.status !== 'Released' && hasGeneratedForSettings && (officialsGenerated || staffGenerated) && (
+      {/* Each card shows independently: hides only when ITS OWN group is released */}
+      {currentPeriod && hasGeneratedForSettings && ((officialsGenerated && !officialsReleased) || (staffGenerated && !staffReleased)) && (
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          {/* Officials card */}
-          {officialsGenerated && (
+          {/* Officials card — only hidden when Officials are fully released */}
+          {officialsGenerated && !officialsReleased && (
             <div className={`flex items-center justify-between rounded-2xl border-2 px-8 py-6 shadow-sm ${canReleaseOfficials ? 'border-green-300 bg-green-50 dark:bg-green-950/20 dark:border-green-800' : 'border-border bg-muted/30 dark:bg-muted/10'}`}>
               <div className="flex items-center gap-5">
                 <div className={`h-16 w-16 rounded-2xl flex items-center justify-center flex-shrink-0 ${canReleaseOfficials ? 'bg-green-100 dark:bg-green-900' : 'bg-blue-100 dark:bg-blue-900/40'}`}>
@@ -2051,8 +2061,8 @@ html, body { margin: 0 !important; padding: 0 !important; overflow: hidden !impo
             </div>
           )}
 
-          {/* Staff card */}
-          {staffGenerated && (
+          {/* Staff card — only hidden when Staff are fully released */}
+          {staffGenerated && !staffReleased && (
             <div className={`flex items-center justify-between rounded-2xl border-2 px-8 py-6 shadow-sm ${canReleaseStaff ? 'border-green-300 bg-green-50 dark:bg-green-950/20 dark:border-green-800' : 'border-border bg-muted/30 dark:bg-muted/10'}`}>
               <div className="flex items-center gap-5">
                 <div className={`h-16 w-16 rounded-2xl flex items-center justify-center flex-shrink-0 ${canReleaseStaff ? 'bg-green-100 dark:bg-green-900' : 'bg-amber-100 dark:bg-amber-900/40'}`}>

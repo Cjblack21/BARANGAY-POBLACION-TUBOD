@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server"
 import { getServerSession } from "next-auth"
 import { authOptions } from "@/lib/auth"
 import { prisma } from "@/lib/prisma"
+import { parsePhilippinesLocalDate } from "@/lib/timezone"
 
 // GET - Fetch current payroll entries (stored in database)
 // MODIFIED: Only return data if payroll has been RELEASED
@@ -22,10 +23,15 @@ export async function GET(request: NextRequest) {
     let periodEnd: Date
 
     if (customStart && customEnd) {
-      // Use custom period dates
-      periodStart = new Date(customStart)
-      periodEnd = new Date(customEnd)
-      console.log('🔍 Using custom period:', customStart, 'to', customEnd)
+      // Use parsePhilippinesLocalDate to match how generatePayroll stores dates.
+      // generatePayroll uses parsePhilippinesLocalDate("2026-03-02", false) which
+      // stores 2026-03-01T16:00:00Z (Philippines midnight in UTC).
+      // Using plain new Date("2026-03-02") = 2026-03-02T00:00:00Z would MISS these records!
+      periodStart = parsePhilippinesLocalDate(customStart, false)
+      periodEnd = parsePhilippinesLocalDate(customEnd, true)
+      console.log('🔍 Using custom period (Philippines-parsed):', customStart, 'to', customEnd)
+      console.log('🔍 Parsed periodStart UTC:', periodStart.toISOString())
+      console.log('🔍 Parsed periodEnd UTC:', periodEnd.toISOString())
     } else {
       // Get current semi-monthly period
       const now = new Date()
@@ -41,22 +47,18 @@ export async function GET(request: NextRequest) {
       console.log('🔍 Using default semi-monthly period')
     }
 
-    periodStart.setHours(0, 0, 0, 0)
-    periodEnd.setHours(23, 59, 59, 999)
-
     console.log('🔍 Fetching payroll entries for period:', periodStart, 'to', periodEnd)
 
-    // Use date-range matching (startOfDay → endOfDay) so entries are found
-    // regardless of exact UTC timestamp stored in the DB
-    const periodStartOfDay = new Date(periodStart)
-    periodStartOfDay.setHours(0, 0, 0, 0)
-    const periodStartEndOfDay = new Date(periodStart)
-    periodStartEndOfDay.setHours(23, 59, 59, 999)
+    // Widen the search window by ±9 hours to safely handle any UTC/Philippines offset.
+    // Records are stored as Philippines-local midnight in UTC (e.g. 2026-03-01T16:00:00Z for March 2 PH).
+    // A 9-hour buffer guarantees we catch records across any timezone edge case.
+    const OFFSET_MS = 9 * 60 * 60 * 1000 // 9 hours in ms
 
-    const periodEndStartOfDay = new Date(periodEnd)
-    periodEndStartOfDay.setHours(0, 0, 0, 0)
-    const periodEndEndOfDay = new Date(periodEnd)
-    periodEndEndOfDay.setHours(23, 59, 59, 999)
+    const periodStartOfDay = new Date(periodStart.getTime() - OFFSET_MS)
+    const periodStartEndOfDay = new Date(periodStart.getTime() + OFFSET_MS)
+
+    const periodEndStartOfDay = new Date(periodEnd.getTime() - OFFSET_MS)
+    const periodEndEndOfDay = new Date(periodEnd.getTime() + OFFSET_MS)
 
     // Fetch both PENDING and RELEASED payroll entries
     // Exclude ARCHIVED entries
