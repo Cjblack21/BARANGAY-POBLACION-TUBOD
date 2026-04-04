@@ -198,7 +198,7 @@ export function LoginForm({
 
         {/* System Version */}
         <div className="text-center text-xs text-slate-500 dark:text-slate-400 font-medium">
-          PMS SYSTEM v1.5.6
+          PMS SYSTEM v1.10.10
         </div>
       </form>
     </>
