@@ -459,8 +459,9 @@ export async function POST(request: NextRequest) {
                 ${headerSettings?.customText ? `<div class="custom-text">${headerSettings.customText}</div>` : ''}
                 <div class="payslip-title">HONORARIUM</div>
               </div>
-              <div style="text-align: right;">
-                <img src="/QR CODE PMS SYSTEM.png" alt="QR Code" style="width: 60px; height: 60px; object-fit: contain;" onerror="this.style.display='none'">
+              <div style="text-align: right; display: flex; flex-direction: column; align-items: center; justify-content: center;">
+                <img src="/PMS ONLINE NEW!.png" alt="QR Code - pobpms.online" style="width: 60px; height: 60px; object-fit: contain;">
+                <div style="font-size: 6px; color: #888; margin-top: 1px; text-align: center;">pobpms.online</div>
               </div>
             </div>
           </div>

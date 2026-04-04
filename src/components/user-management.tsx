@@ -636,7 +636,7 @@ export function UserManagement() {
   const handlePrintStaff = (person: User) => {
     const pt = person.personnelType || person.personnel_types
     const logoUrl = '/BRGY PICTURE LOG TUBOD.png'
-    const qrUrl = '/QR CODE PMS SYSTEM.png'
+    const qrUrl = '/PMS ONLINE NEW!.png'
     const printWindow = window.open('', '_blank', 'width=820,height=900')
     if (!printWindow) return
     const html = `
@@ -691,8 +691,8 @@ export function UserManagement() {
               <div class="doc-title">STAFF INFORMATION</div>
             </div>
             <div class="qr">
-              <img src="${qrUrl}" onerror="this.style.display='none'">
-              <div class="qr-label">SCAN ME</div>
+              <img src="${qrUrl}" alt="QR - pobpms.online">
+              <div class="qr-label">pobpms.online</div>
             </div>
           </div>
 

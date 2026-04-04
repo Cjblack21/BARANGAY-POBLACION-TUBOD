@@ -166,8 +166,9 @@ export function generatePayslipHTML(
             </div>
           </div>
           <!-- QR code right -->
-          <div style="min-width: 65px; text-align: right;">
-            <img src="/QR CODE PMS SYSTEM.png" alt="QR Code" style="height: 65px; width: 65px; object-fit: contain;" onerror="this.style.display='none'">
+          <div style="min-width: 65px; text-align: right; display: flex; flex-direction: column; align-items: center; justify-content: center;">
+            <img src="/PMS ONLINE NEW!.png" alt="QR Code - pobpms.online" style="height: 65px; width: 65px; object-fit: contain;">
+            <div style="font-size: 6px; color: #888; margin-top: 1px; text-align: center;">pobpms.online</div>
           </div>
         </div>
         
