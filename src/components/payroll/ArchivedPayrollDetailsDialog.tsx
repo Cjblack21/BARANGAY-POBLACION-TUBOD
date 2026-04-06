@@ -655,7 +655,13 @@ export default function ArchivedPayrollDetailsDialog({
                     )}
                   </>
                 )}
+
+              {/* Gross Pay */}
+              <div className="flex justify-between items-center py-3 bg-blue-50 dark:bg-blue-950/20 rounded-lg px-3 mx-4 mb-3">
+                <span className="text-xs font-bold text-blue-700 dark:text-blue-300 uppercase tracking-wide">Gross Pay</span>
+                <span className="text-sm font-bold text-blue-700 dark:text-blue-300">{formatCurrency(grossPay)}</span>
               </div>
+            </div>
             </div>
 
             {/* Deductions Section - Separated */}

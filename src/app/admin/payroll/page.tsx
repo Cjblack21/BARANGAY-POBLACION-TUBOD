@@ -2814,11 +2814,24 @@ html, body { margin: 0 !important; padding: 0 !important; overflow: hidden !impo
                               return uniquePersonnel.map((person: any) => {
                                 const isSelected = selectedPersonnelForPeriods?.users_id === person.users_id
 
-                                // Calculate total net pay for this personnel across filtered periods
-                                const totalNetPay = payrollsToProcess.reduce((total, payroll) => {
-                                  const personnelInPeriod = payroll.payrolls?.find((p: any) => p.users_id === person.users_id)
-                                  return total + (personnelInPeriod ? Number(personnelInPeriod.netPay || 0) : 0)
-                                }, 0)
+                                // Calculate totals for this personnel across all periods
+                                let totalMonthlySalary = 0
+                                let totalGrossPay = 0
+                                let totalDeductions = 0
+                                let totalNetPay = 0
+                                payrollsToProcess.forEach(payroll => {
+                                  const p = payroll.payrolls?.find((p: any) => p.users_id === person.users_id)
+                                  if (!p) return
+                                  let snap = p.breakdownSnapshot
+                                  if (snap && typeof snap === 'string') { try { snap = JSON.parse(snap) } catch { snap = null } }
+                                  const gross = Number(snap?.grossPay || snap?.periodSalary || 0)
+                                  const additions = Number(snap?.totalAdditions || 0)
+                                  const monthly = gross > 0 ? gross - additions : Number(p.basicSalary || 0)
+                                  totalMonthlySalary += monthly
+                                  totalGrossPay += gross || (monthly + additions)
+                                  totalDeductions += Number(p.deductions || 0)
+                                  totalNetPay += Number(p.netPay || 0)
+                                })
 
                                 return (
                                   <div
@@ -2829,26 +2842,21 @@ html, body { margin: 0 !important; padding: 0 !important; overflow: hidden !impo
                                       } else {
                                         setSelectedPersonnelForPeriods(person);
                                         setSelectedPeriodBreakdownFilter(null);
-                                        // Get all periods for this personnel
                                         const personnelPeriods = archivedPayrolls.filter(payroll =>
                                           payroll.payrolls?.some((p: any) => p.users_id === person.users_id)
                                         );
                                         setArchivedPersonnelList(personnelPeriods);
                                       }
                                     }}
-                                    className={`
-                                          rounded-lg border-2 cursor-pointer transition-all overflow-hidden shadow-sm
-                                          ${isSelected
-                                        ? 'border-border bg-muted/60'
-                                        : 'border-border hover:border-border hover:shadow-md hover:bg-muted/40 bg-card'
-                                      }
-                                        `}
+                                    className={`rounded-lg border-2 cursor-pointer transition-all overflow-hidden shadow-sm ${
+                                      isSelected ? 'border-border bg-muted/60' : 'border-border hover:border-border hover:shadow-md hover:bg-muted/40 bg-card'
+                                    }`}
                                   >
                                     <div className="flex items-stretch">
                                       <div className={`w-1 flex-shrink-0 rounded-l-lg ${isSelected ? 'bg-foreground/30' : 'bg-muted-foreground/20'}`} />
-                                      <div className="flex items-center justify-between gap-3 flex-1 p-3">
+                                      <div className="flex items-start justify-between gap-3 flex-1 p-3">
                                         {/* Department icon */}
-                                        <div className={`flex-shrink-0 h-9 w-9 rounded-full flex items-center justify-center ${
+                                        <div className={`flex-shrink-0 h-9 w-9 rounded-full flex items-center justify-center mt-0.5 ${
                                           person.user?.personnelType?.department === 'Barangay Officials'
                                             ? 'bg-blue-100 dark:bg-blue-900/30'
                                             : 'bg-amber-100 dark:bg-amber-900/30'
@@ -2861,21 +2869,30 @@ html, body { margin: 0 !important; padding: 0 !important; overflow: hidden !impo
                                         <div className="flex-1 min-w-0">
                                           <p className="font-semibold text-sm truncate">{person.user?.name || 'N/A'}</p>
                                           {person.user?.personnelType?.department && (
-                                            <p className="text-xs text-muted-foreground mt-0.5 truncate">
-                                              {person.user.personnelType.department}
-                                            </p>
+                                            <p className="text-xs text-muted-foreground mt-0.5 truncate">{person.user.personnelType.department}</p>
                                           )}
                                           {person.user?.personnelType?.name && (
-                                            <span className="inline-block mt-1 text-[10px] font-medium px-1.5 py-0.5 rounded bg-primary/10 text-primary truncate max-w-full">
-                                              {person.user.personnelType.name}
-                                            </span>
+                                            <span className="inline-block mt-1 text-[10px] font-medium px-1.5 py-0.5 rounded bg-primary/10 text-primary truncate max-w-full">{person.user.personnelType.name}</span>
                                           )}
                                         </div>
-                                        <div className="text-right flex-shrink-0">
-                                          <p className="text-sm font-bold text-green-600 dark:text-green-400">
-                                            {formatCurrency(totalNetPay)}
-                                          </p>
-                                          <p className="text-xs text-muted-foreground">Total Net Pay</p>
+                                        {/* Pay summary */}
+                                        <div className="text-right flex-shrink-0 space-y-0.5 min-w-[110px]">
+                                          <div className="flex justify-between gap-2">
+                                            <span className="text-[10px] text-muted-foreground">Monthly</span>
+                                            <span className="text-[10px] font-medium">{formatCurrency(totalMonthlySalary)}</span>
+                                          </div>
+                                          <div className="flex justify-between gap-2">
+                                            <span className="text-[10px] text-muted-foreground">Gross Pay</span>
+                                            <span className="text-[10px] font-semibold text-blue-600 dark:text-blue-400">{formatCurrency(totalGrossPay)}</span>
+                                          </div>
+                                          <div className="flex justify-between gap-2">
+                                            <span className="text-[10px] text-muted-foreground">Deductions</span>
+                                            <span className="text-[10px] font-medium text-red-500">-{formatCurrency(totalDeductions)}</span>
+                                          </div>
+                                          <div className="flex justify-between gap-2 pt-0.5 border-t mt-0.5">
+                                            <span className="text-[10px] font-semibold">Net Pay</span>
+                                            <span className="text-xs font-bold text-green-600 dark:text-green-400">{formatCurrency(totalNetPay)}</span>
+                                          </div>
                                         </div>
                                       </div>
                                     </div>
@@ -2908,26 +2925,48 @@ html, body { margin: 0 !important; padding: 0 !important; overflow: hidden !impo
 
                           {selectedPersonnelForPeriods ? (
                             <>
-                              {/* Total Net Pay Card for Selected Personnel */}
+                              {/* Summary Card for Selected Personnel */}
                               {(() => {
-                                const totalNetPay = archivedPayrolls.reduce((total, payroll) => {
-                                  const personnelInPeriod = payroll.payrolls?.find((p: any) => p.users_id === selectedPersonnelForPeriods.users_id)
-                                  return total + (personnelInPeriod ? Number(personnelInPeriod.netPay || 0) : 0)
-                                }, 0)
-
+                                let totalMonthlySalary = 0
+                                let totalGrossPay = 0
+                                let totalDeductions = 0
+                                let totalNetPay = 0
+                                archivedPayrolls.forEach(payroll => {
+                                  const p = payroll.payrolls?.find((px: any) => px.users_id === selectedPersonnelForPeriods.users_id)
+                                  if (!p) return
+                                  let snap = p.breakdownSnapshot
+                                  if (snap && typeof snap === 'string') { try { snap = JSON.parse(snap) } catch { snap = null } }
+                                  const gross = Number(snap?.grossPay || snap?.periodSalary || 0)
+                                  const additions = Number(snap?.totalAdditions || 0)
+                                  const monthly = gross > 0 ? gross - additions : Number(p.basicSalary || 0)
+                                  totalMonthlySalary += monthly
+                                  totalGrossPay += gross || (monthly + additions)
+                                  totalDeductions += Number(p.deductions || 0)
+                                  totalNetPay += Number(p.netPay || 0)
+                                })
                                 const periodCount = archivedPersonnelList.length
 
                                 return (
                                   <div className="mb-4 p-4 bg-muted/40 border border-border rounded-md">
-                                    <div className="flex items-center justify-between">
-                                      <div>
-                                        <p className="text-xs font-semibold text-foreground uppercase">
-                                          {selectedPersonnelForPeriods.user?.name || 'Staff'} - Total Net Pay
-                                        </p>
-                                        <p className="text-xs text-muted-foreground mt-0.5">{periodCount} period{periodCount !== 1 ? 's' : ''}</p>
+                                    <p className="text-xs font-bold text-foreground uppercase mb-3">
+                                      {selectedPersonnelForPeriods.user?.name || 'Staff'} — {periodCount} period{periodCount !== 1 ? 's' : ''}
+                                    </p>
+                                    <div className="space-y-1.5">
+                                      <div className="flex justify-between items-center">
+                                        <span className="text-xs text-muted-foreground">Monthly Salary</span>
+                                        <span className="text-xs font-semibold">{formatCurrency(totalMonthlySalary)}</span>
                                       </div>
-                                      <div className="text-right">
-                                        <p className="text-2xl font-bold text-green-600 dark:text-green-400">{formatCurrency(totalNetPay)}</p>
+                                      <div className="flex justify-between items-center">
+                                        <span className="text-xs text-muted-foreground">Gross Pay</span>
+                                        <span className="text-xs font-semibold text-blue-600 dark:text-blue-400">{formatCurrency(totalGrossPay)}</span>
+                                      </div>
+                                      <div className="flex justify-between items-center">
+                                        <span className="text-xs text-muted-foreground">Deductions</span>
+                                        <span className="text-xs font-semibold text-red-500">-{formatCurrency(totalDeductions)}</span>
+                                      </div>
+                                      <div className="flex justify-between items-center pt-1.5 border-t">
+                                        <span className="text-xs font-bold">Total Net Pay</span>
+                                        <span className="text-xl font-bold text-green-600 dark:text-green-400">{formatCurrency(totalNetPay)}</span>
                                       </div>
                                     </div>
                                   </div>
@@ -2963,9 +3002,14 @@ html, body { margin: 0 !important; padding: 0 !important; overflow: hidden !impo
                                     }
 
                                     return filteredPayrolls.map((payroll: any) => {
-                                      // Find this personnel's data in this period
                                       const personnelData = payroll.payrolls?.find((p: any) => p.users_id === selectedPersonnelForPeriods.users_id)
                                       const netPay = Number(personnelData?.netPay || 0)
+                                      const deductions = Number(personnelData?.deductions || 0)
+                                      let snap = personnelData?.breakdownSnapshot
+                                      if (snap && typeof snap === 'string') { try { snap = JSON.parse(snap) } catch { snap = null } }
+                                      const gross = Number(snap?.grossPay || snap?.periodSalary || 0)
+                                      const additions = Number(snap?.totalAdditions || 0)
+                                      const monthly = gross > 0 ? gross - additions : Number(personnelData?.basicSalary || 0)
 
                                       return (
                                         <div
@@ -2977,7 +3021,7 @@ html, body { margin: 0 !important; padding: 0 !important; overflow: hidden !impo
                                           }}
                                           className="p-3 bg-background border border-border rounded-md cursor-pointer hover:bg-muted/50 transition-all shadow-sm"
                                         >
-                                          <div className="flex items-center justify-between gap-3">
+                                          <div className="flex items-start justify-between gap-3">
                                             <div className="flex-1">
                                               <p className="font-semibold text-sm">
                                                 {formatDateForDisplay(new Date(payroll.periodStart))} - {formatDateForDisplay(new Date(payroll.periodEnd))}
@@ -2986,11 +3030,23 @@ html, body { margin: 0 !important; padding: 0 !important; overflow: hidden !impo
                                                 Released {formatDateForDisplay(new Date(payroll.releasedAt))}
                                               </p>
                                             </div>
-                                            <div className="text-right">
-                                              <p className="text-sm font-bold text-green-600 dark:text-green-400">
-                                                {formatCurrency(netPay)}
-                                              </p>
-                                              <p className="text-xs text-muted-foreground">Net Pay</p>
+                                            <div className="text-right flex-shrink-0 space-y-0.5 min-w-[110px]">
+                                              <div className="flex justify-between gap-2">
+                                                <span className="text-[10px] text-muted-foreground">Monthly</span>
+                                                <span className="text-[10px] font-medium">{formatCurrency(monthly)}</span>
+                                              </div>
+                                              <div className="flex justify-between gap-2">
+                                                <span className="text-[10px] text-muted-foreground">Gross Pay</span>
+                                                <span className="text-[10px] font-semibold text-blue-600 dark:text-blue-400">{formatCurrency(gross || monthly)}</span>
+                                              </div>
+                                              <div className="flex justify-between gap-2">
+                                                <span className="text-[10px] text-muted-foreground">Deductions</span>
+                                                <span className="text-[10px] font-medium text-red-500">-{formatCurrency(deductions)}</span>
+                                              </div>
+                                              <div className="flex justify-between gap-2 pt-0.5 border-t">
+                                                <span className="text-[10px] font-bold">Net Pay</span>
+                                                <span className="text-xs font-bold text-green-600 dark:text-green-400">{formatCurrency(netPay)}</span>
+                                              </div>
                                             </div>
                                           </div>
                                         </div>
@@ -3007,25 +3063,46 @@ html, body { margin: 0 !important; padding: 0 !important; overflow: hidden !impo
                               const selectedPeriodData = archivedPayrolls.find(p => p.id === selectedPeriodBreakdownFilter);
                               if (!selectedPeriodData) return null;
                               
-                              const periodTotal = selectedPeriodData.payrolls?.reduce((sum: number, person: any) => sum + Number(person.netPay || 0), 0) || 0;
-                              const staffCount = selectedPeriodData.payrolls?.length || 0;
+                               const periodTotal = selectedPeriodData.payrolls?.reduce((sum: number, person: any) => sum + Number(person.netPay || 0), 0) || 0;
+                               const staffCount = selectedPeriodData.payrolls?.length || 0;
+                               let periodTotalMonthly = 0, periodTotalGross = 0, periodTotalDeductions = 0;
+                               selectedPeriodData.payrolls?.forEach((px: any) => {
+                                 let sn = px.breakdownSnapshot;
+                                 if (sn && typeof sn === 'string') { try { sn = JSON.parse(sn) } catch { sn = null } }
+                                 const gr = Number(sn?.grossPay || sn?.periodSalary || 0);
+                                 const add = Number(sn?.totalAdditions || 0);
+                                 const mo = gr > 0 ? gr - add : Number(px.basicSalary || 0);
+                                 periodTotalMonthly += mo;
+                                 periodTotalGross += gr || (mo + add);
+                                 periodTotalDeductions += Number(px.deductions || 0);
+                               });
 
-                              return (
-                                <>
-                                  {/* Total Net Pay Card for Selected Period */}
-                                  <div className="mb-4 p-4 bg-muted/40 border border-border rounded-md">
-                                    <div className="flex items-center justify-between">
-                                      <div>
-                                        <p className="text-xs font-semibold text-foreground uppercase">
-                                          {formatDateForDisplay(new Date(selectedPeriodData.periodStart))} - {formatDateForDisplay(new Date(selectedPeriodData.periodEnd))}
-                                        </p>
-                                        <p className="text-xs text-muted-foreground mt-0.5">{staffCount} staff distributed</p>
-                                      </div>
-                                      <div className="text-right">
-                                        <p className="text-2xl font-bold text-green-600 dark:text-green-400">{formatCurrency(periodTotal)}</p>
-                                      </div>
-                                    </div>
-                                  </div>
+                               return (
+                                 <>
+                                   {/* Period Summary Card */}
+                                   <div className="mb-4 p-4 bg-muted/40 border border-border rounded-md">
+                                     <p className="text-xs font-bold text-foreground uppercase mb-3">
+                                       {formatDateForDisplay(new Date(selectedPeriodData.periodStart))} &ndash; {formatDateForDisplay(new Date(selectedPeriodData.periodEnd))} &middot; {staffCount} staff
+                                     </p>
+                                     <div className="space-y-1.5">
+                                       <div className="flex justify-between items-center">
+                                         <span className="text-xs text-muted-foreground">Monthly Salary</span>
+                                         <span className="text-xs font-semibold">{formatCurrency(periodTotalMonthly)}</span>
+                                       </div>
+                                       <div className="flex justify-between items-center">
+                                         <span className="text-xs text-muted-foreground">Gross Pay</span>
+                                         <span className="text-xs font-semibold text-blue-600 dark:text-blue-400">{formatCurrency(periodTotalGross)}</span>
+                                       </div>
+                                       <div className="flex justify-between items-center">
+                                         <span className="text-xs text-muted-foreground">Deductions</span>
+                                         <span className="text-xs font-semibold text-red-500">-{formatCurrency(periodTotalDeductions)}</span>
+                                       </div>
+                                       <div className="flex justify-between items-center pt-1.5 border-t">
+                                         <span className="text-xs font-bold">Total Net Pay</span>
+                                         <span className="text-xl font-bold text-green-600 dark:text-green-400">{formatCurrency(periodTotal)}</span>
+                                       </div>
+                                     </div>
+                                   </div>
 
                                   <div className="relative mb-4">
                                     <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
@@ -3067,22 +3144,20 @@ html, body { margin: 0 !important; padding: 0 !important; overflow: hidden !impo
                                             }}
                                             className="p-3 bg-background border border-border rounded-md cursor-pointer hover:bg-muted/50 transition-all shadow-sm"
                                           >
-                                            <div className="flex items-center justify-between gap-3">
-                                              <div className="flex-1 min-w-0">
-                                                <p className="font-semibold text-sm truncate">{person.user?.name || 'Unknown Staff'}</p>
-                                                {person.user?.personnelType?.department && (
-                                                  <p className="text-xs text-muted-foreground mt-0.5 truncate">
-                                                    {person.user.personnelType.department}
-                                                  </p>
-                                                )}
-                                              </div>
-                                              <div className="text-right flex-shrink-0">
-                                                <p className="text-sm font-bold text-green-600 dark:text-green-400">
-                                                  {formatCurrency(netPay)}
-                                                </p>
-                                                <p className="text-xs text-muted-foreground">Net Pay</p>
-                                              </div>
-                                            </div>
+                                             <div className="flex items-start justify-between gap-3">
+                                               <div className="flex-1 min-w-0">
+                                                 <p className="font-semibold text-sm truncate">{person.user?.name || 'Unknown Staff'}</p>
+                                                 {person.user?.personnelType?.department && (
+                                                   <p className="text-xs text-muted-foreground mt-0.5 truncate">{person.user.personnelType.department}</p>
+                                                 )}
+                                               </div>
+                                               <div className="text-right flex-shrink-0 space-y-0.5 min-w-[110px]">
+                                                 <div className="flex justify-between gap-2"><span className="text-[10px] text-muted-foreground">Monthly</span><span className="text-[10px] font-medium">{formatCurrency(Number((() => { try { const s = typeof person.breakdownSnapshot === 'string' ? JSON.parse(person.breakdownSnapshot) : person.breakdownSnapshot; const g = Number(s?.grossPay||s?.periodSalary||0); return g > 0 ? g - Number(s?.totalAdditions||0) : Number(person.basicSalary||0); } catch { return Number(person.basicSalary||0); } })()))}</span></div>
+                                                 <div className="flex justify-between gap-2"><span className="text-[10px] text-muted-foreground">Gross Pay</span><span className="text-[10px] font-semibold text-blue-600 dark:text-blue-400">{formatCurrency(Number((() => { try { const s = typeof person.breakdownSnapshot === 'string' ? JSON.parse(person.breakdownSnapshot) : person.breakdownSnapshot; return Number(s?.grossPay||s?.periodSalary||0)||Number(person.basicSalary||0); } catch { return Number(person.basicSalary||0); } })()))}</span></div>
+                                                 <div className="flex justify-between gap-2"><span className="text-[10px] text-muted-foreground">Deductions</span><span className="text-[10px] font-medium text-red-500">-{formatCurrency(Number(person.deductions||0))}</span></div>
+                                                 <div className="flex justify-between gap-2 pt-0.5 border-t"><span className="text-[10px] font-bold">Net Pay</span><span className="text-xs font-bold text-green-600 dark:text-green-400">{formatCurrency(netPay)}</span></div>
+                                               </div>
+                                             </div>
                                           </div>
                                         )
                                       })

@@ -194,6 +194,10 @@ export function generatePayslipHTML(
             <span style="font-weight: bold; color: #000;">₱${honorarium.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
           </div>
           ` : ''}
+          <div style="display: flex; justify-content: space-between; margin-top: 2px; padding-top: 2px; border-top: 1px solid #bbb; font-size: 12px; font-weight: bold; padding-right: 15%;">
+            <span>GROSS PAY:</span>
+            <span style="color: #000;">₱${(biweeklySalary + honorarium).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+          </div>
         </div>
 
         <!-- DEDUCTIONS SECTION -->
