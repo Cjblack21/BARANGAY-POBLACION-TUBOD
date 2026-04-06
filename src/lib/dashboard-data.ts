@@ -1,12 +1,17 @@
 import { prisma } from "@/lib/prisma"
 import { startOfMonth, endOfMonth, startOfDay, endOfDay, format } from "date-fns"
 
-export async function getDashboardStats() {
+export async function getDashboardStats(month?: number, year?: number) {
   const today = new Date()
+  let targetMonth = today;
+  if (month !== undefined && year !== undefined) {
+    targetMonth = new Date(year, month - 1, 15);
+  }
+  
   const startOfToday = startOfDay(today)
   const endOfToday = endOfDay(today)
-  const startOfCurrentMonth = startOfMonth(today)
-  const endOfCurrentMonth = endOfMonth(today)
+  const startOfCurrentMonth = startOfMonth(targetMonth)
+  const endOfCurrentMonth = endOfMonth(targetMonth)
 
   try {
     // Run all queries in parallel for maximum performance

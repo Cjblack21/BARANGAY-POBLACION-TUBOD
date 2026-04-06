@@ -1,7 +1,17 @@
 import { prisma } from "@/lib/prisma"
 import { startOfMonth, endOfMonth, format } from "date-fns"
 
-export async function getStaffBreakdown() {
+export async function getStaffBreakdown(month?: number, year?: number) {
+  let periodFilter = {};
+  if (month !== undefined && year !== undefined) {
+    const targetMonth = new Date(year, month - 1, 15);
+    periodFilter = {
+      processedAt: {
+        gte: startOfMonth(targetMonth),
+        lte: endOfMonth(targetMonth),
+      },
+    };
+  }
   try {
     const staff = await prisma.users.findMany({
       where: { isActive: true, role: "PERSONNEL" },
@@ -9,6 +19,7 @@ export async function getStaffBreakdown() {
         users_id: true,
         name: true,
         email: true,
+        avatar: true,
         personnel_types: {
           select: {
             name: true,
@@ -17,9 +28,10 @@ export async function getStaffBreakdown() {
           },
         },
         payroll_entries: {
+          where: periodFilter,
           orderBy: { processedAt: "desc" },
           take: 1,
-          select: { netPay: true, processedAt: true },
+          select: { netPay: true, processedAt: true, basicSalary: true },
         },
       },
       orderBy: { name: "asc" },
@@ -29,9 +41,13 @@ export async function getStaffBreakdown() {
       id: s.users_id,
       name: s.name ?? "—",
       email: s.email,
+      avatar: s.avatar ?? null,
       position: s.personnel_types?.name ?? "—",
       department: s.personnel_types?.department ?? "—",
       basicSalary: Number(s.personnel_types?.basicSalary ?? 0),
+      grossPay: s.payroll_entries[0]
+        ? Number(s.payroll_entries[0].basicSalary)
+        : null,
       latestNetPay: s.payroll_entries[0]
         ? Number(s.payroll_entries[0].netPay)
         : null,
@@ -43,11 +59,16 @@ export async function getStaffBreakdown() {
   }
 }
 
-export async function getDeductionBreakdown() {
+export async function getDeductionBreakdown(month?: number, year?: number) {
   try {
     const today = new Date()
-    const start = startOfMonth(today)
-    const end = endOfMonth(today)
+    let targetMonth = today;
+    if (month !== undefined && year !== undefined) {
+      targetMonth = new Date(year, month - 1, 15);
+    }
+    
+    const start = startOfMonth(targetMonth)
+    const end = endOfMonth(targetMonth)
 
     const grouped = await prisma.deductions.groupBy({
       by: ["deduction_types_id"],

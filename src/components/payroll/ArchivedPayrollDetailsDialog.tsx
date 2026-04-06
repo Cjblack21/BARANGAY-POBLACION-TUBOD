@@ -539,69 +539,65 @@ export default function ArchivedPayrollDetailsDialog({
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
       <DialogContent className="!w-[85vw] !max-w-[1200px] max-h-[90vh] overflow-y-auto scrollbar-minimal p-0">
-        {/* Header Section */}
-        <div className="sticky top-0 z-10 bg-background border-b px-4 py-3">
-          <DialogHeader>
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-4">
-                {/* Profile Avatar */}
-                <div className="relative h-14 w-14 rounded-full overflow-hidden bg-muted flex-shrink-0 border-2 border-border">
-                  {entry.user?.avatar || entry.user?.profilePicture ? (
-                    <img
-                      src={entry.user?.avatar || entry.user?.profilePicture}
-                      alt={entry.user?.name}
-                      className="h-full w-full object-cover"
-                    />
-                  ) : (
-                    <div className="h-full w-full flex items-center justify-center bg-primary/10 text-primary font-bold text-xl">
-                      {(entry.user?.name || 'U').charAt(0).toUpperCase()}
-                    </div>
-                  )}
-                </div>
-                <div>
-                  <DialogTitle className="text-2xl font-bold">{entry.user?.name || 'N/A'}</DialogTitle>
-                  <p className="text-base text-muted-foreground mt-0.5">{entry.user?.email || ''}</p>
-                  <div className="flex flex-wrap items-center gap-2 mt-1">
-                    <p className="text-sm text-muted-foreground">
-                      {formatDateForDisplay(new Date(period.periodStart))} - {formatDateForDisplay(new Date(period.periodEnd))}
-                    </p>
-                    <span className="text-muted-foreground">•</span>
-                    <p className="text-sm text-muted-foreground">ID: {entry.users_id || 'N/A'}</p>
-                    {entry.user?.personnelType?.department && (
-                      <>
-                        <span className="text-muted-foreground">•</span>
-                        <span className="text-xs font-semibold bg-blue-100 text-blue-700 dark:bg-blue-900/40 dark:text-blue-300 px-2 py-0.5 rounded-full">
-                          {entry.user.personnelType.department}
-                        </span>
-                      </>
-                    )}
-                    {entry.user?.personnelType?.name && (
-                      <>
-                        <span className="text-muted-foreground">•</span>
-                        <span className="text-xs font-semibold bg-gray-100 text-gray-700 dark:bg-gray-800 dark:text-gray-300 px-2 py-0.5 rounded-full">
-                          {entry.user.personnelType.name}
-                        </span>
-                      </>
-                    )}
-                  </div>
-                </div>
-              </div>
-              <div className="flex items-center gap-2">
-                <Button size="sm" onClick={handlePrint} className="gap-2 bg-blue-600 hover:bg-blue-700 text-white">
-                  <Printer className="h-4 w-4" />
-                  Print
-                </Button>
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  onClick={onClose}
-                  className="h-8 w-8 rounded-full"
-                >
-                  <X className="h-5 w-5" />
-                </Button>
+        {/* Payslip-style Header */}
+        <div className="relative">
+          {/* Close + Print buttons */}
+          <div className="absolute top-3 right-3 flex items-center gap-2 z-10">
+            <Button size="sm" onClick={handlePrint} className="gap-2 bg-blue-600 hover:bg-blue-700 text-white">
+              <Printer className="h-4 w-4" />
+              Print Report
+            </Button>
+            <Button variant="ghost" size="icon" onClick={onClose} className="h-8 w-8 rounded-full">
+              <X className="h-5 w-5" />
+            </Button>
+          </div>
+
+          {/* Centered payslip header */}
+          <div className="text-center border-b-2 border-gray-300 dark:border-gray-700 pb-4 pt-6 px-4">
+            <div className="flex justify-center mb-3">
+              <div className="h-28 w-28 rounded-full overflow-hidden mx-auto">
+                <img src="/BRGY PICTURE LOG TUBOD.png" alt="Barangay Logo" className="w-full h-full object-contain" />
               </div>
             </div>
-          </DialogHeader>
+            <DialogTitle asChild>
+              <h3 className="font-bold text-base">TUBOD BARANGAY POBLACION</h3>
+            </DialogTitle>
+            <p className="text-xs text-muted-foreground">Tubod, Lanao del Norte</p>
+            <p className="text-xs text-muted-foreground">POBLACION - PMS</p>
+            <h2 className="font-bold text-xl mt-3">HONORARIUM</h2>
+          </div>
+
+          {/* Staff info row */}
+          <div className="space-y-0.5 text-[15px] border-b pb-2 px-6 pt-3">
+            <div className="flex justify-between">
+              <span className="font-semibold uppercase text-xs text-muted-foreground mr-4">
+                {(entry.user?.personnelType?.department || '').toLowerCase().includes('official') ? 'BRGY OFFICIALS:' : 'BRGY STAFF:'}
+              </span>
+              <span className="font-medium text-right">{entry.user?.name || 'N/A'}</span>
+            </div>
+            <div className="flex justify-between">
+              <span className="font-semibold uppercase text-xs text-muted-foreground mr-4">Staff ID:</span>
+              <span className="font-medium text-right">{entry.users_id || 'N/A'}</span>
+            </div>
+            <div className="flex justify-between">
+              <span className="font-semibold uppercase text-xs text-muted-foreground mr-4">Email:</span>
+              <span className="text-sm text-right text-muted-foreground">{entry.user?.email || 'N/A'}</span>
+            </div>
+            <div className="flex justify-between">
+              <span className="font-semibold uppercase text-xs text-muted-foreground mr-4">BLGU:</span>
+              <span className="font-medium text-right">{entry.user?.personnelType?.department || 'N/A'}</span>
+            </div>
+            <div className="flex justify-between">
+              <span className="font-semibold uppercase text-xs text-muted-foreground mr-4">Position:</span>
+              <span className="font-medium text-right">{entry.user?.personnelType?.name || 'N/A'}</span>
+            </div>
+            <div className="flex justify-between">
+              <span className="font-semibold uppercase text-xs text-muted-foreground mr-4">Period:</span>
+              <span className="font-medium text-right">
+                {formatDateForDisplay(new Date(period.periodStart))} - {formatDateForDisplay(new Date(period.periodEnd))}
+              </span>
+            </div>
+          </div>
         </div>
 
         {loading && (
@@ -850,9 +846,9 @@ export default function ArchivedPayrollDetailsDialog({
             )}
 
             {/* NET PAY */}
-            <div className="flex justify-between items-center py-4 bg-primary/5 border border-primary/20 rounded-lg px-4">
+            <div className="flex justify-between items-center py-4 bg-muted/30 border border-border rounded-lg px-4">
               <span className="text-sm font-bold">Net Pay</span>
-              <span className="text-xl font-bold text-primary">{formatCurrency(netPay)}</span>
+              <span className="text-xl font-bold">{formatCurrency(netPay)}</span>
             </div>
 
           </div>

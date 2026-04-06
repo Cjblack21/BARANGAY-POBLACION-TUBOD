@@ -791,19 +791,19 @@ export default function PersonnelPayrollPage() {
                 <div className="text-center border-b-2 border-gray-300 dark:border-gray-700 pb-4">
                   <div className="flex justify-center mb-3">
                     <div className="h-28 w-28 rounded-full overflow-hidden mx-auto">
-                      <img src="/brgy-logo-transparent.png" alt="Barangay Logo" className="w-full h-full object-cover scale-[1.15] -translate-y-1" />
+                      <img src="/BRGY PICTURE LOG TUBOD.png" alt="Barangay Logo" className="w-full h-full object-contain" />
                     </div>
                   </div>
                   <h3 className="font-bold text-base">TUBOD BARANGAY POBLACION</h3>
                   <p className="text-xs text-muted-foreground">Tubod, Lanao del Norte</p>
                   <p className="text-xs text-muted-foreground">POBLACION - PMS</p>
-                  <h2 className="font-bold text-xl mt-3">PAYROLL</h2>
+                  <h2 className="font-bold text-xl mt-3">HONORARIUM</h2>
                 </div>
 
                 {/* Staff Information */}
                 <div className="space-y-0.5 text-[15px] border-b pb-2">
                   <div className="flex justify-between">
-                    <span className="font-semibold uppercase text-xs text-muted-foreground mr-4">BRGY STAFF:</span>
+                    <span className="font-semibold uppercase text-xs text-muted-foreground mr-4">{(selectedPayroll.user?.personnelType?.department || selectedPayroll.user?.personnel_types?.department || '').toLowerCase().includes('official') ? 'BRGY OFFICIALS:' : 'BRGY STAFF:'}</span>
                     <span className="font-medium text-right">{selectedPayroll.user?.name || selectedPayroll.users?.name || 'N/A'}</span>
                   </div>
                   <div className="flex justify-between">
@@ -965,9 +965,9 @@ export default function PersonnelPayrollPage() {
                   )}
 
                   {/* NET PAY */}
-                  <div className="flex justify-between py-3 bg-primary/10 px-2 rounded">
+                  <div className="flex justify-between py-3 bg-muted/30 px-2 rounded">
                     <span className="text-lg font-bold">NET PAY</span>
-                    <span className="text-lg font-bold text-primary">{formatCurrency(netPay)}</span>
+                    <span className="text-lg font-bold">{formatCurrency(netPay)}</span>
                   </div>
                 </div>
               </div>

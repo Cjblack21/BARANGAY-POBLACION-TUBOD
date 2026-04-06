@@ -10,7 +10,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Switch } from "@/components/ui/switch"
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
-import { Plus, CheckSquare, Square, Trash2, Edit, Search, Archive, RotateCcw } from "lucide-react"
+import { Plus, CheckSquare, Square, Trash2, Edit, Search, Archive, RotateCcw, Landmark, User } from "lucide-react"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Badge } from "@/components/ui/badge"
 import { toast } from "react-hot-toast"
@@ -58,6 +58,7 @@ export default function AddPayPage() {
   const [overloadPayType, setOverloadPayType] = useState("OVERTIME")
   const [overloadCustomType, setOverloadCustomType] = useState("")
   const [overloadSelectAll, setOverloadSelectAll] = useState(false)
+  const [overloadSelectAllOfficials, setOverloadSelectAllOfficials] = useState(false)
   const [overloadSelectedEmployees, setOverloadSelectedEmployees] = useState<string[]>([])
   const [overloadEmployeeSearch, setOverloadEmployeeSearch] = useState("")
   const [showOverloadConfirmModal, setShowOverloadConfirmModal] = useState(false)
@@ -274,14 +275,18 @@ export default function AddPayPage() {
         return
       }
 
-      if (!overloadSelectAll && overloadSelectedEmployees.length === 0) {
+      if (!overloadSelectAll && !overloadSelectAllOfficials && overloadSelectedEmployees.length === 0) {
         toast.error("Please select at least one staff or enable 'Select All'")
         return
       }
 
       let targetEmployees: string[] = []
-      if (overloadSelectAll) {
+      if (overloadSelectAll && overloadSelectAllOfficials) {
         targetEmployees = personnel.map(p => p.users_id)
+      } else if (overloadSelectAll) {
+        targetEmployees = personnel.filter(p => p.personnel_types?.department === 'Barangay Staff').map(p => p.users_id)
+      } else if (overloadSelectAllOfficials) {
+        targetEmployees = personnel.filter(p => p.personnel_types?.department === 'Barangay Officials').map(p => p.users_id)
       } else {
         targetEmployees = overloadSelectedEmployees
       }
@@ -318,12 +323,22 @@ export default function AddPayPage() {
 
   async function saveOverloadPay() {
     try {
+      let employees = overloadSelectedEmployees
+      let selectAll = false
+      if (overloadSelectAll && overloadSelectAllOfficials) {
+        selectAll = true
+        employees = []
+      } else if (overloadSelectAll) {
+        employees = personnel.filter(p => p.personnel_types?.department === 'Barangay Staff').map(p => p.users_id)
+      } else if (overloadSelectAllOfficials) {
+        employees = personnel.filter(p => p.personnel_types?.department === 'Barangay Officials').map(p => p.users_id)
+      }
       const payload = {
         amount: Number(overloadAmount),
         notes: overloadNotes,
         type: overloadPayType === 'CUSTOM' ? overloadCustomType : overloadPayType,
-        selectAll: overloadSelectAll,
-        employees: overloadSelectedEmployees
+        selectAll,
+        employees
       }
 
       const res = await fetch("/api/admin/overload-pay", {
@@ -348,6 +363,7 @@ export default function AddPayPage() {
       setOverloadPayType("OVERTIME")
       setOverloadCustomType("")
       setOverloadSelectAll(false)
+      setOverloadSelectAllOfficials(false)
       setOverloadSelectedEmployees([])
       setOverloadEmployeeSearch("")
       setDuplicatePersonnel([])
@@ -696,8 +712,8 @@ export default function AddPayPage() {
             <DialogTitle>Add Additional Pay</DialogTitle>
             <DialogDescription>Add overtime, overload, or other additional compensation for staff.</DialogDescription>
           </DialogHeader>
-          <div className="grid gap-4 py-4">
-            <div className="grid gap-2">
+          <div className="grid gap-3 py-4">
+            <div className="grid gap-2 rounded-lg border border-gray-200 dark:border-gray-700 p-4">
               <Label htmlFor="overload-type">Type</Label>
               <Select value={overloadPayType} onValueChange={setOverloadPayType}>
                 <SelectTrigger id="overload-type">
@@ -718,7 +734,7 @@ export default function AddPayPage() {
                 />
               )}
             </div>
-            <div className="grid gap-2">
+            <div className="grid gap-2 rounded-lg border border-gray-200 dark:border-gray-700 p-4">
               <Label htmlFor="overload-amount">Amount (₱)</Label>
               <Input
                 id="overload-amount"
@@ -729,7 +745,7 @@ export default function AddPayPage() {
                 className="focus-visible:ring-green-600"
               />
             </div>
-            <div className="grid gap-2">
+            <div className="grid gap-2 rounded-lg border border-gray-200 dark:border-gray-700 p-4">
               <Label htmlFor="overload-notes">Notes (Optional)</Label>
               <Input
                 id="overload-notes"
@@ -739,20 +755,35 @@ export default function AddPayPage() {
                 className="focus-visible:ring-green-600"
               />
             </div>
-            <div className="flex items-center gap-2 pt-2">
-              <Switch
-                id="overload-select-all"
-                checked={overloadSelectAll}
-                onCheckedChange={setOverloadSelectAll}
-              />
-              <Label htmlFor="overload-select-all" className="cursor-pointer">
-                Apply to all active staff
-              </Label>
+            <div className="flex flex-col gap-3 rounded-lg border border-gray-200 dark:border-gray-700 p-4">
+              <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">Apply To</p>
+              <div className="flex items-center gap-2">
+                <Switch
+                  id="overload-select-all"
+                  checked={overloadSelectAll}
+                  onCheckedChange={setOverloadSelectAll}
+                />
+                <Label htmlFor="overload-select-all" className="cursor-pointer flex items-center gap-1.5">
+                  <User className="h-3.5 w-3.5 text-amber-500" />
+                  Apply to all active staff
+                </Label>
+              </div>
+              <div className="flex items-center gap-2">
+                <Switch
+                  id="overload-select-all-officials"
+                  checked={overloadSelectAllOfficials}
+                  onCheckedChange={setOverloadSelectAllOfficials}
+                />
+                <Label htmlFor="overload-select-all-officials" className="cursor-pointer flex items-center gap-1.5">
+                  <Landmark className="h-3.5 w-3.5 text-blue-500" />
+                  Apply to all active officials
+                </Label>
+              </div>
             </div>
-            {!overloadSelectAll && (
-              <div className="grid gap-2">
+            {!overloadSelectAll && !overloadSelectAllOfficials && (
+              <div className="grid gap-2 rounded-lg border border-gray-200 dark:border-gray-700 p-4">
                 <Label>Select Staff</Label>
-                <Command className="border rounded-md">
+                <Command className="border border-gray-200 dark:border-gray-700 rounded-md">
                   <CommandInput
                     placeholder="Search staff..."
                     value={overloadEmployeeSearch}
@@ -773,7 +804,13 @@ export default function AddPayPage() {
                             <Square className="h-4 w-4" />
                           )}
                           <div className="flex-1">
-                            <div className="font-medium">{person.name}</div>
+                            <div className="font-medium flex items-center gap-1.5">
+                              {person.personnel_types?.department === 'Barangay Officials'
+                                ? <Landmark className="h-3.5 w-3.5 text-blue-500 flex-shrink-0" />
+                                : <User className="h-3.5 w-3.5 text-amber-500 flex-shrink-0" />
+                              }
+                              {person.name}
+                            </div>
                             <div className="text-sm text-muted-foreground">{person.email}</div>
                           </div>
                         </CommandItem>

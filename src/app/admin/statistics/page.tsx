@@ -32,15 +32,24 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table"
+import { StatisticsDateFilter } from "@/components/statistics-date-filter"
 
-export default async function StatisticsPage() {
+export default async function StatisticsPage({
+  searchParams,
+}: {
+  searchParams?: { month?: string; year?: string }
+}) {
   await getServerSession(authOptions)
+
+  const currentDate = new Date();
+  const month = searchParams?.month ? parseInt(searchParams.month, 10) : (currentDate.getMonth() + 1);
+  const year = searchParams?.year ? parseInt(searchParams.year, 10) : currentDate.getFullYear();
 
   const [dashStats, staff, deductions, loansSummary, payrollTrend] =
     await Promise.all([
-      getDashboardStats(),
-      getStaffBreakdown(),
-      getDeductionBreakdown(),
+      getDashboardStats(month, year),
+      getStaffBreakdown(month, year),
+      getDeductionBreakdown(month, year),
       getLoansSummary(),
       getMonthlyPayrollTrend(),
     ])
@@ -87,14 +96,17 @@ export default async function StatisticsPage() {
   return (
     <div className="flex-1 space-y-8 p-4 pt-6">
       {/* Page Header */}
-      <div className="space-y-1">
-        <h1 className="text-3xl font-bold tracking-tight flex items-center gap-2">
-          <BarChart3 className="h-7 w-7 text-blue-600" />
-          Statistics
-        </h1>
-        <p className="text-muted-foreground text-sm">
-          Detailed analytics across payroll, staff, deductions, and loans.
-        </p>
+      <div className="space-y-1 flex flex-col md:flex-row md:items-center justify-between gap-4">
+        <div>
+          <h1 className="text-3xl font-bold tracking-tight flex items-center gap-2">
+            <BarChart3 className="h-7 w-7 text-blue-600" />
+            Statistics
+          </h1>
+          <p className="text-muted-foreground text-sm">
+            Detailed analytics across payroll, staff, deductions, and loans.
+          </p>
+        </div>
+        <StatisticsDateFilter defaultMonth={month} defaultYear={year} />
       </div>
 
       {/* KPI Summary Cards */}
@@ -276,10 +288,10 @@ export default async function StatisticsPage() {
         <CardHeader className="pb-2">
           <CardTitle className="flex items-center gap-2 text-base">
             <Users className="h-4 w-4 text-blue-600" />
-            Staff Salary Breakdown
+            All Active Staff & Officials
           </CardTitle>
           <p className="text-xs text-muted-foreground">
-            All active personnel — basic salary and latest net pay
+            All active Brgy Staff and Brgy Officials — basic salary and latest net pay
           </p>
         </CardHeader>
         <CardContent>

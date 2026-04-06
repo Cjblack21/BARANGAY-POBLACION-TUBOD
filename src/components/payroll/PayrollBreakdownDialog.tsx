@@ -764,93 +764,82 @@ export default function PayrollBreakdownDialog({
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
       <DialogContent className="!w-[85vw] !max-w-[1200px] max-h-[90vh] overflow-y-auto scrollbar-hide p-0">
-        {/* Header Section with Background */}
-        <div className="sticky top-0 z-10 bg-background border-b px-4 py-3">
-          <DialogHeader>
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-4">
-                {/* Profile Avatar */}
-                <div className="relative h-14 w-14 rounded-full overflow-hidden bg-muted flex-shrink-0 border-2 border-border">
-                  {entry.avatar ? (
-                    <img
-                      src={entry.avatar}
-                      alt={entry.name}
-                      className="h-full w-full object-cover"
-                    />
-                  ) : (
-                    <div className="h-full w-full flex items-center justify-center bg-primary/10 text-primary font-bold text-xl">
-                      {entry.name?.charAt(0).toUpperCase() || 'U'}
-                    </div>
-                  )}
-                </div>
-                <div>
-                  <DialogTitle className="text-2xl font-bold">
-                    {entry.name}
-                  </DialogTitle>
-                  <p className="text-base text-muted-foreground mt-0.5">{entry.email}</p>
-                  <div className="flex flex-wrap items-center gap-2 mt-1">
-                    <p className="text-sm text-muted-foreground">
-                      {currentPeriod ?
-                        `${formatDateForDisplay(new Date(currentPeriod.periodStart))} - ${formatDateForDisplay(new Date(currentPeriod.periodEnd))}` :
-                        'N/A'
-                      }
-                    </p>
-                    <span className="text-muted-foreground">•</span>
-                    <p className="text-sm text-muted-foreground">ID: {entry.users_id}</p>
-                    {entry.department && (
-                      <>
-                        <span className="text-muted-foreground">•</span>
-                        <Badge variant="outline" className="text-xs">
-                          {entry.department}
-                        </Badge>
-                      </>
-                    )}
-                    {entry.personnelType && (
-                      <>
-                        <span className="text-muted-foreground">•</span>
-                        <Badge variant="secondary" className="text-xs">
-                          {entry.personnelType}
-                        </Badge>
-                      </>
-                    )}
-                  </div>
-                </div>
-              </div>
-              <div className="flex items-center gap-3">
-                <Badge variant="outline" className="text-sm px-4 py-2">
-                  {entry.status}
-                </Badge>
-                {/* Only show Edit button if not already in edit mode and status is Pending */}
-                {entry.status === 'Pending' && !isEditMode && !openInEditMode && (
-                  <Button size="sm" onClick={handleEditToggle} className="gap-2 bg-green-600 hover:bg-green-700 text-white">
-                    <Edit2 className="h-4 w-4" />
-                    Edit
-                  </Button>
-                )}
-                {/* Show Save/Cancel when in edit mode */}
-                {isEditMode && (
-                  <>
-                    <Button variant="default" size="sm" onClick={handleSaveEdit} disabled={isSaving} className="gap-2">
-                      <Save className="h-4 w-4" />
-                      {isSaving ? 'Saving...' : 'Save'}
-                    </Button>
-                    <Button variant="outline" size="sm" onClick={handleEditToggle} disabled={isSaving} className="gap-2">
-                      <XCircle className="h-4 w-4" />
-                      Cancel
-                    </Button>
-                  </>
-                )}
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  onClick={onClose}
-                  className="h-8 w-8 rounded-full"
-                >
-                  <X className="h-5 w-5" />
+        {/* Payslip-style Header */}
+        <div className="relative">
+          {/* Buttons top-right */}
+          <div className="absolute top-3 right-3 flex items-center gap-2 z-10">
+            <Badge variant="outline" className="text-sm px-4 py-2">{entry.status}</Badge>
+            {entry.status === 'Pending' && !isEditMode && !openInEditMode && (
+              <Button size="sm" onClick={handleEditToggle} className="gap-2 bg-green-600 hover:bg-green-700 text-white">
+                <Edit2 className="h-4 w-4" />
+                Edit
+              </Button>
+            )}
+            {isEditMode && (
+              <>
+                <Button variant="default" size="sm" onClick={handleSaveEdit} disabled={isSaving} className="gap-2">
+                  <Save className="h-4 w-4" />
+                  {isSaving ? 'Saving...' : 'Save'}
                 </Button>
+                <Button variant="outline" size="sm" onClick={handleEditToggle} disabled={isSaving} className="gap-2">
+                  <XCircle className="h-4 w-4" />
+                  Cancel
+                </Button>
+              </>
+            )}
+            <Button variant="ghost" size="icon" onClick={onClose} className="h-8 w-8 rounded-full">
+              <X className="h-5 w-5" />
+            </Button>
+          </div>
+
+          {/* Centered payslip header */}
+          <div className="text-center border-b-2 border-gray-300 dark:border-gray-700 pb-4 pt-6 px-4">
+            <div className="flex justify-center mb-3">
+              <div className="h-28 w-28 rounded-full overflow-hidden mx-auto">
+                <img src="/BRGY PICTURE LOG TUBOD.png" alt="Barangay Logo" className="w-full h-full object-contain" />
               </div>
             </div>
-          </DialogHeader>
+            <DialogTitle asChild>
+              <h3 className="font-bold text-base">TUBOD BARANGAY POBLACION</h3>
+            </DialogTitle>
+            <p className="text-xs text-muted-foreground">Tubod, Lanao del Norte</p>
+            <p className="text-xs text-muted-foreground">POBLACION - PMS</p>
+            <h2 className="font-bold text-xl mt-3">HONORARIUM</h2>
+          </div>
+
+          {/* Staff info row */}
+          <div className="space-y-0.5 text-[15px] border-b pb-2 px-6 pt-3">
+            <div className="flex justify-between">
+              <span className="font-semibold uppercase text-xs text-muted-foreground mr-4">
+                {(entry.department || '').toLowerCase().includes('official') ? 'BRGY OFFICIALS:' : 'BRGY STAFF:'}
+              </span>
+              <span className="font-medium text-right">{entry.name || 'N/A'}</span>
+            </div>
+            <div className="flex justify-between">
+              <span className="font-semibold uppercase text-xs text-muted-foreground mr-4">Staff ID:</span>
+              <span className="font-medium text-right">{entry.users_id || 'N/A'}</span>
+            </div>
+            <div className="flex justify-between">
+              <span className="font-semibold uppercase text-xs text-muted-foreground mr-4">Email:</span>
+              <span className="text-sm text-right text-muted-foreground">{entry.email || 'N/A'}</span>
+            </div>
+            <div className="flex justify-between">
+              <span className="font-semibold uppercase text-xs text-muted-foreground mr-4">BLGU:</span>
+              <span className="font-medium text-right">{entry.department || 'N/A'}</span>
+            </div>
+            <div className="flex justify-between">
+              <span className="font-semibold uppercase text-xs text-muted-foreground mr-4">Position:</span>
+              <span className="font-medium text-right">{entry.personnelType || 'N/A'}</span>
+            </div>
+            <div className="flex justify-between">
+              <span className="font-semibold uppercase text-xs text-muted-foreground mr-4">Period:</span>
+              <span className="font-medium text-right">
+                {currentPeriod
+                  ? `${formatDateForDisplay(new Date(currentPeriod.periodStart))} - ${formatDateForDisplay(new Date(currentPeriod.periodEnd))}`
+                  : 'N/A'}
+              </span>
+            </div>
+          </div>
         </div>
 
         <div className="px-4 py-4 space-y-4" ref={printRef}>

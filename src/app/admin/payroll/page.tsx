@@ -110,6 +110,8 @@ export default function PayrollPage() {
   const [deductionTypes, setDeductionTypes] = useState<any[]>([])
   const [personnelTypesMap, setPersonnelTypesMap] = useState<Map<string, any>>(new Map())
   const [totalEmployees, setTotalEmployees] = useState(0)
+  const [totalOfficials, setTotalOfficials] = useState(0)
+  const [totalStaff, setTotalStaff] = useState(0)
 
   // Reschedule state
   const [nextPeriodType, setNextPeriodType] = useState('Semi-Monthly')
@@ -324,9 +326,12 @@ html, body { margin: 0 !important; padding: 0 !important; overflow: hidden !impo
   // Load personnel types for department and position info
   const loadPersonnelTypes = async () => {
     try {
-      const response = await fetch('/api/personnel-types')
-      if (response.ok) {
-        const types = await response.json()
+      const [typesRes, usersRes] = await Promise.all([
+        fetch('/api/personnel-types'),
+        fetch('/api/admin/users')
+      ])
+      if (typesRes.ok) {
+        const types = await typesRes.json()
         const map = new Map()
         types.forEach((type: any) => {
           map.set(type.personnel_types_id, {
@@ -337,6 +342,15 @@ html, body { margin: 0 !important; padding: 0 !important; overflow: hidden !impo
         })
         setPersonnelTypesMap(map)
         console.log('🔍 Loaded personnel types:', types.length)
+      }
+      if (usersRes.ok) {
+        const usersData = await usersRes.json()
+        const users = Array.isArray(usersData) ? usersData : (usersData.users || usersData.data || [])
+        const officials = users.filter((u: any) => u.personnelType?.department === 'Barangay Officials' || u.department === 'Barangay Officials').length
+        const staff = users.filter((u: any) => u.personnelType?.department === 'Barangay Staff' || u.department === 'Barangay Staff').length
+        setTotalOfficials(officials)
+        setTotalStaff(staff)
+        console.log('🔍 User counts — Officials:', officials, 'Staff:', staff)
       }
     } catch (error) {
       console.error('Error loading personnel types:', error)
@@ -2175,6 +2189,9 @@ html, body { margin: 0 !important; padding: 0 !important; overflow: hidden !impo
                       {payrollEntries.filter(e => e.department === 'Barangay Officials').length}
                     </h3>
                     <span className="text-sm text-muted-foreground">active</span>
+                    {totalOfficials > 0 && (
+                      <span className="text-sm text-muted-foreground">/ {totalOfficials} total</span>
+                    )}
                   </div>
                   {officialsGenerated && periodEndOfficials && (
                     <div className="text-xs text-muted-foreground bg-muted/30 px-2 py-1 rounded inline-block">
@@ -2183,7 +2200,7 @@ html, body { margin: 0 !important; padding: 0 !important; overflow: hidden !impo
                   )}
                   {!officialsGenerated && (
                     <div className="text-xs text-muted-foreground bg-muted/30 px-2 py-1 rounded inline-block">
-                      Not generated yet
+                      Not generated yet {totalOfficials > 0 && <span className="font-semibold text-foreground ml-1">({totalOfficials} officials)</span>}
                     </div>
                   )}
                 </div>
@@ -2203,6 +2220,9 @@ html, body { margin: 0 !important; padding: 0 !important; overflow: hidden !impo
                       {payrollEntries.filter(e => e.department === 'Barangay Staff').length}
                     </h3>
                     <span className="text-sm text-muted-foreground">active</span>
+                    {totalStaff > 0 && (
+                      <span className="text-sm text-muted-foreground">/ {totalStaff} total</span>
+                    )}
                   </div>
                   {staffGenerated && periodEndStaff && (
                     <div className="text-xs text-muted-foreground bg-muted/30 px-2 py-1 rounded inline-block">
@@ -2211,7 +2231,7 @@ html, body { margin: 0 !important; padding: 0 !important; overflow: hidden !impo
                   )}
                   {!staffGenerated && (
                     <div className="text-xs text-muted-foreground bg-muted/30 px-2 py-1 rounded inline-block">
-                      Not generated yet
+                      Not generated yet {totalStaff > 0 && <span className="font-semibold text-foreground ml-1">({totalStaff} staff)</span>}
                     </div>
                   )}
                 </div>
@@ -2872,7 +2892,7 @@ html, body { margin: 0 !important; padding: 0 !important; overflow: hidden !impo
                                             <p className="text-xs text-muted-foreground mt-0.5 truncate">{person.user.personnelType.department}</p>
                                           )}
                                           {person.user?.personnelType?.name && (
-                                            <span className="inline-block mt-1 text-[10px] font-medium px-1.5 py-0.5 rounded bg-primary/10 text-primary truncate max-w-full">{person.user.personnelType.name}</span>
+                                            <span className="inline-block mt-1 text-[10px] font-medium px-1.5 py-0.5 rounded bg-muted/60 text-muted-foreground truncate max-w-full">{person.user.personnelType.name}</span>
                                           )}
                                         </div>
                                         {/* Pay summary */}
@@ -4343,7 +4363,7 @@ html, body { margin: 0 !important; padding: 0 !important; overflow: hidden !impo
               </div>
               <Button onClick={printArchivedOverallDetails} className="gap-2 bg-blue-600 hover:bg-blue-700 text-white border-blue-600 mr-8" variant="outline">
                 <Printer className="h-4 w-4" />
-                Print Overall Details
+                Print Overall Payroll Report
               </Button>
             </div>
           </DialogHeader>
