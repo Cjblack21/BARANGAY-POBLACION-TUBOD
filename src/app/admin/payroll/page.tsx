@@ -346,8 +346,9 @@ html, body { margin: 0 !important; padding: 0 !important; overflow: hidden !impo
       if (usersRes.ok) {
         const usersData = await usersRes.json()
         const users = Array.isArray(usersData) ? usersData : (usersData.users || usersData.data || [])
-        const officials = users.filter((u: any) => u.personnelType?.department === 'Barangay Officials' || u.department === 'Barangay Officials').length
-        const staff = users.filter((u: any) => u.personnelType?.department === 'Barangay Staff' || u.department === 'Barangay Staff').length
+        // IMPORTANT: The backend returns relation data in 'personnel_types', not 'personnelType'
+        const officials = users.filter((u: any) => u.personnel_types?.department === 'Barangay Officials' || u.department === 'Barangay Officials').length
+        const staff = users.filter((u: any) => u.personnel_types?.department === 'Barangay Staff' || u.department === 'Barangay Staff').length
         setTotalOfficials(officials)
         setTotalStaff(staff)
         console.log('🔍 User counts — Officials:', officials, 'Staff:', staff)
