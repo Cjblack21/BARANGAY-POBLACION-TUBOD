@@ -2662,7 +2662,7 @@ html, body { margin: 0 !important; padding: 0 !important; overflow: hidden !impo
                       </DialogHeader>
                       <div className="grid grid-cols-2 gap-6 flex-1 overflow-hidden p-4">
                         {/* Left: Personnel List */}
-                        <div className="border-r pr-4">
+                        <div className="border-r pr-4 overflow-y-auto">
 
 
                           {/* Grand Total Card */}
@@ -2786,7 +2786,7 @@ html, body { margin: 0 !important; padding: 0 !important; overflow: hidden !impo
                             />
                           </div>
 
-                          <div className="space-y-2 max-h-[75vh] overflow-y-auto">
+                          <div className="space-y-2">
                             {(() => {
                               // Process ALL archived payrolls to list all staff on the left
                               const payrollsToProcess = archivedPayrolls;
@@ -2904,7 +2904,7 @@ html, body { margin: 0 !important; padding: 0 !important; overflow: hidden !impo
                         </div>
 
                         {/* Right: Period List for selected personnel */}
-                        <div className="pl-4">
+                        <div className="pl-4 overflow-y-auto">
                           <div className="flex items-center gap-2 mb-4">
                             {selectedPeriodBreakdownFilter && !selectedPersonnelForPeriods ? (
                               <>
@@ -2983,7 +2983,7 @@ html, body { margin: 0 !important; padding: 0 !important; overflow: hidden !impo
                                 />
                               </div>
 
-                              <div className="space-y-2 max-h-[75vh] overflow-y-auto">
+                              <div className="space-y-2">
                                 {archivedPersonnelList.length > 0 ? (
                                   (() => {
                                     let filteredPayrolls = archivedPersonnelList
@@ -3114,7 +3114,7 @@ html, body { margin: 0 !important; padding: 0 !important; overflow: hidden !impo
                                     />
                                   </div>
 
-                                  <div className="space-y-2 max-h-[75vh] overflow-y-auto pr-2">
+                                  <div className="space-y-2 pr-2">
                                     {(() => {
                                       let staffList = selectedPeriodData.payrolls || [];
                                       if (personnelSearchTerm) {
