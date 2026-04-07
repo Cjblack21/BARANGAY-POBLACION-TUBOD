@@ -757,27 +757,29 @@ export default function AddPayPage() {
             </div>
             <div className="flex flex-col gap-3 rounded-lg border border-gray-200 dark:border-gray-700 p-4">
               <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">Apply To</p>
-              <div className="flex items-center gap-2">
+              <div className="flex items-center justify-between gap-2 rounded-md bg-amber-50 dark:bg-amber-950/20 border border-amber-100 dark:border-amber-900 px-3 py-2.5">
+                <Label htmlFor="overload-select-all" className="cursor-pointer flex items-center gap-2 text-sm font-medium">
+                  <User className="h-4 w-4 text-amber-500" />
+                  Apply to all active staff
+                </Label>
                 <Switch
                   id="overload-select-all"
                   checked={overloadSelectAll}
                   onCheckedChange={setOverloadSelectAll}
+                  className="data-[state=checked]:bg-amber-500"
                 />
-                <Label htmlFor="overload-select-all" className="cursor-pointer flex items-center gap-1.5">
-                  <User className="h-3.5 w-3.5 text-amber-500" />
-                  Apply to all active staff
-                </Label>
               </div>
-              <div className="flex items-center gap-2">
+              <div className="flex items-center justify-between gap-2 rounded-md bg-blue-50 dark:bg-blue-950/20 border border-blue-100 dark:border-blue-900 px-3 py-2.5">
+                <Label htmlFor="overload-select-all-officials" className="cursor-pointer flex items-center gap-2 text-sm font-medium">
+                  <Landmark className="h-4 w-4 text-blue-500" />
+                  Apply to all active officials
+                </Label>
                 <Switch
                   id="overload-select-all-officials"
                   checked={overloadSelectAllOfficials}
                   onCheckedChange={setOverloadSelectAllOfficials}
+                  className="data-[state=checked]:bg-blue-500"
                 />
-                <Label htmlFor="overload-select-all-officials" className="cursor-pointer flex items-center gap-1.5">
-                  <Landmark className="h-3.5 w-3.5 text-blue-500" />
-                  Apply to all active officials
-                </Label>
               </div>
             </div>
             {!overloadSelectAll && !overloadSelectAllOfficials && (
@@ -799,9 +801,9 @@ export default function AddPayPage() {
                           className="flex items-center gap-2 cursor-pointer aria-selected:bg-green-50 data-[selected=true]:bg-green-50"
                         >
                           {overloadSelectedEmployees.includes(person.users_id) ? (
-                            <CheckSquare className="h-4 w-4 text-green-600" />
+                            <CheckSquare className="h-4 w-4 text-green-600 flex-shrink-0" />
                           ) : (
-                            <Square className="h-4 w-4" />
+                            <Square className="h-4 w-4 text-muted-foreground flex-shrink-0" />
                           )}
                           <div className="flex-1">
                             <div className="font-medium flex items-center gap-1.5">
