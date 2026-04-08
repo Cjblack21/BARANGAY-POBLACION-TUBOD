@@ -1,7 +1,7 @@
 'use client'
 
 import React from 'react'
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
+import { Dialog, DialogContent, DialogTitle } from '@/components/ui/dialog'
 import { Button } from '@/components/ui/button'
 import { X } from 'lucide-react'
 import { formatDateForDisplay } from '@/lib/timezone'
@@ -137,7 +137,7 @@ export default function PayrollBreakdownDialog({
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="!w-[85vw] !max-w-[1200px] max-h-[90vh] overflow-y-auto scrollbar-minimal p-0">
+      <DialogContent className="!w-[85vw] !max-w-[1200px] max-h-[90vh] overflow-y-auto scrollbar-minimal p-0" showCloseButton={false}>
         {/* Payslip-style Header */}
         <div className="relative">
           {/* Close button */}
@@ -150,15 +150,13 @@ export default function PayrollBreakdownDialog({
           {/* Centered payslip header */}
           <div className="text-center border-b-2 border-gray-300 dark:border-gray-700 pb-4 pt-6 px-4">
             <div className="flex justify-center mb-3">
-              <div className="h-28 w-28 rounded-full overflow-hidden mx-auto">
+              <div className="h-36 w-36 rounded-full overflow-hidden mx-auto">
                 <img src="/BRGY PICTURE LOG TUBOD.png" alt="Barangay Logo" className="w-full h-full object-contain" />
               </div>
             </div>
-            <DialogHeader>
-              <DialogTitle asChild>
-                <h3 className="font-bold text-base">TUBOD BARANGAY POBLACION</h3>
-              </DialogTitle>
-            </DialogHeader>
+            <DialogTitle asChild>
+              <h3 className="font-bold text-base">TUBOD BARANGAY POBLACION</h3>
+            </DialogTitle>
             <p className="text-xs text-muted-foreground">Tubod, Lanao del Norte</p>
             <p className="text-xs text-muted-foreground">POBLACION - PMS</p>
             <h2 className="font-bold text-xl mt-3">HONORARIUM</h2>
