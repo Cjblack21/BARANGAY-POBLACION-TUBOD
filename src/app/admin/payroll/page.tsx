@@ -2201,7 +2201,7 @@ html, body { margin: 0 !important; padding: 0 !important; overflow: hidden !impo
                   )}
                   {!officialsGenerated && (
                     <div className="text-xs text-muted-foreground bg-muted/30 px-2 py-1 rounded inline-block">
-                      Not generated yet {totalOfficials > 0 && <span className="font-semibold text-foreground ml-1">({totalOfficials} officials)</span>}
+                      Not generated yet
                     </div>
                   )}
                 </div>
@@ -2232,7 +2232,7 @@ html, body { margin: 0 !important; padding: 0 !important; overflow: hidden !impo
                   )}
                   {!staffGenerated && (
                     <div className="text-xs text-muted-foreground bg-muted/30 px-2 py-1 rounded inline-block">
-                      Not generated yet {totalStaff > 0 && <span className="font-semibold text-foreground ml-1">({totalStaff} staff)</span>}
+                      Not generated yet
                     </div>
                   )}
                 </div>
