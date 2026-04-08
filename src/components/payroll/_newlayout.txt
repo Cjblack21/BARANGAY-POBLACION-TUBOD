@@ -1,0 +1,114 @@
+        <div className="px-4 py-4 space-y-4">
+
+          <div className="border rounded-lg overflow-hidden">
+            <div className="border-b px-4 py-3 bg-muted/30">
+              <h3 className="text-base font-semibold">Salary Summary</h3>
+            </div>
+            <div className="p-4 space-y-1">
+              <div className="flex justify-between items-center py-2 border-b">
+                <span className="text-xs font-medium">Monthly Basic Salary</span>
+                <span className="text-sm font-bold">{formatCurrency(storedBasicSalary)}</span>
+              </div>
+              {((entry.breakdown?.overloadPayDetails && entry.breakdown.overloadPayDetails.length > 0) || overloadPay > 0) && (
+                <>
+                  <div className="pt-3 pb-1">
+                    <span className="text-xs font-bold text-green-700 dark:text-green-400 uppercase tracking-wider">Additional Pay</span>
+                  </div>
+                  {entry.breakdown?.overloadPayDetails && entry.breakdown.overloadPayDetails.length > 0 ? (
+                    entry.breakdown.overloadPayDetails.map((detail, idx) => (
+                      <div key={idx} className="flex justify-between items-center py-2 border-b pl-4">
+                        <span className="text-xs font-medium text-green-700 dark:text-green-400">
+                          &bull; {detail.type === 'POSITION_PAY' ? 'Position Pay' : detail.type === 'BONUS' ? 'Bonus' : detail.type === '13TH_MONTH' ? '13th Month Pay' : detail.type === 'OVERTIME' ? 'Overtime' : detail.type === 'OVERLOAD' ? 'Overload' : detail.type}
+                        </span>
+                        <span className="text-sm font-bold text-green-600">+{formatCurrency(detail.amount)}</span>
+                      </div>
+                    ))
+                  ) : (
+                    overloadPay > 0 && (
+                      <div className="flex justify-between items-center py-2 border-b pl-4">
+                        <span className="text-xs font-medium text-green-700 dark:text-green-400">&bull; Additional Pay</span>
+                        <span className="text-sm font-bold text-green-600">+{formatCurrency(overloadPay)}</span>
+                      </div>
+                    )
+                  )}
+                </>
+              )}
+              <div className="flex justify-between items-center py-3 bg-blue-50 dark:bg-blue-950/20 rounded-lg px-3 mt-2">
+                <span className="text-xs font-bold text-blue-700 dark:text-blue-300 uppercase tracking-wide">Gross Pay</span>
+                <span className="text-sm font-bold text-blue-700 dark:text-blue-300">{formatCurrency(grossPay)}</span>
+              </div>
+            </div>
+          </div>
+
+          {totalDeductions > 0 && (
+            <div className="border rounded-lg overflow-hidden">
+              <div className="border-b px-4 py-3 bg-red-50 dark:bg-red-950/20">
+                <h3 className="text-base font-semibold text-red-700 dark:text-red-400">Deductions</h3>
+              </div>
+              <div className="p-4 space-y-1">
+                {attendanceDeductionsAmount > 0 && (
+                  <div className="flex justify-between items-center py-2 border-b pl-4">
+                    <span className="text-xs font-medium text-red-600">&bull; Attendance Deductions</span>
+                    <span className="text-sm font-bold text-red-600">-{formatCurrency(attendanceDeductionsAmount)}</span>
+                  </div>
+                )}
+                {mandatoryDeductions.length > 0 && (
+                  <>
+                    <div className="pt-3 pb-1">
+                      <span className="text-xs font-bold text-purple-600 dark:text-purple-400 uppercase tracking-wider">Mandatory Deductions</span>
+                    </div>
+                    {mandatoryDeductions.map((deduction, idx) => (
+                      <div key={idx} className="flex justify-between items-center py-2 border-b pl-4">
+                        <span className="text-xs font-medium text-red-600">&bull; {deduction.type}</span>
+                        <span className="text-sm font-bold text-red-600">-{formatCurrency(deduction.amount)}</span>
+                      </div>
+                    ))}
+                  </>
+                )}
+                {actualLoans.length > 0 && (
+                  <>
+                    <div className="pt-3 pb-1">
+                      <span className="text-xs font-bold text-yellow-700 dark:text-yellow-400 uppercase tracking-wider">Loan Payments</span>
+                    </div>
+                    {actualLoans.map((loan, idx) => (
+                      <div key={idx} className="flex justify-between items-center py-2 border-b pl-4">
+                        <span className="text-xs font-medium text-red-600">&bull; {loan.type}</span>
+                        <span className="text-sm font-bold text-red-600">-{formatCurrency(loan.amount)}</span>
+                      </div>
+                    ))}
+                  </>
+                )}
+                {actualDeductions.map((deduction, idx) => (
+                  <div key={idx} className="flex justify-between items-center py-2 border-b pl-4">
+                    <span className="text-xs font-medium text-red-600">&bull; {deduction.type.replace('[DEDUCTION] ', '')}</span>
+                    <span className="text-sm font-bold text-red-600">-{formatCurrency(deduction.amount)}</span>
+                  </div>
+                ))}
+                {otherDeductionsOnly.length > 0 && (
+                  <>
+                    <div className="pt-3 pb-1">
+                      <span className="text-xs font-bold text-gray-600 dark:text-gray-400 uppercase tracking-wider">Other Deductions</span>
+                    </div>
+                    {otherDeductionsOnly.map((deduction, idx) => (
+                      <div key={idx} className="flex justify-between items-center py-2 border-b pl-4">
+                        <span className="text-xs font-medium text-red-600">&bull; {deduction.type}</span>
+                        <span className="text-sm font-bold text-red-600">-{formatCurrency(deduction.amount)}</span>
+                      </div>
+                    ))}
+                  </>
+                )}
+                <div className="flex justify-between items-center py-2 mt-2 border-t">
+                  <span className="text-xs font-semibold text-red-700 dark:text-red-300">Total Deductions</span>
+                  <span className="text-sm font-bold text-red-700 dark:text-red-300">-{formatCurrency(totalDeductions)}</span>
+                </div>
+              </div>
+            </div>
+          )}
+
+          <div className="border rounded-lg overflow-hidden">
+            <div className="p-4 flex justify-between items-center">
+              <span className="text-base font-bold uppercase tracking-wide">Net Pay</span>
+              <span className="text-xl font-bold">{formatCurrency(netPay)}</span>
+            </div>
+          </div>
+

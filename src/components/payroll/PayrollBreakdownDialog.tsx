@@ -1,19 +1,10 @@
 'use client'
 
 import React from 'react'
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
-import { Badge } from '@/components/ui/badge'
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
-import { X, ChevronDown, ChevronUp, Archive, Printer, Edit2, Save, XCircle } from 'lucide-react'
 import { Button } from '@/components/ui/button'
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
-import { Clock, TrendingDown, TrendingUp, Calendar, AlertCircle, UserCheck } from 'lucide-react'
+import { X } from 'lucide-react'
 import { formatDateForDisplay } from '@/lib/timezone'
-import { Progress } from '@/components/ui/progress'
-
-import { Input } from '@/components/ui/input'
-import { Label } from '@/components/ui/label'
-import { toast } from 'react-hot-toast'
 
 type AttendanceDetail = {
   date: string
@@ -42,13 +33,13 @@ type DeductionDetail = {
 
 type PayrollBreakdown = {
   basicSalary: number
-  monthlyBasicSalary?: number // Add optional monthly reference
+  monthlyBasicSalary?: number
   attendanceDeductions: number
   leaveDeductions?: number
   loanDeductions: number
   otherDeductions: number
-  overloadPay?: number // Overload pay (additional salary)
-  overloadPayDetails?: Array<{ type: string, amount: number }> // Additional pay breakdown by type
+  overloadPay?: number
+  overloadPayDetails?: Array<{type: string, amount: number}>
   attendanceDetails: AttendanceDetail[]
   loanDetails: LoanDetail[]
   otherDeductionDetails: DeductionDetail[]
@@ -58,7 +49,6 @@ type PayrollEntry = {
   users_id: string
   name: string
   email: string
-  avatar?: string | null
   personnelType?: string
   department?: string | null
   personnelTypeCategory?: 'TEACHING' | 'NON_TEACHING' | null
@@ -80,9 +70,9 @@ interface PayrollBreakdownDialogProps {
   currentPeriod: PayrollPeriod | null
   isOpen: boolean
   onClose: () => void
-  onArchive?: (userId: string) => void // Optional archive handler for admin
-  showArchiveButton?: boolean // Show archive button (admin only)
-  openInEditMode?: boolean // Open dialog directly in edit mode
+  onArchive?: (userId: string) => void
+  showArchiveButton?: boolean
+  openInEditMode?: boolean
 }
 
 export default function PayrollBreakdownDialog({
@@ -90,467 +80,9 @@ export default function PayrollBreakdownDialog({
   currentPeriod,
   isOpen,
   onClose,
-  onArchive,
-  showArchiveButton = false,
-  openInEditMode = false
 }: PayrollBreakdownDialogProps) {
-  const [attendanceSettings, setAttendanceSettings] = React.useState<any>(null)
-  const [expandedItems, setExpandedItems] = React.useState<Set<number>>(new Set())
-  const [liveDeductions, setLiveDeductions] = React.useState<any[]>([])
-  const [liveLoans, setLiveLoans] = React.useState<any[]>([])
-
-  const printRef = React.useRef<HTMLDivElement | null>(null)
-
-  // Edit mode state
-  const [isEditMode, setIsEditMode] = React.useState(false)
-  const [editForm, setEditForm] = React.useState({
-    basicSalary: 0,
-    overloadPay: 0,
-    deductions: 0
-  })
-  const [isSaving, setIsSaving] = React.useState(false)
-
-  // Initialize edit form when entry changes
-  React.useEffect(() => {
-    if (entry && isOpen) {
-      setEditForm({
-        basicSalary: Number(entry.breakdown?.basicSalary || 0),
-        overloadPay: Number(entry.breakdown?.overloadPay || 0),
-        deductions: Number(entry.breakdown?.otherDeductions || 0) + Number(entry.breakdown?.loanDeductions || 0)
-      })
-      // Set edit mode based on openInEditMode prop
-      setIsEditMode(openInEditMode && entry.status === 'Pending')
-    }
-  }, [entry, isOpen, openInEditMode])
-
-  // Handle edit mode toggle
-  const handleEditToggle = () => {
-    if (isEditMode) {
-      // Cancel edit - reset form
-      setEditForm({
-        basicSalary: Number(entry?.breakdown?.basicSalary || 0),
-        overloadPay: Number(entry?.breakdown?.overloadPay || 0),
-        deductions: Number(entry?.breakdown?.otherDeductions || 0) + Number(entry?.breakdown?.loanDeductions || 0)
-      })
-    }
-    setIsEditMode(!isEditMode)
-  }
-
-  // Handle save edits
-  const handleSaveEdit = async () => {
-    if (!entry) return
-
-    try {
-      setIsSaving(true)
-      toast.loading('Saving changes...', { id: 'save-edit' })
-
-      const response = await fetch('/api/admin/payroll/edit-entry', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          entryId: (entry as any).payroll_entries_id || `PE-${entry.users_id}`,
-          updates: {
-            basicSalary: editForm.basicSalary,
-            overloadPay: editForm.overloadPay,
-            deductions: editForm.deductions
-          }
-        })
-      })
-
-      const data = await response.json()
-
-      if (!response.ok) {
-        throw new Error(data.error || 'Failed to save changes')
-      }
-
-      toast.success('Changes saved successfully!', { id: 'save-edit' })
-      setIsEditMode(false)
-
-      // Reload the page data
-      window.location.reload()
-
-    } catch (error) {
-      console.error('Error saving edit:', error)
-      toast.error(error instanceof Error ? error.message : 'Failed to save changes', { id: 'save-edit' })
-    } finally {
-      setIsSaving(false)
-    }
-  }
-
-  const handlePrint = () => {
-    if (!entry) return
-
-    const formatCurrencyPrint = (amount: number) => {
-      const safeAmount = Number.isFinite(amount) ? amount : 0
-      return '₱' + new Intl.NumberFormat('en-PH', {
-        minimumFractionDigits: 2,
-        maximumFractionDigits: 2
-      }).format(safeAmount)
-    }
-
-    const periodLabel = currentPeriod
-      ? `${formatDateForDisplay(new Date(currentPeriod.periodStart))} - ${formatDateForDisplay(new Date(currentPeriod.periodEnd))}`
-      : 'N/A'
-
-    const logoUrl = '/BRGY PICTURE LOG TUBOD.png'
-
-    const additionalPayDetails = (entry.breakdown?.overloadPayDetails || [])
-      .map((d: any) => ({
-        label:
-          d.type === 'POSITION_PAY' ? 'Position Pay' :
-            d.type === 'BONUS' ? 'Bonus' :
-              d.type === '13TH_MONTH' ? '13th Month Pay' :
-                d.type === 'OVERTIME' ? 'Overtime' :
-                  d.type === 'OVERLOAD' ? 'Overload' :
-                    String(d.type || 'Additional Pay'),
-        amount: Number(d.amount || 0)
-      }))
-
-    const additionalRows = additionalPayDetails.length
-      ? additionalPayDetails
-        .filter((x) => (Number(x.amount) || 0) > 0)
-        .map((x) => `
-          <tr>
-            <td class="td">${x.label}</td>
-            <td class="td right">${formatCurrencyPrint(x.amount)}</td>
-          </tr>
-        `)
-        .join('')
-      : (Number(entry.breakdown?.overloadPay || 0) > 0 ? `
-          <tr>
-            <td class="td">Additional Pay</td>
-            <td class="td right">${formatCurrencyPrint(Number(entry.breakdown?.overloadPay || 0))}</td>
-          </tr>
-        ` : '')
-
-    const html = `
-      <html>
-        <head>
-          <title>Payroll Details</title>
-          <meta charset="utf-8" />
-          <meta name="viewport" content="width=device-width, initial-scale=1" />
-          <style>
-            * { box-sizing: border-box; }
-            body { font-family: Arial, Helvetica, sans-serif; color: #111827; padding: 24px; }
-            .header { display:flex; align-items:center; gap:14px; padding-bottom: 12px; border-bottom: 2px solid #e5e7eb; }
-            .logo { width: 90px; height: 90px; object-fit: contain; }
-            .title { font-size: 18px; font-weight: 800; margin: 0; }
-            .subtitle { font-size: 12px; color: #6b7280; margin-top: 4px; }
-            .meta { margin-top: 10px; font-size: 12px; color: #374151; }
-            .section { margin-top: 14px; border: 1px solid #e5e7eb; border-radius: 10px; overflow: hidden; }
-            .section-title { padding: 10px 12px; border-bottom: 1px solid #e5e7eb; font-weight: 800; font-size: 12px; background: #f9fafb; }
-            table { width: 100%; border-collapse: collapse; }
-            th { text-align: left; font-size: 12px; color: #374151; border-bottom: 1px solid #e5e7eb; padding: 10px 8px; }
-            .td { font-size: 12px; border-bottom: 1px solid #f3f4f6; padding: 10px 8px; vertical-align: top; }
-            .right { text-align: right; }
-            tfoot td { border-top: 2px solid #e5e7eb; font-weight: 800; }
-            .sign { margin-top: 40px; display:flex; justify-content: space-between; gap: 24px; }
-            .sigbox { width: 45%; }
-            .sig-label-top { font-size: 12px; color: #374151; margin-bottom: 25px; }
-            .signame { font-size: 14px; font-weight: 700; text-align: center; }
-            .line { border-top: 1px solid #9ca3af; margin-top: 4px; }
-            .siglabel { font-size: 12px; color: #6b7280; margin-top: 4px; text-align: center; }
-            .sig-date { font-size: 12px; color: #374151; margin-top: 15px; }
-            @media print { body { padding: 0; } }
-          </style>
-        </head>
-        <body>
-          <div class="header">
-            <img class="logo" src="${logoUrl}" alt="Logo" />
-            <div>
-              <div class="title">Payroll Details</div>
-              <div class="subtitle">Barangay Payroll Management System</div>
-              <div class="meta"><b>${entry.name}</b>${entry.personnelType ? ` • ${entry.personnelType}` : ''}${entry.department ? ` • ${entry.department}` : ''}</div>
-              <div class="meta">Period: <b>${periodLabel}</b> &nbsp; | &nbsp; Staff ID: <b>${entry.users_id}</b></div>
-            </div>
-          </div>
-
-          <div class="section">
-            <div class="section-title">Salary Summary</div>
-            <table>
-              <tbody>
-                <tr>
-                  <td class="td">Monthly Basic Salary</td>
-                  <td class="td right">${formatCurrencyPrint(Number(entry.breakdown?.basicSalary || 0))}</td>
-                </tr>
-                ${additionalRows}
-                <tr>
-                  <td class="td"><b>Gross Pay</b></td>
-                  <td class="td right"><b>${formatCurrencyPrint(Number(entry.breakdown?.basicSalary || 0) + Number(entry.breakdown?.overloadPay || 0))}</b></td>
-                </tr>
-              </tbody>
-            </table>
-          </div>
-
-          <div class="section">
-            <div class="section-title">Deductions & Net Pay</div>
-            <table>
-              <tbody>
-                <tr>
-                  <td class="td">Attendance Deductions</td>
-                  <td class="td right">${formatCurrencyPrint(Number(entry.breakdown?.attendanceDeductions || 0))}</td>
-                </tr>
-                <tr>
-                  <td class="td">Loan Deductions</td>
-                  <td class="td right">${formatCurrencyPrint(Number(entry.breakdown?.loanDeductions || 0))}</td>
-                </tr>
-                <tr>
-                  <td class="td">Other Deductions</td>
-                  <td class="td right">${formatCurrencyPrint(Number(entry.breakdown?.otherDeductions || 0))}</td>
-                </tr>
-                <tr>
-                  <td class="td"><b>Total Deductions</b></td>
-                  <td class="td right"><b>${formatCurrencyPrint(Number(entry.breakdown?.attendanceDeductions || 0) + Number(entry.breakdown?.loanDeductions || 0) + Number(entry.breakdown?.otherDeductions || 0))}</b></td>
-                </tr>
-                <tr>
-                  <td class="td"><b>Net Pay</b></td>
-                  <td class="td right"><b>${formatCurrencyPrint(Number(entry.finalNetPay || 0))}</b></td>
-                </tr>
-              </tbody>
-            </table>
-          </div>
-
-          <div class="sign">
-            <div class="sigbox">
-              <div class="sig-label-top">Prepared by:</div>
-              <div class="signame">EMMA L. MACTAO</div>
-              <div class="line"></div>
-              <div class="siglabel">Brgy Treasurer</div>
-              <div class="sig-date">Date: ________________________</div>
-            </div>
-            <div class="sigbox">
-              <div class="sig-label-top">Approved by:</div>
-              <div class="signame">ARSENIO Q. SIMANGAN</div>
-              <div class="line"></div>
-              <div class="siglabel">Punong Barangay</div>
-              <div class="sig-date">Date: ________________________</div>
-            </div>
-          </div>
-        </body>
-      </html>
-    `
-
-    const win = window.open('', '_blank', 'width=1200,height=800,scrollbars=yes,resizable=yes')
-    if (!win) return
-    win.document.open()
-    win.document.write(html)
-    win.document.close()
-    win.focus()
-    win.print()
-    win.close()
-  }
-
-  // Use breakdown data from entry instead of fetching - eliminates loading flicker
-  const actualBasicSalary = entry?.breakdown?.basicSalary || null
-
-  // Load attendance settings for early timeout detection
-  React.useEffect(() => {
-    async function loadSettings() {
-      try {
-        const response = await fetch('/api/admin/attendance-settings')
-        if (response.ok) {
-          const data = await response.json()
-          setAttendanceSettings(data.settings)
-        }
-      } catch (error) {
-        console.error('Error loading attendance settings:', error)
-      }
-    }
-    if (isOpen) {
-      loadSettings()
-    }
-  }, [isOpen])
-
-  // Load live deductions for this user to show newly added deductions (skip for archived)
-  React.useEffect(() => {
-    async function loadLiveDeductions() {
-      if (!entry?.users_id) return
-
-      // Skip live data for archived entries - use snapshot data instead
-      if (entry.status === 'Archived') {
-        console.log('⏭️ Skipping live deductions fetch for archived entry')
-        return
-      }
-
-      console.log('🔍🔍🔍 FETCHING LIVE DEDUCTIONS for user:', entry.name, entry.users_id)
-
-      try {
-        // Add cache busting to ensure fresh data
-        const response = await fetch(`/api/admin/deductions?_t=${Date.now()}`)
-        if (response.ok) {
-          const allDeductions = await response.json()
-          console.log('🔍 Total deductions fetched:', allDeductions.length)
-
-          // Filter to only this user's non-archived deductions
-          const userDeductions = allDeductions.filter((d: any) =>
-            d.users_id === entry.users_id && !d.archivedAt
-          )
-
-          console.log('🔍🔍🔍 USER DEDUCTIONS for', entry.name, ':', userDeductions.map((d: any) => `${d.deduction_types.name}: ₱${d.amount} (Mandatory: ${d.deduction_types.isMandatory})`))
-
-          setLiveDeductions(userDeductions)
-        }
-      } catch (error) {
-        console.error('Error loading live deductions:', error)
-      }
-    }
-    if (isOpen && entry) {
-      // Reset state first to ensure fresh load
-      setLiveDeductions([])
-      loadLiveDeductions()
-    }
-  }, [isOpen, entry?.users_id, entry?.status])
-
-
-
-  // Load live loans for this user to show all active loans/deductions (skip for archived)
-  React.useEffect(() => {
-    async function loadLiveLoans() {
-      if (!entry?.users_id) return
-
-      // Skip live data for archived entries - use snapshot data instead
-      if (entry.status === 'Archived') {
-        console.log('⏭️ Skipping live loans fetch for archived entry')
-        return
-      }
-
-      console.log('🔍🔍🔍 FETCHING LIVE LOANS/DEDUCTIONS for user:', entry.name, entry.users_id)
-
-      try {
-        const response = await fetch(`/api/admin/loans?_t=${Date.now()}`)
-        if (response.ok) {
-          const allLoans = await response.json()
-          console.log('🔍 Total loans fetched:', allLoans.items?.length)
-
-          // Filter to only this user's active loans/deductions
-          const userLoans = (allLoans.items || []).filter((l: any) =>
-            l.users_id === entry.users_id && l.status === 'ACTIVE'
-          )
-
-          console.log('🔍🔍🔍 USER LOANS for', entry.name, ':', userLoans.map((l: any) => `${l.purpose}: ₱${l.amount} (Balance: ₱${l.balance})`))
-
-          setLiveLoans(userLoans)
-        }
-      } catch (error) {
-        console.error('Error loading live loans:', error)
-      }
-    }
-    if (isOpen && entry) {
-      setLiveLoans([])
-      loadLiveLoans()
-    }
-  }, [isOpen, entry?.users_id, entry?.status])
-
-  // Toggle expand/collapse for attendance detail
-  const toggleExpanded = (index: number) => {
-    setExpandedItems(prev => {
-      const newSet = new Set(prev)
-      if (newSet.has(index)) {
-        newSet.delete(index)
-      } else {
-        newSet.add(index)
-      }
-      return newSet
-    })
-  }
-
-  // Merge cached deductions from payroll with live deductions from database
-  // IMPORTANT: This must be called before the early return to maintain hook order
-  const mergedDeductions = React.useMemo(() => {
-    if (!entry) return []
-
-    // Start with cached deductions from payroll snapshot
-    const deductionsMap = new Map()
-
-    // Add all deductions from payroll data (with null check)
-    const otherDeductionDetails = entry.breakdown?.otherDeductionDetails || []
-    otherDeductionDetails.forEach((d: any) => {
-      deductionsMap.set(d.type.toLowerCase(), {
-        type: d.type,
-        amount: d.amount,
-        description: d.description,
-        isMandatory: d.isMandatory
-      })
-    })
-
-    // Override/add with live deductions from database (fresher data)
-    liveDeductions.forEach((d: any) => {
-      const typeName = d.deduction_types.name
-      const typeNameLower = typeName.toLowerCase()
-
-      // Skip attendance-related deductions (handled separately in their own section)
-      if (
-        typeNameLower.includes('late') ||
-        typeNameLower.includes('absent') ||
-        typeNameLower.includes('early') ||
-        typeNameLower.includes('tardiness') ||
-        typeNameLower.includes('partial')
-      ) {
-        return
-      }
-
-      deductionsMap.set(typeNameLower, {
-        type: typeName,
-        amount: parseFloat(d.amount.toString()),
-        description: d.deduction_types.description || d.notes || '',
-        isMandatory: d.deduction_types.isMandatory,
-        calculationType: d.deduction_types.calculationType,
-        percentageValue: d.deduction_types.percentageValue,
-        basicSalary: d.users?.personnel_types?.basicSalary
-      })
-    })
-
-    const merged = Array.from(deductionsMap.values())
-    console.log('🔍 MERGED deductions (cached + live):', merged.map((d: any) => `${d.type}: ₱${d.amount} (Mandatory: ${d.isMandatory})`))
-    return merged
-  }, [entry, liveDeductions])
-
-  // FORCE: Merge cached loan data with live loans from database
-  const mergedLoans = React.useMemo(() => {
-    if (!entry) return []
-
-    const loansMap = new Map()
-
-    // Add cached loans from payroll
-    const loanDetails = entry.breakdown?.loanDetails || []
-    console.log('🔍 CACHED LOAN DETAILS from payroll:', loanDetails)
-    loanDetails.forEach((item: any) => {
-      // Handle both preview data (type, amount) and generated data (purpose, payment)
-      const loanType = item.type || item.purpose || 'Loan'
-      const loanAmount = item.payment !== undefined ? item.payment : item.amount
-
-      loansMap.set(loanType, {
-        type: loanType,
-        amount: loanAmount,
-        remainingBalance: item.remainingBalance || item.balance
-      })
-    })
-
-    // Override/add with live loans
-    console.log('🔍 LIVE LOANS to merge:', liveLoans)
-    liveLoans.forEach((loan: any) => {
-      const isDeduction = loan.purpose?.startsWith('[DEDUCTION]')
-      const displayName = isDeduction ? loan.purpose : loan.purpose || 'Loan'
-
-      // Calculate payment amount (full monthly payment)
-      const monthlyPayment = loan.amount * (loan.monthlyPaymentPercent / 100)
-      const paymentAmount = monthlyPayment
-
-      loansMap.set(displayName, {
-        type: displayName,
-        amount: paymentAmount,
-        remainingBalance: loan.balance
-      })
-    })
-
-    const merged = Array.from(loansMap.values())
-    console.log('🔍 MERGED LOANS RESULT:', merged)
-    return merged
-  }, [entry, liveLoans])
-
   if (!entry) return null
 
-  // Format currency - exactly 2 decimal places
   const formatCurrency = (amount: number) => {
     const safeAmount = Number.isFinite(amount) ? amount : 0
     return new Intl.NumberFormat('en-PH', {
@@ -561,232 +93,55 @@ export default function PayrollBreakdownDialog({
     }).format(safeAmount)
   }
 
-  // Format work hours
-  const formatWorkHours = (hours: number) => {
-    const wholeHours = Math.floor(hours)
-    const minutes = Math.round((hours - wholeHours) * 60)
-    return `${wholeHours}h ${minutes.toString().padStart(2, '0')}m`
-  }
+  // ── Pull values directly from the pre-computed breakdown snapshot ──
+  const breakdown = entry.breakdown || {}
 
-  // Use only snapshot attendance details from payroll generation time
-  const attendanceDetails = entry.breakdown?.attendanceDetails || []
-  const calculatedTotalWorkHours = attendanceDetails.reduce(
-    (sum, detail) => sum + (detail.workHours || 0),
-    0
-  )
+  const monthlyBasic = Number(breakdown.monthlyBasicSalary || breakdown.basicSalary || 0)
+  const overloadPayDetails: Array<{type: string; amount: number}> = breakdown.overloadPayDetails || []
+  const overloadPay = Number(breakdown.overloadPay || 0) ||
+    overloadPayDetails.reduce((s, d) => s + Number(d.amount), 0)
 
-  // Today's absence deduction removed — no live attendance data
-  const todayAbsenceDeduction = 0
+  const grossPay = monthlyBasic + overloadPay
 
-  // Debug: Log all deductions with their isMandatory flag (disabled for performance)
-  // console.log('🔍 ALL otherDeductionDetails:', mergedDeductions.map((d: any) => ({
-  //   type: d.type,
-  //   amount: d.amount,
-  //   isMandatory: d.isMandatory,
-  //   isMandatoryType: typeof d.isMandatory
-  // })))
+  // Deduction categories from snapshot
+  const deductionDetails: DeductionDetail[] = breakdown.otherDeductionDetails || []
+  const loanDetails: LoanDetail[] = breakdown.loanDetails || []
 
-  // Helper function to check if a deduction is mandatory by looking up live deduction type data
-  const isMandatoryDeduction = (deduction: any): boolean => {
-    // First try the cached value from payroll data
-    if (deduction.isMandatory === true || deduction.isMandatory === 1) {
-      return true
-    }
+  const mandatoryDeductions = deductionDetails.filter(d => d.isMandatory)
+  const otherDeductions = deductionDetails.filter(d => {
+    const t = (d.type || '').toLowerCase()
+    return !d.isMandatory &&
+      !t.includes('late') && !t.includes('early') && !t.includes('absent') &&
+      !t.includes('tardiness') && !t.includes('partial') && !t.includes('attendance')
+  })
+  const actualLoans = loanDetails.filter(l => !(l.type || '').startsWith('[DEDUCTION]'))
+  const deductionPayments = loanDetails.filter(l => (l.type || '').startsWith('[DEDUCTION]'))
 
-    // If live deductions are loaded, check if this deduction type is mandatory
-    if (liveDeductions.length > 0) {
-      const liveDeduction = liveDeductions.find((d: any) =>
-        d.deduction_types?.name?.toLowerCase() === deduction.type?.toLowerCase()
-      )
-      if (liveDeduction && liveDeduction.deduction_types?.isMandatory) {
-        console.log(`🔍 Live lookup for ${deduction.type}: isMandatory=${liveDeduction.deduction_types.isMandatory}`)
-        return true
-      }
-    }
+  // Attendance deductions from snapshot
+  const attendanceDeductionAmount = Number(breakdown.attendanceDeductions || 0)
 
-    return false
-  }
-
-  // Separate mandatory deductions from other deductions (using merged data)
-  const mandatoryDeductions = mergedDeductions
-    .filter((deduction: any) => {
-      const isMand = isMandatoryDeduction(deduction)
-      console.log(`🔍 Checking ${deduction.type}: result=${isMand}`)
-      return isMand
-    })
-  const totalMandatoryDeductions = mandatoryDeductions.reduce((sum, d) => sum + d.amount, 0)
-
-  // console.log('🎯 MANDATORY DEDUCTIONS:', mandatoryDeductions.map((d: any) => d.type))
-
-  // Other deductions (excluding mandatory and attendance-related) - using merged data
-  // Attendance deductions — pulled directly from liveDeductions
-  const attendanceDeductionsOnly = liveDeductions.filter((d: any) => {
-    const name = (d.deduction_types?.name || '').toLowerCase()
-    return name.includes('attendance') ||
-      name.includes('late') ||
-      name.includes('absent') ||
-      name.includes('early') ||
-      name.includes('tardiness') ||
-      name.includes('partial')
-  }).map((d: any) => ({
-    type: d.deduction_types?.name || 'Attendance Deduction',
-    amount: parseFloat(d.amount.toString()),
-    notes: d.notes || '',
-    appliedAt: d.appliedAt || ''
-  }))
-  const totalLiveAttendanceDeductions = attendanceDeductionsOnly.reduce((s: number, d: any) => s + d.amount, 0)
-
-  const otherDeductionsOnly = mergedDeductions
-    .filter((deduction: any) => {
-      const type = deduction.type.toLowerCase()
-      const isMandatory = isMandatoryDeduction(deduction)
-      const isAttendance = type.includes('attendance') ||
-        type.includes('late') ||
-        type.includes('absent') ||
-        type.includes('absence') ||
-        type.includes('early') ||
-        type.includes('tardiness') ||
-        type.includes('partial')
-      const shouldInclude = !isMandatory && !isAttendance
-      console.log(`🔍 ${type}: isMandatory=${isMandatory}, isAttendance=${isAttendance}, include=${shouldInclude}`)
-      return shouldInclude
-    })
-  const totalOtherDeductions = otherDeductionsOnly.reduce((sum, d) => sum + d.amount, 0)
-
-  // console.log('🎯 OTHER DEDUCTIONS:', otherDeductionsOnly.map((d: any) => d.type))
-
-  // Separate loan payments from deduction payments
-  const actualLoans = mergedLoans.filter((item: any) => !item.type?.startsWith('[DEDUCTION]'))
-  const actualDeductions = mergedLoans.filter((item: any) => item.type?.startsWith('[DEDUCTION]'))
-  const totalLoanPayments = actualLoans.reduce((sum, loan) => sum + loan.amount, 0)
-  const totalDeductionPayments = actualDeductions.reduce((sum, ded) => sum + ded.amount, 0)
-
-  console.log('🎯 ACTUAL LOANS (filtered):', actualLoans)
-  console.log('🎯 ACTUAL DEDUCTIONS (filtered):', actualDeductions)
-  console.log('🎯 Total Loan Payments:', totalLoanPayments)
-  console.log('🎯 Total Deduction Payments:', totalDeductionPayments)
-
-  // ⚠️ ATTENDANCE DEDUCTION AUTO-CALCULATION DISABLED
-  // Live attendance calculation has been completely removed
-  // Attendance deductions must be manually added through the deductions system
-  const recalculatedAttendanceDeductions = 0
-  const attendanceDeductionsAmount = 0
-
-  // Calculate total deductions from all deduction sources (with null checks)
-  // Use recalculated attendance deductions instead of cached value
+  // Total deductions: prefer stored netPay-derived value for accuracy
   const totalDeductions =
-    totalLiveAttendanceDeductions +
-    todayAbsenceDeduction +
-    totalLoanPayments +
-    totalDeductionPayments +
-    totalMandatoryDeductions +
-    totalOtherDeductions
+    attendanceDeductionAmount +
+    mandatoryDeductions.reduce((s, d) => s + d.amount, 0) +
+    actualLoans.reduce((s, l) => s + l.amount, 0) +
+    deductionPayments.reduce((s, d) => s + d.amount, 0) +
+    otherDeductions.reduce((s, d) => s + d.amount, 0)
 
-  // Get overload pay (additional salary)
-  const overloadPay = Number(entry.breakdown?.overloadPay || 0)
-
-  // FORCE FIX: Use actual salary from personnel_types if available
-  // If stored value is half of actual salary (semi-monthly), multiply by 2
-  let storedBasicSalary = Number(entry.breakdown?.basicSalary || 0)
-
-  if (actualBasicSalary !== null) {
-    // Use actual salary from personnel_types
-    storedBasicSalary = actualBasicSalary
-    console.log('✅ Using actual salary from personnel_types:', actualBasicSalary)
-  } else if (storedBasicSalary > 0 && storedBasicSalary < 10000) {
-    // If stored value looks like semi-monthly (less than 10k), double it
-    storedBasicSalary = storedBasicSalary * 2
-    console.log('✅ Doubled stored salary from', storedBasicSalary / 2, 'to', storedBasicSalary)
-  }
-
-  const grossPay = storedBasicSalary + overloadPay
-
-  // Calculate net pay correctly: Gross Pay - Total Deductions
   const netPay = grossPay - totalDeductions
 
-  // Net pay calculation (logging disabled for performance)
-  // console.log('💰 NET PAY CALCULATION:')
-  // console.log('  Monthly Basic Salary:', entry.breakdown?.monthlyBasicSalary)
-  // console.log('  Stored Basic Salary (includes overload):', storedBasicSalary)
-  // console.log('  Overload Pay (for display only):', overloadPay)
-  // console.log('  Gross Pay:', grossPay)
-  // console.log('  Recalculated Attendance Deductions:', attendanceDeductionsAmount)
-  // console.log('  Total Deductions:', totalDeductions)
-  // console.log('  NET PAY:', netPay)
+  const periodStart = currentPeriod ? formatDateForDisplay(new Date(currentPeriod.periodStart)) : 'N/A'
+  const periodEnd = currentPeriod ? formatDateForDisplay(new Date(currentPeriod.periodEnd)) : 'N/A'
 
-  // Build comprehensive deduction breakdown including all types
-  const deductionBreakdown = [
-    {
-      label: 'Loans',
-      amount: totalLoanPayments,
-      percentage: totalDeductions > 0 ? (totalLoanPayments / totalDeductions) * 100 : 0,
-      color: 'bg-yellow-500',
-      description: 'Active Loan Payments'
-    },
-    {
-      label: 'Deductions',
-      amount: totalDeductionPayments,
-      percentage: totalDeductions > 0 ? (totalDeductionPayments / totalDeductions) * 100 : 0,
-      color: 'bg-orange-500',
-      description: 'Other Deductions (Equipment, Uniform, etc.)'
-    },
-    // Add individual mandatory deductions (SSS, PhilHealth, Pag-IBIG, BIR) as separate items
-    ...mandatoryDeductions.map((deduction) => ({
-      label: deduction.type,
-      amount: deduction.amount,
-      percentage: totalDeductions > 0 ? (deduction.amount / totalDeductions) * 100 : 0,
-      color: deduction.type.toLowerCase().includes('sss') ? 'bg-blue-500' :
-        deduction.type.toLowerCase().includes('philhealth') ? 'bg-green-500' :
-          deduction.type.toLowerCase().includes('pagibig') || deduction.type.toLowerCase().includes('pag-ibig') ? 'bg-teal-500' :
-            deduction.type.toLowerCase().includes('bir') ? 'bg-purple-500' :
-              'bg-indigo-500',
-      description: deduction.calculationType === 'PERCENTAGE' && deduction.percentageValue
-        ? `${deduction.percentageValue}% of ${formatCurrency(entry.breakdown?.monthlyBasicSalary || storedBasicSalary * 2)}`
-        : (deduction.description || 'Mandatory payroll deduction'),
-      calculationType: deduction.calculationType,
-      percentageValue: deduction.percentageValue
-    })),
-    // Add individual other deductions (non-mandatory, non-attendance)
-    ...otherDeductionsOnly.map((deduction) => ({
-      label: deduction.type,
-      amount: deduction.amount,
-      percentage: totalDeductions > 0 ? (deduction.amount / totalDeductions) * 100 : 0,
-      color: 'bg-gray-500',
-      description: deduction.description
-    }))
-  ].filter(item => item.amount > 0)
-
-  // Calculate net pay percentage
-  const netPayPercentage = storedBasicSalary > 0
-    ? (netPay / storedBasicSalary) * 100
-    : 0
+  const isDepartmentOfficial = (entry.department || '').toLowerCase().includes('official')
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="!w-[85vw] !max-w-[1200px] max-h-[90vh] overflow-y-auto scrollbar-hide p-0">
+      <DialogContent className="!w-[85vw] !max-w-[1200px] max-h-[90vh] overflow-y-auto scrollbar-minimal p-0">
         {/* Payslip-style Header */}
         <div className="relative">
-          {/* Buttons top-right */}
+          {/* Close button */}
           <div className="absolute top-3 right-3 flex items-center gap-2 z-10">
-            <Badge variant="outline" className="text-sm px-4 py-2">{entry.status}</Badge>
-            {entry.status === 'Pending' && !isEditMode && !openInEditMode && (
-              <Button size="sm" onClick={handleEditToggle} className="gap-2 bg-green-600 hover:bg-green-700 text-white">
-                <Edit2 className="h-4 w-4" />
-                Edit
-              </Button>
-            )}
-            {isEditMode && (
-              <>
-                <Button variant="default" size="sm" onClick={handleSaveEdit} disabled={isSaving} className="gap-2">
-                  <Save className="h-4 w-4" />
-                  {isSaving ? 'Saving...' : 'Save'}
-                </Button>
-                <Button variant="outline" size="sm" onClick={handleEditToggle} disabled={isSaving} className="gap-2">
-                  <XCircle className="h-4 w-4" />
-                  Cancel
-                </Button>
-              </>
-            )}
             <Button variant="ghost" size="icon" onClick={onClose} className="h-8 w-8 rounded-full">
               <X className="h-5 w-5" />
             </Button>
@@ -799,9 +154,11 @@ export default function PayrollBreakdownDialog({
                 <img src="/BRGY PICTURE LOG TUBOD.png" alt="Barangay Logo" className="w-full h-full object-contain" />
               </div>
             </div>
-            <DialogTitle asChild>
-              <h3 className="font-bold text-base">TUBOD BARANGAY POBLACION</h3>
-            </DialogTitle>
+            <DialogHeader>
+              <DialogTitle asChild>
+                <h3 className="font-bold text-base">TUBOD BARANGAY POBLACION</h3>
+              </DialogTitle>
+            </DialogHeader>
             <p className="text-xs text-muted-foreground">Tubod, Lanao del Norte</p>
             <p className="text-xs text-muted-foreground">POBLACION - PMS</p>
             <h2 className="font-bold text-xl mt-3">HONORARIUM</h2>
@@ -811,7 +168,7 @@ export default function PayrollBreakdownDialog({
           <div className="space-y-0.5 text-[15px] border-b pb-2 px-6 pt-3">
             <div className="flex justify-between">
               <span className="font-semibold uppercase text-xs text-muted-foreground mr-4">
-                {(entry.department || '').toLowerCase().includes('official') ? 'BRGY OFFICIALS:' : 'BRGY STAFF:'}
+                {isDepartmentOfficial ? 'BRGY OFFICIALS:' : 'BRGY STAFF:'}
               </span>
               <span className="font-medium text-right">{entry.name || 'N/A'}</span>
             </div>
@@ -833,1102 +190,164 @@ export default function PayrollBreakdownDialog({
             </div>
             <div className="flex justify-between">
               <span className="font-semibold uppercase text-xs text-muted-foreground mr-4">Period:</span>
-              <span className="font-medium text-right">
-                {currentPeriod
-                  ? `${formatDateForDisplay(new Date(currentPeriod.periodStart))} - ${formatDateForDisplay(new Date(currentPeriod.periodEnd))}`
-                  : 'N/A'}
-              </span>
+              <span className="font-medium text-right">{periodStart} - {periodEnd}</span>
+            </div>
+            <div className="flex justify-between">
+              <span className="font-semibold uppercase text-xs text-muted-foreground mr-4">Status:</span>
+              <span className="font-medium text-right">{entry.status}</span>
             </div>
           </div>
         </div>
 
-        <div className="px-4 py-4 space-y-4" ref={printRef}>
-          {/* Simplified Salary Summary */}
-          <Card>
-            <CardHeader className="pb-3">
-              <CardTitle className="text-base font-semibold">Salary Summary</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-2 pt-0">
-              {isEditMode ? (
-                <div className="space-y-3 p-3 bg-muted/30 rounded-lg">
-                  <div className="space-y-2">
-                    <Label htmlFor="edit-basic-salary" className="text-xs font-medium">Monthly Basic Salary</Label>
-                    <Input
-                      id="edit-basic-salary"
-                      type="number"
-                      value={editForm.basicSalary}
-                      onChange={(e) => setEditForm({ ...editForm, basicSalary: Number(e.target.value) })}
-                      className="text-sm"
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="edit-overload-pay" className="text-xs font-medium">Additional Pay / Overload</Label>
-                    <Input
-                      id="edit-overload-pay"
-                      type="number"
-                      value={editForm.overloadPay}
-                      onChange={(e) => setEditForm({ ...editForm, overloadPay: Number(e.target.value) })}
-                      className="text-sm"
-                    />
-                  </div>
+        <div className="px-4 py-4 space-y-4">
 
-                  {/* Detailed Deductions Breakdown */}
-                  <div className="space-y-2 pt-2 border-t">
-                    <Label className="text-xs font-medium">Deductions Breakdown</Label>
-                    <div className="space-y-2 max-h-60 overflow-y-auto">
-                      {/* Attendance Deductions */}
-                      {attendanceDeductionsAmount > 0 && (
-                        <div className="flex items-center justify-between p-2 bg-red-50 dark:bg-red-950/20 rounded border border-red-200 dark:border-red-800">
-                          <span className="text-xs text-red-700 dark:text-red-400">Attendance Deductions</span>
-                          <span className="text-xs font-medium text-red-700 dark:text-red-400">{formatCurrency(attendanceDeductionsAmount)}</span>
-                        </div>
-                      )}
+          {/* Salary Summary */}
+          <div className="border rounded-lg overflow-hidden">
+            <div className="border-b px-4 py-3 bg-muted/30">
+              <h3 className="text-base font-semibold">Salary Summary</h3>
+            </div>
+            <div className="p-4 space-y-1">
+              <div className="flex justify-between items-center py-2 border-b">
+                <span className="text-xs font-medium">Monthly Basic Salary</span>
+                <span className="text-sm font-bold">{formatCurrency(monthlyBasic)}</span>
+              </div>
 
-                      {/* Mandatory Deductions (SSS, PhilHealth, etc.) */}
-                      {mandatoryDeductions.map((deduction: any, idx: number) => (
-                        <div key={`mandatory-${idx}`} className="flex items-center justify-between p-2 bg-blue-50 dark:bg-blue-950/20 rounded border border-blue-200 dark:border-blue-800">
-                          <span className="text-xs text-blue-700 dark:text-blue-400">{deduction.type}</span>
-                          <span className="text-xs font-medium text-blue-700 dark:text-blue-400">{formatCurrency(deduction.amount)}</span>
-                        </div>
-                      ))}
-
-                      {/* Loan Payments */}
-                      {actualLoans.map((loan: any, idx: number) => (
-                        <div key={`loan-${idx}`} className="flex items-center justify-between p-2 bg-yellow-50 dark:bg-yellow-950/20 rounded border border-yellow-200 dark:border-yellow-800">
-                          <span className="text-xs text-yellow-700 dark:text-yellow-400">{loan.type}</span>
-                          <span className="text-xs font-medium text-yellow-700 dark:text-yellow-400">{formatCurrency(loan.amount)}</span>
-                        </div>
-                      ))}
-
-                      {/* Other Deductions */}
-                      {otherDeductionsOnly.map((deduction: any, idx: number) => (
-                        <div key={`other-${idx}`} className="flex items-center justify-between p-2 bg-gray-50 dark:bg-gray-900/20 rounded border border-gray-200 dark:border-gray-700">
-                          <span className="text-xs text-gray-700 dark:text-gray-400">{deduction.type}</span>
-                          <span className="text-xs font-medium text-gray-700 dark:text-gray-400">{formatCurrency(deduction.amount)}</span>
-                        </div>
-                      ))}
-                    </div>
-
-                    {/* Total Deductions Override */}
-                    <div className="pt-2 border-t">
-                      <Label htmlFor="edit-deductions" className="text-xs font-medium text-orange-600 dark:text-orange-400">
-                        Override Total Deductions (Optional)
-                      </Label>
-                      <Input
-                        id="edit-deductions"
-                        type="number"
-                        value={editForm.deductions}
-                        onChange={(e) => setEditForm({ ...editForm, deductions: Number(e.target.value) })}
-                        className="text-sm mt-1"
-                        placeholder={`Current: ${formatCurrency(totalDeductions)}`}
-                      />
-                      <p className="text-xs text-muted-foreground mt-1">
-                        Leave as calculated or enter custom amount
-                      </p>
-                    </div>
-                  </div>
-
-                  <div className="pt-2 border-t">
-                    <div className="flex justify-between items-center">
-                      <span className="text-xs font-medium">Calculated Net Pay</span>
-                      <span className="text-sm font-bold text-green-600">
-                        {formatCurrency(editForm.basicSalary + editForm.overloadPay - editForm.deductions)}
-                      </span>
-                    </div>
-                  </div>
-                </div>
-              ) : (
+              {/* Additional Pay */}
+              {(overloadPayDetails.length > 0 || overloadPay > 0) && (
                 <>
-                  <div className="flex justify-between items-center py-2 border-b">
-                    <span className="text-xs font-medium">Monthly Basic Salary</span>
-                    <span className="text-sm font-bold">{formatCurrency(storedBasicSalary)}</span>
+                  <div className="pt-3 pb-1">
+                    <span className="text-xs font-bold text-green-700 dark:text-green-400 uppercase tracking-wider">Additional Pay</span>
                   </div>
-                </>
-              )}
-              {(entry.breakdown?.overloadPayDetails && entry.breakdown.overloadPayDetails.length > 0) || overloadPay > 0 ? (
-                <>
-                  <div className="pt-2">
-                    <span className="text-xs font-semibold text-green-700 dark:text-green-400 uppercase tracking-wide">Additional Pay:</span>
-                  </div>
-                  {entry.breakdown?.overloadPayDetails && entry.breakdown.overloadPayDetails.length > 0 ? (
-                    entry.breakdown.overloadPayDetails.map((detail, idx) => (
-                      <div key={idx} className="flex justify-between items-center py-2 border-b pl-3">
-                        <span className="text-xs font-medium text-green-600">
+                  {overloadPayDetails.length > 0 ? (
+                    overloadPayDetails.map((detail, idx) => (
+                      <div key={idx} className="flex justify-between items-center py-2 border-b pl-4">
+                        <span className="text-xs font-medium text-green-700 dark:text-green-400">
                           • {detail.type === 'POSITION_PAY' ? 'Position Pay' :
                             detail.type === 'BONUS' ? 'Bonus' :
-                              detail.type === '13TH_MONTH' ? '13th Month Pay' :
-                                detail.type === 'OVERTIME' ? 'Overtime' :
-                                  detail.type === 'OVERLOAD' ? 'Overload' :
-                                    detail.type}
+                            detail.type === '13TH_MONTH' ? '13th Month Pay' :
+                            detail.type === 'OVERTIME' ? 'Overtime' :
+                            detail.type === 'OVERLOAD' ? 'Overload' :
+                            detail.type}
                         </span>
-                        <span className="text-sm font-bold text-green-600">+{formatCurrency(detail.amount)}</span>
+                        <span className="text-sm font-bold text-green-600">+{formatCurrency(Number(detail.amount))}</span>
                       </div>
                     ))
-                  ) : (
-                    overloadPay > 0 && (
-                      <div className="flex justify-between items-center py-2 border-b pl-3">
-                        <span className="text-xs font-medium text-green-600">• Additional Pay</span>
-                        <span className="text-sm font-bold text-green-600">+{formatCurrency(overloadPay)}</span>
-                      </div>
-                    )
+                  ) : overloadPay > 0 && (
+                    <div className="flex justify-between items-center py-2 border-b pl-4">
+                      <span className="text-xs font-medium text-green-700 dark:text-green-400">• Additional Pay</span>
+                      <span className="text-sm font-bold text-green-600">+{formatCurrency(overloadPay)}</span>
+                    </div>
                   )}
                 </>
-              ) : null}
-              <div className="flex justify-between items-center py-2 border-b">
-                <span className="text-xs font-medium">Gross Pay</span>
-                <span className="text-sm font-bold">{formatCurrency(grossPay)}</span>
-              </div>
-              {totalDeductions > 0 ? (
-                <>
-                  <div className="pt-2">
-                    <span className="text-xs font-semibold text-red-700 dark:text-red-400 uppercase tracking-wide">Deductions:</span>
-                  </div>
-                  {/* Attendance Deductions - HIDDEN BY USER REQUEST */}
-                  {/* {(attendanceDeductionsAmount + todayAbsenceDeduction) > 0 && (
-                    <div className="flex justify-between items-center py-2 border-b pl-3">
-                      <span className="text-xs font-medium text-red-600">• Attendance Deduction</span>
-                      <span className="text-sm font-bold text-red-600">-{formatCurrency(attendanceDeductionsAmount + todayAbsenceDeduction)}</span>
-                    </div>
-                  )} */}
-                  {/* Attendance Deductions — detailed cards */}
-                  {attendanceDeductionsOnly.map((d: any, idx: number) => {
-                    const incidentDateStr = d.appliedAt
-                      ? (() => {
-                        try {
-                          return new Date(d.appliedAt).toLocaleDateString('en-PH', {
-                            year: 'numeric', month: 'long', day: 'numeric'
-                          })
-                        } catch { return '' }
-                      })()
-                      : ''
-                    // Only show parts with a colon — e.g. "Late: 1h m", not bare type echo "Late"
-                    const notesParts = (d.notes || '')
-                      .split(',')
-                      .map((s: string) => s.trim())
-                      .filter((s: string) => s && s.includes(':'))
-                    const typeLower = d.type.toLowerCase()
-                    const badgeColor =
-                      typeLower.includes('absent') ? 'bg-red-100 text-red-700 dark:bg-red-950/40 dark:text-red-300' :
-                        typeLower.includes('late') || typeLower.includes('tardiness') ? 'bg-orange-100 text-orange-700 dark:bg-orange-950/40 dark:text-orange-300' :
-                          typeLower.includes('early') ? 'bg-yellow-100 text-yellow-700 dark:bg-yellow-950/40 dark:text-yellow-300' :
-                            'bg-red-100 text-red-700 dark:bg-red-950/40 dark:text-red-300'
-                    return (
-                      <div key={`att-${idx}`} className="border border-red-200 dark:border-red-800 rounded-lg p-3 pl-4 mb-1 bg-red-50/60 dark:bg-red-950/20">
-                        <div className="flex items-start justify-between gap-2">
-                          <div className="flex flex-col gap-1.5 flex-1 min-w-0">
-                            {/* Type badge */}
-                            <span className={`inline-flex items-center w-fit px-2 py-0.5 rounded-full text-[11px] font-semibold ${badgeColor}`}>
-                              {d.type}
-                            </span>
-                            {/* Incident date */}
-                            {incidentDateStr && (
-                              <span className="text-[11px] text-muted-foreground flex items-center gap-1">
-                                Incident Date: <span className="font-medium text-foreground">{incidentDateStr}</span>
-                              </span>
-                            )}
-                            {/* Notes detail lines */}
-                            {notesParts.length > 0 && (
-                              <div className="flex flex-col gap-0.5 mt-0.5">
-                                {notesParts.map((part: string, i: number) => (
-                                  <span key={i} className="text-[11px] text-muted-foreground">
-                                    <span className="text-red-500 mr-1">›</span>{part}
-                                  </span>
-                                ))}
-                              </div>
-                            )}
-                          </div>
-                          {/* Amount */}
-                          <span className="text-sm font-bold text-red-600 dark:text-red-400 whitespace-nowrap shrink-0">
-                            -{formatCurrency(d.amount)}
-                          </span>
-                        </div>
-                      </div>
-                    )
-                  })}
-                  {/* Mandatory Deductions (SSS, PhilHealth, Pag-IBIG, BIR) */}
-                  {mandatoryDeductions.map((deduction, idx) => (
-                    <div key={idx} className="flex justify-between items-center py-2 border-b pl-3">
-                      <span className="text-xs font-medium text-red-600">• {deduction.type}</span>
-                      <span className="text-sm font-bold text-red-600">-{formatCurrency(deduction.amount)}</span>
-                    </div>
-                  ))}
-                  {/* Loan Payments */}
-                  {actualLoans.map((loan, idx) => (
-                    <div key={idx} className="flex justify-between items-center py-2 border-b pl-3">
-                      <span className="text-xs font-medium text-red-600">• {loan.type}</span>
-                      <span className="text-sm font-bold text-red-600">-{formatCurrency(loan.amount)}</span>
-                    </div>
-                  ))}
-                  {/* Other Deduction Payments */}
-                  {actualDeductions.map((deduction, idx) => (
-                    <div key={idx} className="flex justify-between items-center py-2 border-b pl-3">
-                      <span className="text-xs font-medium text-red-600">• {deduction.type.replace('[DEDUCTION] ', '')}</span>
-                      <span className="text-sm font-bold text-red-600">-{formatCurrency(deduction.amount)}</span>
-                    </div>
-                  ))}
-                  {/* Non-mandatory Other Deductions */}
-                  {otherDeductionsOnly.map((deduction, idx) => (
-                    <div key={idx} className="flex justify-between items-center py-2 border-b pl-3">
-                      <span className="text-xs font-medium text-red-600">• {deduction.type}</span>
-                      <span className="text-sm font-bold text-red-600">-{formatCurrency(deduction.amount)}</span>
-                    </div>
-                  ))}
-                  {/* Total */}
-                  <div className="flex justify-between items-center py-2 border-b pl-3 bg-red-50 dark:bg-red-950/20">
-                    <span className="text-xs font-semibold text-red-700 dark:text-red-300">Total Deductions</span>
-                    <span className="text-sm font-bold text-red-700 dark:text-red-300">-{formatCurrency(totalDeductions)}</span>
-                  </div>
-                </>
-              ) : (
-                <div className="flex justify-between items-center py-2 border-b">
-                  <span className="text-xs font-medium text-muted-foreground">Total Deductions</span>
-                  <span className="text-sm font-bold text-muted-foreground">-{formatCurrency(totalDeductions)}</span>
-                </div>
               )}
-              <div className="flex justify-between items-center py-3 bg-primary/5 rounded-lg px-3 mt-2">
-                <span className="text-sm font-semibold">Net Pay</span>
-                <span className="text-xl font-bold text-primary">{formatCurrency(netPay)}</span>
+
+              {/* Gross Pay */}
+              <div className="flex justify-between items-center py-3 bg-blue-50 dark:bg-blue-950/20 rounded-lg px-3 mx-4 mb-3 mt-2">
+                <span className="text-xs font-bold text-blue-700 dark:text-blue-300 uppercase tracking-wide">Gross Pay</span>
+                <span className="text-sm font-bold text-blue-700 dark:text-blue-300">{formatCurrency(grossPay)}</span>
               </div>
-            </CardContent>
-          </Card>
-
-          {/* Deductions Section */}
-          {totalDeductions > 0 && (
-            <Card>
-              <CardHeader>
-                <CardTitle className="text-lg font-semibold flex items-center gap-2">
-                  <AlertCircle className="h-5 w-5" />
-                  Deduction Breakdown
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-3">
-                {/* Attendance Deductions — detailed cards in Deduction Breakdown */}
-                {attendanceDeductionsOnly.length > 0 && (() => {
-                  const totalAmt = attendanceDeductionsOnly.reduce((s: number, d: any) => s + d.amount, 0)
-                  return (
-                    <div className="rounded-lg border border-red-200 dark:border-red-800 overflow-hidden">
-                      {/* Header */}
-                      <div className="flex items-center justify-between px-4 py-2 bg-red-50 dark:bg-red-950/30">
-                        <div className="flex items-center gap-2">
-                          <Clock className="h-4 w-4 text-red-600" />
-                          <span className="text-sm font-semibold text-red-700 dark:text-red-400">Attendance Deductions</span>
-                          <Badge variant="outline" className="text-xs border-red-300 text-red-600">
-                            {attendanceDeductionsOnly.length} record{attendanceDeductionsOnly.length !== 1 ? 's' : ''}
-                          </Badge>
-                        </div>
-                        <span className="text-sm font-bold text-red-700 dark:text-red-400">
-                          -{formatCurrency(totalAmt)}
-                        </span>
-                      </div>
-                      {/* Per-record rows */}
-                      <div className="divide-y divide-red-100 dark:divide-red-900/30">
-                        {attendanceDeductionsOnly.map((d: any, idx: number) => {
-                          const incidentDateObj = d.appliedAt ? new Date(d.appliedAt) : null
-                          const typeLower = d.type.toLowerCase()
-                          const typeBg =
-                            typeLower.includes('absent') ? 'bg-red-100 text-red-700 dark:bg-red-900/40 dark:text-red-300' :
-                              typeLower.includes('late') || typeLower.includes('tardiness') ? 'bg-orange-100 text-orange-700 dark:bg-orange-900/40 dark:text-orange-300' :
-                                typeLower.includes('early') ? 'bg-yellow-100 text-yellow-700 dark:bg-yellow-900/40 dark:text-yellow-300' :
-                                  'bg-red-100 text-red-700 dark:bg-red-900/40 dark:text-red-300'
-                          const noteParts = (d.notes || '')
-                            .split(',')
-                            .map((s: string) => s.trim())
-                            .filter((s: string) => s && s.includes(':'))
-                          return (
-                            <div key={idx} className="flex items-start gap-4 px-4 py-3 bg-white dark:bg-background hover:bg-red-50/50 dark:hover:bg-red-950/10 transition-colors">
-                              {/* Date block */}
-                              {incidentDateObj ? (
-                                <div className="flex flex-col items-center min-w-[48px] text-center shrink-0">
-                                  <span className="text-xl font-bold leading-none">{incidentDateObj.getDate().toString().padStart(2, '0')}</span>
-                                  <span className="text-[10px] text-muted-foreground uppercase">
-                                    {incidentDateObj.toLocaleDateString('en-US', { month: 'short', year: '2-digit' })}
-                                  </span>
-                                </div>
-                              ) : <div className="min-w-[48px]" />}
-                              {/* Type badge + notes */}
-                              <div className="flex-1 min-w-0">
-                                <span className={`inline-block text-xs font-semibold px-2 py-0.5 rounded-full ${typeBg}`}>{d.type}</span>
-                                {noteParts.length > 0 && (
-                                  <div className="mt-1 flex flex-col gap-0.5">
-                                    {noteParts.map((p: string, i: number) => (
-                                      <span key={i} className="text-xs text-muted-foreground"><span className="text-red-400 mr-1">›</span>{p}</span>
-                                    ))}
-                                  </div>
-                                )}
-                              </div>
-                              {/* Amount */}
-                              <span className="text-sm font-bold text-red-600 dark:text-red-400 shrink-0">-{formatCurrency(d.amount)}</span>
-                            </div>
-                          )
-                        })}
-                      </div>
-                    </div>
-                  )
-                })()}
-
-                {/* Other Deduction Cards (mandatory, loans, etc.) */}
-                {deductionBreakdown.map((item, index) => (
-                  <div key={index} className="p-4 rounded-lg border bg-muted/30 hover:bg-muted/50 transition-colors">
-                    <div className="flex items-center justify-between mb-1">
-                      <p className="text-sm font-medium">{item.label}</p>
-                    </div>
-                    <p className="text-xl font-bold">{new Intl.NumberFormat('en-PH', { style: 'currency', currency: 'PHP' }).format(item.amount)}</p>
-                    {item.description && (
-                      <p className="text-xs text-muted-foreground mt-1">{item.description}</p>
-                    )}
-                  </div>
-                ))}
-              </CardContent>
-            </Card>
-          )}
-
-          {/* REMOVED: Salary Calculation section */}
-          <div style={{ display: 'none' }}>
-            <Card className="border-2">
-              <CardHeader className="bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-blue-950/30 dark:to-indigo-950/30">
-                <CardTitle className="text-lg font-semibold flex items-center gap-2">
-                  <span className="flex items-center justify-center w-6 h-6 rounded-full bg-primary text-primary-foreground text-sm font-bold">₱</span>
-                  Salary Calculation
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="p-6">
-                <div className="space-y-2">
-                  {/* Monthly Basic Salary */}
-                  <div className="flex justify-between items-center p-4 bg-green-50 dark:bg-green-950/20 rounded-lg border-2 border-green-300 dark:border-green-700">
-                    <div>
-                      <span className="text-base font-bold text-green-900 dark:text-green-100">Monthly Basic Salary</span>
-                      <p className="text-xs text-green-700 dark:text-green-300 mt-0.5">Full monthly amount</p>
-                    </div>
-                    <span className="text-2xl font-bold text-green-900 dark:text-green-100">{formatCurrency(storedBasicSalary)}</span>
-                  </div>
-
-                  {/* Additional Pay - Show by type */}
-                  {entry.breakdown?.overloadPayDetails && entry.breakdown.overloadPayDetails.length > 0 ? (
-                    entry.breakdown.overloadPayDetails.map((detail, idx) => (
-                      <div key={idx} className="flex justify-between items-center p-3 bg-emerald-50 dark:bg-emerald-950/20 rounded-lg border border-emerald-300 dark:border-emerald-700">
-                        <div>
-                          <span className="text-sm font-semibold text-emerald-700 dark:text-emerald-300">
-                            + {detail.type === 'POSITION_PAY' ? 'Position Pay' :
-                              detail.type === 'BONUS' ? 'Bonus' :
-                                detail.type === '13TH_MONTH' ? '13th Month Pay' :
-                                  detail.type === 'OVERTIME' ? 'Overtime' :
-                                    detail.type}
-                          </span>
-                          <p className="text-xs text-emerald-600 dark:text-emerald-400 mt-0.5">Additional compensation</p>
-                        </div>
-                        <span className="text-lg font-bold text-emerald-700 dark:text-emerald-300">+{formatCurrency(detail.amount)}</span>
-                      </div>
-                    ))
-                  ) : (
-                    overloadPay > 0 && (
-                      <div className="flex justify-between items-center p-3 bg-emerald-50 dark:bg-emerald-950/20 rounded-lg border border-emerald-300 dark:border-emerald-700">
-                        <div>
-                          <span className="text-sm font-semibold text-emerald-700 dark:text-emerald-300">+ Additional Pay</span>
-                          <p className="text-xs text-emerald-600 dark:text-emerald-400 mt-0.5">Extra compensation</p>
-                        </div>
-                        <span className="text-lg font-bold text-emerald-700 dark:text-emerald-300">+{formatCurrency(overloadPay)}</span>
-                      </div>
-                    )
-                  )}
-
-                  {/* Divider */}
-                  <div className="border-t-2 border-dashed my-3"></div>
-
-                  {/* Deductions Section */}
-                  <div className="space-y-2">
-                    <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-2">Deductions</p>
-
-                    {/* Attendance Deductions */}
-                    {attendanceDeductionsAmount > 0 && (
-                      <div className="flex justify-between items-center p-2.5 bg-red-50 dark:bg-red-950/20 rounded-lg">
-                        <span className="text-sm text-red-700 dark:text-red-300">Attendance Deductions</span>
-                        <span className="font-semibold text-red-700 dark:text-red-300">-{formatCurrency(attendanceDeductionsAmount)}</span>
-                      </div>
-                    )}
-
-                    {/* Mandatory Deductions - Show individually */}
-                    {mandatoryDeductions.map((deduction, idx) => (
-                      <div key={idx} className="flex justify-between items-center p-2.5 bg-blue-50 dark:bg-blue-950/20 rounded-lg">
-                        <div className="flex-1">
-                          <span className="text-sm font-medium text-blue-700 dark:text-blue-300">{deduction.type}</span>
-                          {deduction.calculationType === 'PERCENTAGE' && deduction.percentageValue && (
-                            <p className="text-xs text-blue-600 dark:text-blue-400 mt-0.5">
-                              {deduction.percentageValue}% of monthly salary
-                            </p>
-                          )}
-                        </div>
-                        <span className="font-semibold text-blue-700 dark:text-blue-300">-{formatCurrency(deduction.amount)}</span>
-                      </div>
-                    ))}
-
-                    {/* Loan Payments - Show individual loans */}
-                    {actualLoans.map((loan, idx) => (
-                      <div key={idx} className="flex justify-between items-center p-2.5 bg-yellow-50 dark:bg-yellow-950/20 rounded-lg">
-                        <div className="flex-1">
-                          <span className="text-sm font-medium text-yellow-700 dark:text-yellow-300">{loan.type}</span>
-                          {loan.remainingBalance > 0 && (
-                            <p className="text-xs text-yellow-600 dark:text-yellow-400 mt-0.5">
-                              Remaining: {formatCurrency(loan.remainingBalance)}
-                            </p>
-                          )}
-                        </div>
-                        <span className="font-semibold text-yellow-700 dark:text-yellow-300">-{formatCurrency(loan.amount)}</span>
-                      </div>
-                    ))}
-
-                    {/* Deduction Payments - Show individual deductions */}
-                    {actualDeductions.map((deduction, idx) => (
-                      <div key={idx} className="flex justify-between items-center p-2.5 bg-orange-50 dark:bg-orange-950/20 rounded-lg">
-                        <div className="flex-1">
-                          <span className="text-sm font-medium text-orange-700 dark:text-orange-300">{deduction.type}</span>
-                          {deduction.remainingBalance > 0 && (
-                            <p className="text-xs text-orange-600 dark:text-orange-400 mt-0.5">
-                              Remaining: {formatCurrency(deduction.remainingBalance)}
-                            </p>
-                          )}
-                        </div>
-                        <span className="font-semibold text-orange-700 dark:text-orange-300">-{formatCurrency(deduction.amount)}</span>
-                      </div>
-                    ))}
-
-                    {/* Non-mandatory Other Deductions */}
-                    {otherDeductionsOnly.map((deduction, idx) => (
-                      <div key={idx} className="flex justify-between items-center p-2.5 bg-gray-50 dark:bg-gray-950/20 rounded-lg">
-                        <div className="flex-1">
-                          <span className="text-sm text-gray-700 dark:text-gray-300">{deduction.type}</span>
-                          {deduction.description && (
-                            <p className="text-xs text-gray-600 dark:text-gray-400 mt-0.5">{deduction.description}</p>
-                          )}
-                        </div>
-                        <span className="font-semibold text-gray-700 dark:text-gray-300">-{formatCurrency(deduction.amount)}</span>
-                      </div>
-                    ))}
-                  </div>
-
-                  {/* Total Deductions Summary */}
-                  {totalDeductions > 0 && (
-                    <div className="flex justify-between items-center p-3 bg-red-100 dark:bg-red-950/30 rounded-lg border border-red-300 dark:border-red-700 mt-2">
-                      <span className="text-sm font-bold text-red-800 dark:text-red-200">Total Deductions</span>
-                      <span className="text-lg font-bold text-red-800 dark:text-red-200">-{formatCurrency(totalDeductions)}</span>
-                    </div>
-                  )}
-
-                  {/* Divider */}
-                  <div className="border-t-2 border-dashed my-4"></div>
-
-                  {/* Net Pay - Final Result */}
-                  <div className="flex justify-between items-center p-5 bg-gradient-to-r from-primary/20 to-primary/10 rounded-lg border-2 border-primary shadow-md">
-                    <div>
-                      <span className="text-lg font-bold text-primary">Net Pay</span>
-                      <p className="text-xs text-primary/80 mt-1">{netPayPercentage.toFixed(1)}% of basic salary</p>
-                    </div>
-                    <span className="text-3xl font-bold text-primary">
-                      {formatCurrency(netPay)}
-                    </span>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
+            </div>
           </div>
 
+          {/* Deductions */}
+          {totalDeductions > 0 && (
+            <div className="border rounded-lg overflow-hidden">
+              <div className="border-b px-4 py-3 bg-red-50 dark:bg-red-950/20">
+                <h3 className="text-base font-semibold text-red-700 dark:text-red-400">Deductions</h3>
+              </div>
+              <div className="p-4 space-y-1">
 
-          {/* Attendance Details - Redesigned with Card Layout */}
-          {(() => {
-            // Filter out future dates and PENDING status (current day before cutoff) before displaying
-            const today = new Date()
-            today.setHours(23, 59, 59, 999)
-            const filteredDetails = attendanceDetails.filter(detail => {
-              const recordDate = new Date(detail.date)
-              // Don't show future dates
-              if (recordDate > today) return false
-              // Don't show PENDING status (means we're still waiting for attendance)
-              if (detail.status === 'PENDING') return false
-              // Don't show ABSENT records with no deduction (before cutoff)
-              // Check both 'deduction' and 'deductions' field names
-              const deductionAmount = (detail as any).deduction || (detail as any).deductions || 0
-              if (detail.status === 'ABSENT' && deductionAmount === 0) return false
-              return true
-            })
-
-            // Just use the filtered details directly - don't add today's status manually
-            const allDetails = filteredDetails
-
-            return allDetails.length > 0 && (
-              <Card>
-                <CardHeader>
-                  <div className="flex items-center justify-between">
-                    <CardTitle className="text-lg font-semibold flex items-center gap-2">
-                      <Calendar className="h-5 w-5" />
-                      Attendance Details
-                    </CardTitle>
-                    <Badge variant="secondary" className="text-sm">
-                      {allDetails.length} {allDetails.length === 1 ? 'day' : 'days'} recorded
-                    </Badge>
-                  </div>
-                </CardHeader>
-                <CardContent>
-                  <div className="space-y-3">
-                    {allDetails.map((detail, index) => {
-                      const isExpanded = expandedItems.has(index)
-
-                      // Check if this is today's record
-                      const recordDate = new Date(detail.date)
-                      const todayDate = new Date()
-                      const isToday = recordDate.toDateString() === todayDate.toDateString()
-
-                      // Debug logging
-                      console.log('Attendance Detail:', {
-                        date: detail.date,
-                        status: detail.status,
-                        deduction: detail.deduction,
-                        timeIn: detail.timeIn,
-                        timeOut: detail.timeOut
-                      })
-
-                      console.log('Absence Check:', {
-                        date: detail.date,
-                        statusIsAbsent: detail.status === 'ABSENT',
-                        noTimeInOut: !detail.timeIn && !detail.timeOut,
-                        notPresent: detail.status !== 'PRESENT',
-                        willShowAsAbsent: detail.status === 'ABSENT' || (!detail.timeIn && !detail.timeOut && detail.status !== 'PRESENT')
-                      })
-
-                      // Calculate expected times and delays
-                      const timeInDate = detail.timeIn ? new Date(detail.timeIn) : null
-                      const timeOutDate = detail.timeOut ? new Date(detail.timeOut) : null
-
-                      // Check for late arrival (same as admin/attendance)
-                      let isLate = false
-                      let lateMinutes = 0
-                      let lateDeduction = 0
-                      if (detail.timeIn && attendanceSettings?.timeInEnd) {
-                        const timeIn = new Date(detail.timeIn)
-                        const expectedTimeIn = new Date(recordDate)
-                        const [hours, minutes] = attendanceSettings.timeInEnd.split(':').map(Number)
-                        const expectedMinutes = minutes + 1
-                        if (expectedMinutes >= 60) {
-                          expectedTimeIn.setHours(hours + 1, expectedMinutes - 60, 0, 0)
-                        } else {
-                          expectedTimeIn.setHours(hours, expectedMinutes, 0, 0)
-                        }
-                        isLate = timeIn > expectedTimeIn
-                        if (isLate) {
-                          lateMinutes = Math.floor((timeIn.getTime() - expectedTimeIn.getTime()) / (1000 * 60))
-                        }
-                      }
-
-                      // Check for early timeout (same as admin/attendance)
-                      let hasEarlyTimeout = false
-                      let earlyMinutes = 0
-                      let earlyDeduction = 0
-                      if (detail.timeOut && attendanceSettings?.timeOutStart) {
-                        const timeOut = new Date(detail.timeOut)
-                        const [hours, minutes] = attendanceSettings.timeOutStart.split(':').map(Number)
-                        const expectedTimeOut = new Date(recordDate)
-                        expectedTimeOut.setHours(hours, minutes, 0, 0)
-                        hasEarlyTimeout = timeOut < expectedTimeOut
-                        if (hasEarlyTimeout) {
-                          earlyMinutes = Math.floor((expectedTimeOut.getTime() - timeOut.getTime()) / (1000 * 60))
-                        }
-                      }
-
-                      // Calculate late and early deductions independently using per-second rate
-                      const perSecondRate = 0.031566 // This should ideally come from settings
-                      if (lateMinutes > 0) {
-                        lateDeduction = (lateMinutes * 60) * perSecondRate
-                      }
-                      if (earlyMinutes > 0) {
-                        earlyDeduction = (earlyMinutes * 60) * perSecondRate
-                      }
-
-                      // Check if this is a future date (shouldn't show as absent)
-                      const today = new Date()
-                      today.setHours(0, 0, 0, 0) // Start of today
-                      const isFutureDate = recordDate > today
-
-                      // Force absent detection: Only mark as absent if status is explicitly ABSENT
-                      // AND we're past the cutoff time (5:01 PM) AND no time-in recorded
-                      const now = new Date()
-                      const currentHour = now.getHours()
-                      const currentMinute = now.getMinutes()
-                      const currentTimeInMinutes = currentHour * 60 + currentMinute
-                      const cutoffTimeInMinutes = 17 * 60 + 1 // 5:01 PM
-                      const isPastCutoff = currentTimeInMinutes > cutoffTimeInMinutes
-
-                      // If there's a time-in, they're not absent - they're either LATE or PRESENT
-                      const hasTimeIn = !!detail.timeIn
-
-                      // Only show as ABSENT if no time-in AND past cutoff time
-                      const isAbsent = !hasTimeIn && !isFutureDate && (detail.status === 'ABSENT' || isPastCutoff)
-                      const isPartial = detail.status === 'PARTIAL' && !isAbsent
-                      const isLateWaiting = !hasTimeIn && !isFutureDate && !isPastCutoff && detail.status === 'ABSENT'
-
-                      console.log('🔍 ABSENT DETECTION:', {
-                        date: new Date(detail.date).toLocaleDateString(),
-                        status: detail.status,
-                        isFutureDate,
-                        hasTimeIn: !!detail.timeIn,
-                        hasTimeOut: !!detail.timeOut,
-                        isAbsent,
-                        cardColorWillBe: isAbsent ? 'RED' : isLate ? 'ORANGE' : 'GREEN'
-                      })
-
-                      // Calculate total deduction based on late and early deductions
-                      let displayDeduction = detail.deduction
-                      if (isAbsent && storedBasicSalary > 0) {
-                        // Always use the database deduction if available, otherwise calculate
-                        if (detail.deduction > 0) {
-                          displayDeduction = detail.deduction
-                        } else {
-                          // Calculate daily rate: Monthly Salary / Working Days
-                          // Estimate working days as ~22 for monthly period
-                          const workingDays = 22
-                          displayDeduction = storedBasicSalary / workingDays
-                          console.log(`📊 Calculated absence deduction for ${new Date(detail.date).toLocaleDateString()}: ₱${displayDeduction.toFixed(2)}`)
-                        }
-                      } else if (isLate || hasEarlyTimeout) {
-                        // For late/early, use the sum of independently calculated deductions
-                        displayDeduction = lateDeduction + earlyDeduction
-                      }
-
-                      return (
-                        <Card
-                          key={index}
-                          className={`border-l-4 transition-all ${isAbsent ? 'border-l-red-600 bg-red-50 dark:bg-red-950/20' :
-                            (isLate || detail.status === 'LATE') ? 'border-l-orange-500 bg-orange-50 dark:bg-orange-950/20' :
-                              hasEarlyTimeout ? 'border-l-yellow-500 bg-yellow-50 dark:bg-yellow-950/20' :
-                                isPartial ? 'border-l-purple-500 bg-purple-50 dark:bg-purple-950/20' :
-                                  'border-l-green-500 bg-green-50 dark:bg-green-950/20'
-                            }`}
-                        >
-                          <CardContent className="p-4">
-                            <div className="flex items-start justify-between gap-4">
-                              {/* Left: Date and Status */}
-                              <div className="flex items-start gap-3 flex-1">
-                                <div className="flex flex-col items-center min-w-[80px] pt-1">
-                                  <div className="text-2xl font-bold">
-                                    {new Date(detail.date).toLocaleDateString('en-US', { day: '2-digit' })}
-                                  </div>
-                                  <div className="text-xs text-muted-foreground uppercase">
-                                    {new Date(detail.date).toLocaleDateString('en-US', { month: 'short', year: 'numeric' })}
-                                  </div>
-                                </div>
-
-                                {/* Time In/Out Details - Show special layout for absent or late waiting */}
-                                {isLateWaiting ? (
-                                  <div className="flex-1 flex items-center justify-center">
-                                    <div className="text-center py-2">
-                                      <Clock className="w-8 h-8 mx-auto mb-2 text-orange-500" />
-                                      <Badge variant="outline" className="text-sm px-3 py-1 font-bold bg-orange-50 text-orange-700 border-orange-200">
-                                        LATE
-                                      </Badge>
-                                      <div className="text-xs text-orange-600 dark:text-orange-400 font-medium mt-1">
-                                        Waiting for time in
-                                      </div>
-                                    </div>
-                                  </div>
-                                ) : (isAbsent || (detail.workHours === 0 && !hasTimeIn)) ? (
-                                  <div className="flex-1 flex items-center justify-center">
-                                    <div className="text-center py-2">
-                                      <AlertCircle className="w-8 h-8 mx-auto mb-2 text-red-500" />
-                                      <Badge variant="destructive" className="text-sm px-3 py-1 font-bold">
-                                        ABSENT
-                                      </Badge>
-                                      <div className="text-xs text-red-600 dark:text-red-400 font-medium mt-1">
-                                        No attendance recorded
-                                      </div>
-                                    </div>
-                                  </div>
-                                ) : (
-                                  <div className="flex-1 grid grid-cols-3 gap-4">
-                                    {/* Time In */}
-                                    <div>
-                                      <div className="text-xs text-muted-foreground mb-1 flex items-center gap-1">
-                                        <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 16l-4-4m0 0l4-4m-4 4h14m-5 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h7a3 3 0 013 3v1" />
-                                        </svg>
-                                        Time In
-                                      </div>
-                                      <div className="text-base font-semibold flex items-center gap-2">
-                                        {timeInDate ? (
-                                          <>
-                                            {new Date(detail.timeIn!).toLocaleTimeString('en-US', {
-                                              timeZone: 'Asia/Manila',
-                                              hour: '2-digit',
-                                              minute: '2-digit'
-                                            })}
-                                            {isLate && (
-                                              <Badge variant="secondary" className="text-[10px] px-1.5 py-0.5 bg-orange-50 text-orange-700 border-orange-300">
-                                                +{Math.floor(lateMinutes / 60) > 0 ? `${Math.floor(lateMinutes / 60)}h ` : ''}{lateMinutes % 60}m
-                                              </Badge>
-                                            )}
-                                          </>
-                                        ) : <span className="text-muted-foreground">—</span>}
-                                      </div>
-                                    </div>
-
-                                    {/* Time Out */}
-                                    <div>
-                                      <div className="text-xs text-muted-foreground mb-1 flex items-center gap-1">
-                                        <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
-                                        </svg>
-                                        Time Out
-                                      </div>
-                                      <div className="text-base font-semibold flex items-center gap-2">
-                                        {timeOutDate ? (
-                                          <>
-                                            {new Date(detail.timeOut!).toLocaleTimeString('en-US', {
-                                              timeZone: 'Asia/Manila',
-                                              hour: '2-digit',
-                                              minute: '2-digit'
-                                            })}
-                                            {hasEarlyTimeout && (
-                                              <Badge variant="outline" className="text-[10px] px-1.5 py-0.5 bg-yellow-50 text-yellow-700 border-yellow-300">
-                                                -{Math.floor(earlyMinutes / 60) > 0 ? `${Math.floor(earlyMinutes / 60)}h ` : ''}{earlyMinutes % 60}m
-                                              </Badge>
-                                            )}
-                                          </>
-                                        ) : <span className="text-muted-foreground">—</span>}
-                                      </div>
-                                    </div>
-
-                                    {/* Attendance Details */}
-                                    <div>
-                                      <div className="text-xs text-muted-foreground mb-1">Details</div>
-                                      <div className="flex flex-wrap items-center gap-1">
-                                        {isPartial && (
-                                          <Badge variant="secondary" className="text-xs bg-purple-50 text-purple-700 border-purple-300">
-                                            Partial
-                                          </Badge>
-                                        )}
-                                        {!isPartial && (
-                                          <>
-                                            {isLate && (
-                                              <Badge variant="secondary" className="text-xs bg-orange-50 text-orange-700 border-orange-300">
-                                                Late Arrival
-                                              </Badge>
-                                            )}
-                                            {hasEarlyTimeout && (
-                                              <Badge variant="outline" className="text-xs bg-yellow-50 text-yellow-700 border-yellow-300">
-                                                Early Departure
-                                              </Badge>
-                                            )}
-                                            {!isLate && !hasEarlyTimeout && detail.status === 'PRESENT' && (
-                                              <Badge variant="default" className="text-xs bg-green-50 text-green-700 border-green-300">
-                                                On Time
-                                              </Badge>
-                                            )}
-                                          </>
-                                        )}
-                                      </div>
-                                    </div>
-                                  </div>
-                                )}
-                              </div>
-
-                              {/* Right: Work Hours and Deduction */}
-                              <div className="text-right space-y-2 min-w-[180px]">
-                                {!(isAbsent || detail.workHours === 0) && (
-                                  <div>
-                                    <div className="text-xs text-muted-foreground mb-1">Work Hours</div>
-                                    <div className="text-lg font-bold flex items-center justify-end gap-1">
-                                      <Clock className="w-4 h-4" />
-                                      {formatWorkHours(detail.workHours)}
-                                    </div>
-                                  </div>
-                                )}
-
-                                {(displayDeduction > 0 || isLate || hasEarlyTimeout || isAbsent || isPartial) && (
-                                  <div className={`pt-2 ${!(isAbsent || detail.workHours === 0) ? 'border-t' : ''}`}>
-                                    {(isAbsent || detail.workHours === 0) ? (
-                                      // Special display for absent
-                                      <div className="space-y-1">
-                                        <div className="text-[10px] font-semibold text-red-700 dark:text-red-300 uppercase tracking-wide">Absence Penalty</div>
-                                        <div className="text-xl font-bold text-red-600 dark:text-red-400">
-                                          -{formatCurrency(displayDeduction)}
-                                        </div>
-                                        <div className="text-[10px] text-red-600 dark:text-red-400 bg-red-100 dark:bg-red-950/50 p-1.5 rounded">
-                                          <div className="font-semibold">Full Day Salary Loss</div>
-                                        </div>
-                                      </div>
-                                    ) : (
-                                      // Normal display for late/early/partial
-                                      <>
-                                        <div
-                                          className="flex items-center justify-between cursor-pointer hover:bg-muted/50 -mx-2 px-2 py-1 rounded transition-colors"
-                                          onClick={() => toggleExpanded(index)}
-                                        >
-                                          <div className="text-xs text-red-600 dark:text-red-400">Deduction Info</div>
-                                          {(isLate || hasEarlyTimeout) && (
-                                            <button className="text-muted-foreground hover:text-foreground transition-colors">
-                                              {isExpanded ? <ChevronUp className="w-3 h-3" /> : <ChevronDown className="w-3 h-3" />}
-                                            </button>
-                                          )}
-                                        </div>
-                                        {displayDeduction > 0 ? (
-                                          <div className="text-lg font-bold text-red-600 dark:text-red-400 whitespace-nowrap">
-                                            -{formatCurrency(displayDeduction)}
-                                          </div>
-                                        ) : (
-                                          <div className="text-sm text-muted-foreground">No deduction</div>
-                                        )}
-                                      </>
-                                    )}
-
-                                    {/* Collapsible breakdown */}
-                                    {!isAbsent && isExpanded && (isLate || hasEarlyTimeout) && (
-                                      <div className="text-[11px] text-muted-foreground mt-2 space-y-1 animate-in slide-in-from-top-2 duration-200">
-                                        {isLate && lateMinutes > 0 && (
-                                          <div className="text-orange-600 dark:text-orange-400 font-medium bg-orange-50 dark:bg-orange-950/30 p-2 rounded">
-                                            <div className="whitespace-nowrap">Late: +{Math.floor(lateMinutes / 60) > 0 ? `${Math.floor(lateMinutes / 60)}h ` : ''}{lateMinutes % 60}m</div>
-                                            {lateDeduction > 0 && (
-                                              <div className="text-red-600 dark:text-red-400 whitespace-nowrap font-bold">-{formatCurrency(lateDeduction)}</div>
-                                            )}
-                                          </div>
-                                        )}
-                                        {hasEarlyTimeout && earlyMinutes > 0 && (
-                                          <div className="text-yellow-600 dark:text-yellow-400 font-medium bg-yellow-50 dark:bg-yellow-950/30 p-2 rounded">
-                                            <div className="whitespace-nowrap">Early: -{Math.floor(earlyMinutes / 60) > 0 ? `${Math.floor(earlyMinutes / 60)}h ` : ''}{earlyMinutes % 60}m</div>
-                                            {earlyDeduction > 0 && (
-                                              <div className="text-red-600 dark:text-red-400 whitespace-nowrap font-bold">-{formatCurrency(earlyDeduction)}</div>
-                                            )}
-                                          </div>
-                                        )}
-                                      </div>
-                                    )}
-
-                                    {/* Show inline for partial only (absent has its own display above) */}
-                                    {!isExpanded && !isAbsent && isPartial && (
-                                      <div className="text-[11px] text-muted-foreground mt-1">
-                                        <div className="font-medium">Incomplete day</div>
-                                      </div>
-                                    )}
-                                  </div>
-                                )}
-
-                                {detail.deduction === 0 && detail.status === 'PRESENT' && (
-                                  <div className="pt-2 border-t">
-                                    <div className="text-xs text-green-600 dark:text-green-400 mb-1">Perfect!</div>
-                                    <div className="text-sm font-medium text-green-600 dark:text-green-400">
-                                      No Deductions
-                                    </div>
-                                  </div>
-                                )}
-                              </div>
-                            </div>
-                          </CardContent>
-                        </Card>
-                      )
-                    })}
-                  </div>
-                </CardContent>
-              </Card>
-            )
-          })()}
-
-          {/* Loan & Deduction Details */}
-          {mergedLoans.length > 0 && (() => {
-            const loans = mergedLoans.filter((item: any) => !item.type?.startsWith('[DEDUCTION]'))
-            const deductions = mergedLoans.filter((item: any) => item.type?.startsWith('[DEDUCTION]'))
-
-            return (
-              <>
-                {/* Loans Section */}
-                {loans.length > 0 && (
-                  <Card>
-                    <CardHeader>
-                      <div className="flex items-center justify-between">
-                        <CardTitle className="text-lg font-semibold flex items-center gap-2">
-                          <TrendingDown className="h-5 w-5" />
-                          Loan Payments
-                        </CardTitle>
-                        <Badge variant="secondary">
-                          {loans.length} loan(s)
-                        </Badge>
-                      </div>
-                    </CardHeader>
-                    <CardContent>
-                      <div className="overflow-x-auto">
-                        <Table>
-                          <TableHeader>
-                            <TableRow>
-                              <TableHead>Loan Purpose</TableHead>
-                              <TableHead className="text-right">Payment Amount</TableHead>
-                              <TableHead className="text-right">Remaining Balance</TableHead>
-                            </TableRow>
-                          </TableHeader>
-                          <TableBody>
-                            {loans.map((loan, index) => (
-                              <TableRow key={index}>
-                                <TableCell className="font-medium">{loan.type}</TableCell>
-                                <TableCell className="text-right text-red-600 dark:text-red-400 font-semibold">
-                                  -{formatCurrency(loan.amount)}
-                                </TableCell>
-                                <TableCell className="text-right font-medium">
-                                  {formatCurrency(loan.remainingBalance)}
-                                </TableCell>
-                              </TableRow>
-                            ))}
-                          </TableBody>
-                        </Table>
-                      </div>
-                    </CardContent>
-                  </Card>
+                {/* Attendance Deductions */}
+                {attendanceDeductionAmount > 0 && (
+                  <>
+                    <div className="pt-1 pb-1">
+                      <span className="text-xs font-bold text-orange-600 dark:text-orange-400 uppercase tracking-wider">Attendance</span>
+                    </div>
+                    <div className="flex justify-between items-center py-2 border-b pl-4">
+                      <span className="text-xs font-medium text-red-600">• Attendance Deductions</span>
+                      <span className="text-sm font-bold text-red-600">-{formatCurrency(attendanceDeductionAmount)}</span>
+                    </div>
+                  </>
                 )}
 
-                {/* Deductions Section */}
-                {deductions.length > 0 && (
-                  <Card className="border-2 border-orange-200 dark:border-orange-800 bg-orange-50 dark:bg-orange-950/20">
-                    <CardHeader>
-                      <div className="flex items-center justify-between">
-                        <CardTitle className="text-lg font-semibold flex items-center gap-2 text-orange-800 dark:text-orange-300">
-                          <TrendingDown className="h-5 w-5" />
-                          Deduction Payments
-                        </CardTitle>
-                        <Badge variant="outline" className="bg-orange-100 text-orange-800 border-orange-300">
-                          {deductions.length} deduction(s)
-                        </Badge>
+                {/* Mandatory Deductions */}
+                {mandatoryDeductions.length > 0 && (
+                  <>
+                    <div className="pt-3 pb-1">
+                      <span className="text-xs font-bold text-purple-600 dark:text-purple-400 uppercase tracking-wider">Mandatory Deductions</span>
+                    </div>
+                    {mandatoryDeductions.map((deduction, idx) => (
+                      <div key={idx} className="flex justify-between items-center py-2 border-b pl-4">
+                        <span className="text-xs font-medium text-red-600">• {(deduction.type || 'Deduction').split('(')[0].trim()}</span>
+                        <span className="text-sm font-bold text-red-600">-{formatCurrency(deduction.amount)}</span>
                       </div>
-                    </CardHeader>
-                    <CardContent>
-                      <div className="overflow-x-auto">
-                        <Table>
-                          <TableHeader>
-                            <TableRow className="bg-orange-100 dark:bg-orange-900/50">
-                              <TableHead className="font-semibold text-orange-800 dark:text-orange-300">Deduction Purpose</TableHead>
-                              <TableHead className="text-right font-semibold text-orange-800 dark:text-orange-300">Payment Amount</TableHead>
-                              <TableHead className="text-right font-semibold text-orange-800 dark:text-orange-300">Remaining Balance</TableHead>
-                            </TableRow>
-                          </TableHeader>
-                          <TableBody>
-                            {deductions.map((deduction, index) => (
-                              <TableRow key={index} className="hover:bg-orange-50 dark:hover:bg-orange-900/30">
-                                <TableCell className="font-medium">{deduction.type.replace('[DEDUCTION] ', '')}</TableCell>
-                                <TableCell className="text-right text-red-600 dark:text-red-400 font-semibold">
-                                  -{formatCurrency(deduction.amount)}
-                                </TableCell>
-                                <TableCell className="text-right font-medium">
-                                  {formatCurrency(deduction.remainingBalance)}
-                                </TableCell>
-                              </TableRow>
-                            ))}
-                          </TableBody>
-                        </Table>
-                      </div>
-                    </CardContent>
-                  </Card>
+                    ))}
+                  </>
                 )}
-              </>
-            )
-          })()}
 
-          {/* Mandatory Deductions */}
-          {mandatoryDeductions.length > 0 && (
-            <Card className="border-2 border-indigo-200 dark:border-indigo-800 bg-indigo-50 dark:bg-indigo-950/20">
-              <CardHeader>
-                <div className="flex items-center justify-between">
-                  <CardTitle className="text-xl font-bold flex items-center gap-2 text-indigo-800 dark:text-indigo-300">
-                    <AlertCircle className="h-6 w-6" />
-                    Mandatory Deductions
-                    <Badge variant="outline" className="bg-indigo-100 text-indigo-800 border-indigo-300">
-                      Required by Law
-                    </Badge>
-                  </CardTitle>
-                  <div className="text-right">
-                    <div className="text-2xl font-bold text-indigo-900 dark:text-indigo-200">
-                      {formatCurrency(totalMandatoryDeductions)}
+                {/* Loan Payments */}
+                {actualLoans.length > 0 && (
+                  <>
+                    <div className="pt-3 pb-1">
+                      <span className="text-xs font-bold text-yellow-700 dark:text-yellow-400 uppercase tracking-wider">Loan Payments</span>
                     </div>
-                    <div className="text-sm text-indigo-600 dark:text-indigo-400">
-                      Total Mandatory Deductions
+                    {actualLoans.map((loan, idx) => (
+                      <div key={idx} className="flex justify-between items-center py-2 border-b pl-4">
+                        <span className="text-xs font-medium text-red-600">• {(loan.type || 'Loan').split('(')[0].trim()}</span>
+                        <span className="text-sm font-bold text-red-600">-{formatCurrency(loan.amount)}</span>
+                      </div>
+                    ))}
+                  </>
+                )}
+
+                {/* Deduction Payments */}
+                {deductionPayments.length > 0 && (
+                  <>
+                    <div className="my-2 border-t border-dashed border-muted-foreground/30" />
+                    <div className="pt-1 pb-1">
+                      <span className="text-xs font-bold text-red-600 dark:text-red-400 uppercase tracking-wider">Other Deductions</span>
                     </div>
-                  </div>
+                    {deductionPayments.map((deduction, idx) => (
+                      <div key={idx} className="flex justify-between items-center py-2 border-b pl-4">
+                        <span className="text-xs font-medium text-red-600">• {(deduction.type || 'Deduction').replace(/^\[DEDUCTION\]\s*/i, '').split('(')[0].trim()}</span>
+                        <span className="text-sm font-bold text-red-600">-{formatCurrency(deduction.amount)}</span>
+                      </div>
+                    ))}
+                  </>
+                )}
+
+                {/* Other Deductions */}
+                {otherDeductions.length > 0 && (
+                  <>
+                    {deductionPayments.length === 0 && (
+                      <div className="pt-3 pb-1">
+                        <span className="text-xs font-bold text-red-600 dark:text-red-400 uppercase tracking-wider">Other Deductions</span>
+                      </div>
+                    )}
+                    {otherDeductions.map((deduction, idx) => (
+                      <div key={idx} className="flex justify-between items-center py-2 border-b pl-4">
+                        <span className="text-xs font-medium text-red-600">• {deduction.type}</span>
+                        <span className="text-sm font-bold text-red-600">-{formatCurrency(deduction.amount)}</span>
+                      </div>
+                    ))}
+                  </>
+                )}
+
+                {/* Total Deductions */}
+                <div className="flex justify-between items-center py-3 pl-4 mt-1 bg-red-50 dark:bg-red-950/20 rounded-lg">
+                  <span className="text-xs font-bold text-red-700 dark:text-red-300 uppercase tracking-wide">Total Deductions</span>
+                  <span className="text-sm font-bold text-red-700 dark:text-red-300">-{formatCurrency(totalDeductions)}</span>
                 </div>
-              </CardHeader>
-              <CardContent>
-                <div className="overflow-x-auto">
-                  <Table>
-                    <TableHeader>
-                      <TableRow className="bg-indigo-100 dark:bg-indigo-900/50">
-                        <TableHead className="font-semibold text-indigo-800 dark:text-indigo-300">Type</TableHead>
-                        <TableHead className="font-semibold text-indigo-800 dark:text-indigo-300">Description</TableHead>
-                        <TableHead className="font-semibold text-indigo-800 dark:text-indigo-300">Calculation</TableHead>
-                        <TableHead className="text-right font-semibold text-indigo-800 dark:text-indigo-300">Amount</TableHead>
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                      {mandatoryDeductions.map((deduction, index) => (
-                        <TableRow key={index} className="hover:bg-indigo-50 dark:hover:bg-indigo-900/30">
-                          <TableCell className="font-medium py-1">{deduction.type}</TableCell>
-                          <TableCell className="text-muted-foreground py-1">{deduction.description || 'Mandatory payroll deduction'}</TableCell>
-                          <TableCell className="py-1">
-                            {deduction.calculationType === 'PERCENTAGE' && deduction.percentageValue ? (
-                              <div className="text-sm">
-                                <span className="inline-flex items-center px-2 py-1 rounded-md text-xs font-medium bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-400">
-                                  {deduction.percentageValue}%
-                                </span>
-                                <div className="text-xs text-muted-foreground mt-1">
-                                  {deduction.percentageValue}% of {formatCurrency(entry.breakdown?.monthlyBasicSalary || storedBasicSalary * 2)}
-                                </div>
-                              </div>
-                            ) : (
-                              <span className="inline-flex items-center px-2 py-1 rounded-md text-xs font-medium bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400">
-                                Fixed
-                              </span>
-                            )}
-                          </TableCell>
-                          <TableCell className="text-right text-red-600 dark:text-red-400 font-semibold">
-                            -{formatCurrency(deduction.amount)}
-                          </TableCell>
-                        </TableRow>
-                      ))}
-                    </TableBody>
-                  </Table>
-                </div>
-              </CardContent>
-            </Card>
+              </div>
+            </div>
           )}
 
-          {/* Other Deductions */}
-          {otherDeductionsOnly.length > 0 && (
-            <Card>
-              <CardHeader>
-                <div className="flex items-center justify-between">
-                  <CardTitle className="text-lg font-semibold flex items-center gap-2">
-                    <AlertCircle className="h-5 w-5" />
-                    Other Deductions
-                  </CardTitle>
-                  <Badge variant="secondary">
-                    {formatCurrency(totalOtherDeductions)}
-                  </Badge>
-                </div>
-              </CardHeader>
-              <CardContent>
-                <div className="overflow-x-auto">
-                  <Table>
-                    <TableHeader>
-                      <TableRow>
-                        <TableHead>Type</TableHead>
-                        <TableHead>Description</TableHead>
-                        <TableHead className="text-right">Amount</TableHead>
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                      {otherDeductionsOnly.map((deduction, index) => (
-                        <TableRow key={index}>
-                          <TableCell className="font-medium">{deduction.type}</TableCell>
-                          <TableCell className="text-muted-foreground">{deduction.description || 'Other deduction'}</TableCell>
-                          <TableCell className="text-right text-red-600 dark:text-red-400 font-semibold">
-                            -{formatCurrency(deduction.amount)}
-                          </TableCell>
-                        </TableRow>
-                      ))}
-                    </TableBody>
-                  </Table>
-                </div>
-              </CardContent>
-            </Card>
-          )}
+          {/* NET PAY */}
+          <div className="flex justify-between items-center py-4 bg-muted/30 border border-border rounded-lg px-4">
+            <span className="text-sm font-bold">Net Pay</span>
+            <span className="text-xl font-bold">{formatCurrency(netPay)}</span>
+          </div>
+
         </div>
       </DialogContent>
     </Dialog>
