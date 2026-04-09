@@ -504,16 +504,16 @@ export default function LoansPage() {
                       <div className="space-y-2">
                         <label className="text-base flex items-center gap-2 font-medium">
                           <User className="h-4 w-4" />
-                          Select Staff
+                          Select Staff / Officials
                         </label>
                         <div className="space-y-2">
                           <div className="relative">
                             <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                             <Input
-                              placeholder="Search staff..."
+                              placeholder="Search staff or officials..."
                               value={userSearch}
                               onChange={(e) => setUserSearch(e.target.value)}
-                              className="w-full pl-10"
+                              className="w-full pl-10 border border-slate-300 dark:border-slate-600"
                             />
                           </div>
                           <div className="border rounded-md max-h-[150px] overflow-y-auto">
@@ -561,7 +561,7 @@ export default function LoansPage() {
                           value={form.purpose}
                           onChange={(e) => setForm(f => ({ ...f, purpose: e.target.value }))}
                           placeholder="e.g. Personal Loan"
-                          className="h-11 text-base"
+                          className="h-11 text-base border border-slate-300 dark:border-slate-600"
                         />
                       </div>
 
@@ -577,7 +577,7 @@ export default function LoansPage() {
                           value={form.amount}
                           onChange={(e) => setForm(f => ({ ...f, amount: e.target.value }))}
                           placeholder="e.g. 5000"
-                          className="h-11 text-base"
+                          className="h-11 text-base border border-slate-300 dark:border-slate-600"
                         />
                       </div>
                     </div>
@@ -627,7 +627,7 @@ export default function LoansPage() {
                               setForm(f => ({ ...f, termMonths: e.target.value }))
                             }}
                             placeholder="Enter custom months"
-                            className="h-11 text-base"
+                            className="h-11 text-base border border-slate-300 dark:border-slate-600"
                           />
                         )}
                       </div>
@@ -638,7 +638,7 @@ export default function LoansPage() {
                           <Input
                             value={form.monthlyPaymentPercent ? `${form.monthlyPaymentPercent}% (Auto-calculated)` : ''}
                             readOnly={!isCustomPercent}
-                            className={`h-11 text-base ${!isCustomPercent ? 'bg-muted cursor-not-allowed' : ''}`}
+                            className={`h-11 text-base border border-slate-300 dark:border-slate-600 ${!isCustomPercent ? 'bg-muted cursor-not-allowed' : ''}`}
                             placeholder="Auto-calculated"
                           />
                         </div>
@@ -660,7 +660,7 @@ export default function LoansPage() {
                               setForm(f => ({ ...f, monthlyPaymentPercent: e.target.value }))
                             }}
                             placeholder="Enter custom percent"
-                            className="h-11 text-base mt-2"
+                            className="h-11 text-base mt-2 border border-slate-300 dark:border-slate-600"
                           />
                         )}
                       </div>

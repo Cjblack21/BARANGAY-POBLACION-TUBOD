@@ -716,7 +716,7 @@ export default function AddPayPage() {
             <div className="grid gap-2 rounded-lg border border-gray-200 dark:border-gray-700 p-4">
               <Label htmlFor="overload-type">Type</Label>
               <Select value={overloadPayType} onValueChange={setOverloadPayType}>
-                <SelectTrigger id="overload-type">
+                <SelectTrigger id="overload-type" className="border border-slate-300 dark:border-slate-600 focus:ring-2 focus:ring-green-500">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
@@ -742,7 +742,7 @@ export default function AddPayPage() {
                 placeholder="0.00"
                 value={overloadAmount}
                 onChange={(e) => setOverloadAmount(e.target.value)}
-                className="focus-visible:ring-green-600"
+                className="border border-slate-300 dark:border-slate-600 focus-visible:ring-green-600"
               />
             </div>
             <div className="grid gap-2 rounded-lg border border-gray-200 dark:border-gray-700 p-4">
@@ -752,12 +752,12 @@ export default function AddPayPage() {
                 placeholder="e.g., Extra hours compensation"
                 value={overloadNotes}
                 onChange={(e) => setOverloadNotes(e.target.value)}
-                className="focus-visible:ring-green-600"
+                className="border border-slate-300 dark:border-slate-600 focus-visible:ring-green-600"
               />
             </div>
             <div className="flex flex-col gap-3 rounded-lg border border-gray-200 dark:border-gray-700 p-4">
               <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">Apply To</p>
-              <div className="flex items-center justify-between gap-2 rounded-md bg-amber-50 dark:bg-amber-950/20 border border-amber-100 dark:border-amber-900 px-3 py-2.5">
+              <div className="flex items-center justify-between gap-2 rounded-md bg-amber-50 dark:bg-amber-950/20 border-2 border-amber-300 dark:border-amber-700 px-3 py-2.5">
                 <Label htmlFor="overload-select-all" className="cursor-pointer flex items-center gap-2 text-sm font-medium">
                   <User className="h-4 w-4 text-amber-500" />
                   Apply to all active staff
@@ -769,7 +769,7 @@ export default function AddPayPage() {
                   className="data-[state=checked]:bg-amber-500"
                 />
               </div>
-              <div className="flex items-center justify-between gap-2 rounded-md bg-blue-50 dark:bg-blue-950/20 border border-blue-100 dark:border-blue-900 px-3 py-2.5">
+              <div className="flex items-center justify-between gap-2 rounded-md bg-blue-50 dark:bg-blue-950/20 border-2 border-blue-300 dark:border-blue-700 px-3 py-2.5">
                 <Label htmlFor="overload-select-all-officials" className="cursor-pointer flex items-center gap-2 text-sm font-medium">
                   <Landmark className="h-4 w-4 text-blue-500" />
                   Apply to all active officials

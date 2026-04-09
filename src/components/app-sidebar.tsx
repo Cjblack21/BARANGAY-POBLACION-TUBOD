@@ -150,9 +150,8 @@ export function AppSidebar({ user, ...props }: AppSidebarProps) {
                     <span className="flex items-center gap-1.5">
                       <span>Payroll (Honorarium)</span>
                         {mounted && hasNotification && (
-                        <span className="flex h-1.5 w-1.5">
-                          <span className="animate-ping absolute inline-flex h-1.5 w-1.5 rounded-full bg-red-500 opacity-75"></span>
-                          <span className="relative inline-flex rounded-full h-1.5 w-1.5 bg-red-600"></span>
+                        <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-bold bg-red-500 text-white animate-pulse tracking-wide">
+                          NEW
                         </span>
                       )}
                     </span>

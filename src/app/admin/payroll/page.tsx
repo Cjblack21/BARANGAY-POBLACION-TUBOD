@@ -3210,35 +3210,7 @@ html, body { margin: 0 !important; padding: 0 !important; overflow: hidden !impo
               </div>
             </CardHeader>
             <CardContent className="p-0">
-              {/* LATEST RELEASED PAYROLL SUMMARY */}
-              {archivedPayrolls.length > 0 && (() => {
-                const latestArchive = [...archivedPayrolls].sort((a, b) => new Date(b.periodEnd).getTime() - new Date(a.periodEnd).getTime())[0];
-                const latestTotal = latestArchive?.payrolls?.reduce((sum: number, p: any) => sum + Number(p.netPay || 0), 0) || 0;
-                
-                return (
-                  <div className="mx-4 mt-4 mb-2">
-                    <div className="bg-card border rounded-xl shadow-sm relative overflow-hidden w-full">
-                      <div className="absolute left-0 top-0 bottom-0 w-1.5 bg-green-500" />
-                      <div className="p-6 flex flex-col md:flex-row md:items-center justify-between gap-4">
-                        <div>
-                          <p className="text-sm font-medium pb-2">
-                            Latest Released Payroll
-                          </p>
-                          <p className="text-sm text-muted-foreground flex items-center">
-                            <span className="mr-1 text-blue-500">↗</span>
-                            {formatDateForDisplay(new Date(latestArchive.periodStart))} - {formatDateForDisplay(new Date(latestArchive.periodEnd))}
-                          </p>
-                        </div>
-                        <div className="text-left md:text-right">
-                          <p className="text-3xl font-bold text-green-600 dark:text-green-400">
-                            {formatCurrency(latestTotal)}
-                          </p>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                )
-              })()}
+
 
               {/* BLGU Filter Tabs */}
               <div className="flex gap-2 px-4 pt-4 pb-3">
@@ -3350,9 +3322,8 @@ html, body { margin: 0 !important; padding: 0 !important; overflow: hidden !impo
                                 </div>
                               </div>
                               {(archivedPayrolls.indexOf(payroll) === 0 && !hasViewedNewestPayroll) && (
-                                <span className="relative flex h-3 w-3 flex-shrink-0">
-                                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-500 opacity-75"></span>
-                                  <span className="relative inline-flex rounded-full h-3 w-3 bg-red-600 shadow-lg"></span>
+                                <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-bold bg-red-500 text-white animate-pulse tracking-wide">
+                                  NEW
                                 </span>
                               )}
                             </div>

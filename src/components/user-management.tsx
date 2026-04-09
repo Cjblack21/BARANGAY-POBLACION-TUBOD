@@ -1170,7 +1170,7 @@ export function UserManagement() {
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead>Staff</TableHead>
+                  <TableHead>Staff & Officials</TableHead>
                   <TableHead>ID Number</TableHead>
                   <TableHead>Email</TableHead>
                   <TableHead>BLGU</TableHead>

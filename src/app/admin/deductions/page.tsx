@@ -422,18 +422,18 @@ export default function DeductionsPage() {
                 <DialogDescription>Create a new mandatory deduction type</DialogDescription>
               </DialogHeader>
               <div className="grid gap-4 py-2">
-                <div className="grid gap-2"><Label>Name</Label><Input value={newTypeName} onChange={e => setNewTypeName(e.target.value)} placeholder="e.g. PhilHealth" /></div>
-                <div className="grid gap-2"><Label>Description</Label><Input value={newTypeDesc} onChange={e => setNewTypeDesc(e.target.value)} placeholder="Optional description" /></div>
+                <div className="grid gap-2"><Label>Name</Label><Input value={newTypeName} onChange={e => setNewTypeName(e.target.value)} placeholder="e.g. PhilHealth" className="border border-slate-300 dark:border-slate-600" /></div>
+                <div className="grid gap-2"><Label>Description</Label><Input value={newTypeDesc} onChange={e => setNewTypeDesc(e.target.value)} placeholder="Optional description" className="border border-slate-300 dark:border-slate-600" /></div>
                 <div className="grid gap-2">
                   <Label>Calculation Type</Label>
                   <Select value={newTypeCalculationType} onValueChange={(v: 'FIXED' | 'PERCENTAGE') => setNewTypeCalculationType(v)}>
-                    <SelectTrigger><SelectValue /></SelectTrigger>
+                    <SelectTrigger className="border border-slate-300 dark:border-slate-600"><SelectValue /></SelectTrigger>
                     <SelectContent><SelectItem value="FIXED">Fixed Amount</SelectItem><SelectItem value="PERCENTAGE">Percentage of Salary</SelectItem></SelectContent>
                   </Select>
                 </div>
                 {newTypeCalculationType === 'FIXED'
-                  ? <div className="grid gap-2"><Label>Amount (₱)</Label><Input type="number" value={newTypeAmount} onChange={e => setNewTypeAmount(e.target.value)} placeholder="0.00" /></div>
-                  : <div className="grid gap-2"><Label>Percentage (%)</Label><Input type="number" value={newTypePercentageValue} onChange={e => setNewTypePercentageValue(e.target.value)} placeholder="e.g. 20" min="0" max="100" step="0.1" /><p className="text-xs text-muted-foreground">Will be calculated as {newTypePercentageValue || '0'}% of each employee's basic salary</p></div>
+                  ? <div className="grid gap-2"><Label>Amount (₱)</Label><Input type="number" value={newTypeAmount} onChange={e => setNewTypeAmount(e.target.value)} placeholder="0.00" className="border border-slate-300 dark:border-slate-600" /></div>
+                  : <div className="grid gap-2"><Label>Percentage (%)</Label><Input type="number" value={newTypePercentageValue} onChange={e => setNewTypePercentageValue(e.target.value)} placeholder="e.g. 20" min="0" max="100" step="0.1" className="border border-slate-300 dark:border-slate-600" /><p className="text-xs text-muted-foreground">Will be calculated as {newTypePercentageValue || '0'}% of each employee's basic salary</p></div>
                 }
               </div>
               <DialogFooter>
@@ -666,18 +666,18 @@ export default function DeductionsPage() {
         <DialogContent className="max-h-[85vh] overflow-y-auto">
           <DialogHeader><DialogTitle>Edit Deduction Type</DialogTitle><DialogDescription>Update name, description and calculation.</DialogDescription></DialogHeader>
           <div className="grid gap-3 py-2">
-            <div className="grid gap-2"><Label>Name</Label><Input value={editTypeName} onChange={e => setEditTypeName(e.target.value)} /></div>
-            <div className="grid gap-2"><Label>Description</Label><Input value={editTypeDesc} onChange={e => setEditTypeDesc(e.target.value)} /></div>
+            <div className="grid gap-2"><Label>Name</Label><Input value={editTypeName} onChange={e => setEditTypeName(e.target.value)} className="border border-slate-300 dark:border-slate-600" /></div>
+            <div className="grid gap-2"><Label>Description</Label><Input value={editTypeDesc} onChange={e => setEditTypeDesc(e.target.value)} className="border border-slate-300 dark:border-slate-600" /></div>
             <div className="grid gap-2">
               <Label>Calculation Type</Label>
               <Select value={editCalculationType} onValueChange={(v: 'FIXED' | 'PERCENTAGE') => setEditCalculationType(v)}>
-                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectTrigger className="border border-slate-300 dark:border-slate-600"><SelectValue /></SelectTrigger>
                 <SelectContent><SelectItem value="FIXED">Fixed Amount</SelectItem><SelectItem value="PERCENTAGE">Percentage of Salary</SelectItem></SelectContent>
               </Select>
             </div>
             {editCalculationType === 'FIXED'
-              ? <div className="grid gap-2"><Label>Amount (₱)</Label><Input type="number" value={editTypeAmount} onChange={e => setEditTypeAmount(e.target.value)} /></div>
-              : <div className="grid gap-2"><Label>Percentage (%)</Label><Input type="number" value={editPercentageValue} onChange={e => setEditPercentageValue(e.target.value)} min="0" max="100" step="0.1" /><p className="text-xs text-muted-foreground">{editPercentageValue || '0'}% of each employee's basic salary</p></div>
+              ? <div className="grid gap-2"><Label>Amount (₱)</Label><Input type="number" value={editTypeAmount} onChange={e => setEditTypeAmount(e.target.value)} className="border border-slate-300 dark:border-slate-600" /></div>
+              : <div className="grid gap-2"><Label>Percentage (%)</Label><Input type="number" value={editPercentageValue} onChange={e => setEditPercentageValue(e.target.value)} min="0" max="100" step="0.1" className="border border-slate-300 dark:border-slate-600" /><p className="text-xs text-muted-foreground">{editPercentageValue || '0'}% of each employee's basic salary</p></div>
             }
           </div>
           <DialogFooter><Button variant="outline" onClick={() => setEditOpen(false)}>Cancel</Button><Button onClick={updateType}>Save Changes</Button></DialogFooter>
@@ -746,7 +746,7 @@ export default function DeductionsPage() {
               </div>
               {!syncSelectAllPersonnel && (
                 <>
-                  <Input placeholder="Search staff..." value={syncPersonnelSearch} onChange={e => setSyncPersonnelSearch(e.target.value)} />
+                  <Input placeholder="Search staff..." value={syncPersonnelSearch} onChange={e => setSyncPersonnelSearch(e.target.value)} className="border border-slate-300 dark:border-slate-600" />
                   <div className="border rounded-lg max-h-[280px] overflow-y-auto">
                     <Command className="border-0">
                       <CommandList>

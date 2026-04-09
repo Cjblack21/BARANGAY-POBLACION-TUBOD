@@ -347,8 +347,8 @@ export default function PersonalDeductionsPage() {
                             <DeductionIcon className="h-6 w-6 text-red-600" />
                         </div>
                         <div>
-                            <h2 className="text-2xl md:text-3xl font-bold tracking-tight">Custom Staff Deduction</h2>
-                            <p className="text-sm text-muted-foreground">Manage individual custom staff deductions (non-mandatory)</p>
+                            <h2 className="text-2xl md:text-3xl font-bold tracking-tight">Custom Staff & Officials Deduction</h2>
+                            <p className="text-sm text-muted-foreground">Manage individual custom deductions for staff and officials (non-mandatory)</p>
                         </div>
                     </div>
                 </div>
@@ -361,7 +361,7 @@ export default function PersonalDeductionsPage() {
                     <DialogContent className="w-full sm:max-w-6xl max-h-[90vh] overflow-y-auto" style={{ width: "95vw", maxWidth: "1200px" }}>
                         <DialogHeader>
                             <DialogTitle className="flex items-center gap-2 text-2xl">
-                                <PlusCircle className="h-6 w-6 text-red-600" />Add Staff Deduction
+                                <PlusCircle className="h-6 w-6 text-red-600" />Add Staff / Officials Deduction
                             </DialogTitle>
                         </DialogHeader>
                         <div className="mt-4 grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -373,11 +373,11 @@ export default function PersonalDeductionsPage() {
                                     </h3>
                                     <div className="space-y-2">
                                         <label className="text-base flex items-center gap-2 font-medium">
-                                            <User className="h-4 w-4" />Select Staff
+                                            <User className="h-4 w-4" />Select Staff / Officials
                                         </label>
                                         <div className="relative">
                                             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                                            <Input placeholder="Search staff..." value={userSearch} onChange={e => setUserSearch(e.target.value)} className="pl-10" />
+                                            <Input placeholder="Search staff or officials..." value={userSearch} onChange={e => setUserSearch(e.target.value)} className="pl-10 border border-slate-300 dark:border-slate-600" />
                                         </div>
                                         <div className="border rounded-md max-h-[160px] overflow-y-auto">
                                             {users.filter(u => {
@@ -409,13 +409,13 @@ export default function PersonalDeductionsPage() {
                                         <label className="text-base flex items-center gap-2 font-medium">
                                             <FileText className="h-4 w-4" />Purpose
                                         </label>
-                                        <Input value={form.purpose} onChange={e => setForm(f => ({ ...f, purpose: e.target.value }))} placeholder="e.g. Uniform, Lost Equipment" className="h-11 text-base" />
+                                        <Input value={form.purpose} onChange={e => setForm(f => ({ ...f, purpose: e.target.value }))} placeholder="e.g. Uniform, Lost Equipment" className="h-11 text-base border border-slate-300 dark:border-slate-600" />
                                     </div>
                                     <div className="space-y-2">
                                         <label className="text-base flex items-center gap-2 font-medium">
                                             <span className="font-bold">₱</span>Deduction Amount
                                         </label>
-                                        <Input type="number" min="1" step="0.01" value={form.amount} onChange={e => setForm(f => ({ ...f, amount: e.target.value }))} placeholder="0.00" className="h-11 text-base" />
+                                        <Input type="number" min="1" step="0.01" value={form.amount} onChange={e => setForm(f => ({ ...f, amount: e.target.value }))} placeholder="0.00" className="h-11 text-base border border-slate-300 dark:border-slate-600" />
                                     </div>
                                 </div>
                                 <Separator />
@@ -437,17 +437,17 @@ export default function PersonalDeductionsPage() {
                                                 className={isCustomTerm ? "bg-red-600 hover:bg-red-700" : ""}>Custom</Button>
                                         </div>
                                         {isCustomTerm && (
-                                            <Input type="number" min="1" value={customTerm} onChange={e => { setCustomTerm(e.target.value); setForm(f => ({ ...f, termMonths: e.target.value })) }} placeholder="Enter custom months" className="h-11 text-base" />
+                                            <Input type="number" min="1" value={customTerm} onChange={e => { setCustomTerm(e.target.value); setForm(f => ({ ...f, termMonths: e.target.value })) }} placeholder="Enter custom months" className="h-11 text-base border border-slate-300 dark:border-slate-600" />
                                         )}
                                     </div>
                                     <div className="space-y-2">
                                         <label className="text-base font-medium">Monthly Payment Percentage</label>
-                                        <Input value={form.monthlyPaymentPercent ? `${form.monthlyPaymentPercent}% (Auto-calculated)` : ""} readOnly={!isCustomPercent} className={`h-11 text-base ${!isCustomPercent ? "bg-muted cursor-not-allowed" : ""}`} placeholder="Auto-calculated" />
+                                        <Input value={form.monthlyPaymentPercent ? `${form.monthlyPaymentPercent}% (Auto-calculated)` : ""} readOnly={!isCustomPercent} className={`h-11 text-base border border-slate-300 dark:border-slate-600 ${!isCustomPercent ? "bg-muted cursor-not-allowed" : ""}`} placeholder="Auto-calculated" />
                                         <Button type="button" variant="ghost" size="sm" onClick={() => setIsCustomPercent(!isCustomPercent)} className="text-xs text-red-600 hover:text-red-700 p-0 h-auto font-normal">
                                             {isCustomPercent ? "Switch to Auto-calculation" : "Switch to Custom Percentage"}
                                         </Button>
                                         {isCustomPercent && (
-                                            <Input type="number" value={customPercent} onChange={e => { setCustomPercent(e.target.value); setForm(f => ({ ...f, monthlyPaymentPercent: e.target.value })) }} placeholder="Enter custom percent" className="h-11 text-base mt-2" />
+                                            <Input type="number" value={customPercent} onChange={e => { setCustomPercent(e.target.value); setForm(f => ({ ...f, monthlyPaymentPercent: e.target.value })) }} placeholder="Enter custom percent" className="h-11 text-base mt-2 border border-slate-300 dark:border-slate-600" />
                                         )}
                                     </div>
                                 </div>
@@ -763,20 +763,20 @@ export default function PersonalDeductionsPage() {
                     <div className="space-y-4">
                         <div className="space-y-2">
                             <label className="text-sm font-medium">Purpose</label>
-                            <Input value={editForm.purpose.replace("[DEDUCTION] ", "")} onChange={e => setEditForm(f => ({ ...f, purpose: `[DEDUCTION] ${e.target.value}` }))} placeholder="Purpose" />
+                            <Input value={editForm.purpose.replace("[DEDUCTION] ", "")} onChange={e => setEditForm(f => ({ ...f, purpose: `[DEDUCTION] ${e.target.value}` }))} placeholder="Purpose" className="border border-slate-300 dark:border-slate-600" />
                         </div>
                         <div className="space-y-2">
                             <label className="text-sm font-medium">Monthly Payment %</label>
-                            <Input type="number" value={editForm.monthlyPaymentPercent} onChange={e => setEditForm(f => ({ ...f, monthlyPaymentPercent: Number(e.target.value) }))} />
+                            <Input type="number" value={editForm.monthlyPaymentPercent} onChange={e => setEditForm(f => ({ ...f, monthlyPaymentPercent: Number(e.target.value) }))} className="border border-slate-300 dark:border-slate-600" />
                         </div>
                         <div className="space-y-2">
                             <label className="text-sm font-medium">Term (Months)</label>
-                            <Input type="number" value={editForm.termMonths} onChange={e => setEditForm(f => ({ ...f, termMonths: Number(e.target.value) }))} />
+                            <Input type="number" value={editForm.termMonths} onChange={e => setEditForm(f => ({ ...f, termMonths: Number(e.target.value) }))} className="border border-slate-300 dark:border-slate-600" />
                         </div>
                         <div className="space-y-2">
                             <label className="text-sm font-medium">Status</label>
                             <Select value={editForm.status} onValueChange={v => setEditForm(f => ({ ...f, status: v }))}>
-                                <SelectTrigger><SelectValue /></SelectTrigger>
+                                <SelectTrigger className="border border-slate-300 dark:border-slate-600"><SelectValue /></SelectTrigger>
                                 <SelectContent>
                                     <SelectItem value="ACTIVE">Active</SelectItem>
                                     <SelectItem value="COMPLETED">Completed</SelectItem>

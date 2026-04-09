@@ -9,7 +9,7 @@ import { Label } from '@/components/ui/label'
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 import { Badge } from '@/components/ui/badge'
-import { ClipboardMinus, Plus, Trash2, Save, Search, AlertCircle, Archive, Users, Eye, Calendar } from 'lucide-react'
+import { ClipboardMinus, Plus, Trash2, Save, Search, AlertCircle, Archive, Users, Eye, Calendar, Landmark, User } from 'lucide-react'
 import { toast } from 'react-hot-toast'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 
@@ -42,6 +42,7 @@ export default function AttendanceDeductionPage() {
   const [deductions, setDeductions] = useState<AttendanceDeduction[]>([])
   const [loading, setLoading] = useState(true)
   const [searchTerm, setSearchTerm] = useState('')
+  const [blguFilter, setBlguFilter] = useState<'all' | 'officials' | 'staff'>('all')
   const [showAddModal, setShowAddModal] = useState(false)
   const [selectedPersonnel, setSelectedPersonnel] = useState<Personnel | null>(null)
   const [showReminderBanner, setShowReminderBanner] = useState(false)
@@ -230,10 +231,15 @@ export default function AttendanceDeductionPage() {
     }
   }
 
-  const filteredPersonnel = personnel.filter(p =>
-    p.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    p.email.toLowerCase().includes(searchTerm.toLowerCase())
-  )
+  const filteredPersonnel = personnel.filter(p => {
+    const matchesSearch = p.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      p.email.toLowerCase().includes(searchTerm.toLowerCase())
+    const isOfficial = p.department === 'Barangay Officials'
+    const matchesFilter = blguFilter === 'all' ||
+      (blguFilter === 'officials' && isOfficial) ||
+      (blguFilter === 'staff' && !isOfficial)
+    return matchesSearch && matchesFilter
+  })
 
   const totalMinutes = (Number(lateHours) * 60) + Number(lateMinutes) + (Number(absentDays) * 480)
   const totalAmount = totalMinutes * deductionRate
@@ -249,7 +255,7 @@ export default function AttendanceDeductionPage() {
             Attendance Deduction
           </h1>
           <p className="text-muted-foreground mt-1">
-            Manage attendance-based deductions for staff
+            Manage attendance-based deductions for staff &amp; officials
           </p>
         </div>
         <Button
@@ -328,16 +334,16 @@ export default function AttendanceDeductionPage() {
             <div>
               <CardTitle className="flex items-center gap-2">
                 <Users className="h-5 w-5" />
-                Staff Overview
+                Staff &amp; Officials Overview
               </CardTitle>
-              <CardDescription>Summary of staff with attendance deductions</CardDescription>
+              <CardDescription>Summary of staff &amp; officials with attendance deductions</CardDescription>
             </div>
             <div className="flex flex-col gap-2 w-full sm:w-72 mt-2 sm:mt-0">
               <Label className="text-sm font-medium text-muted-foreground ml-1">Search</Label>
               <div className="relative">
                 <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                 <Input
-                  placeholder="Search staff..."
+                  placeholder="Search staff & officials..."
                   value={deductionSearch}
                   onChange={(e) => setDeductionSearch(e.target.value)}
                   className="pl-9 h-10 border-slate-300 dark:border-slate-700 focus-visible:ring-1 focus-visible:ring-slate-400 focus-visible:ring-offset-0"
@@ -347,16 +353,46 @@ export default function AttendanceDeductionPage() {
           </div>
         </CardHeader>
         <CardContent>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
-            {/* Total Personnel with Deductions */}
-            <Card className="cursor-default hover:shadow-lg transition-all duration-300 border-l-4 border-l-blue-500">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+            {/* Officials with Deductions */}
+            <Card className="cursor-default hover:shadow-lg transition-all duration-300 border-l-4 border-l-blue-600">
               <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium">Staff with Deductions</CardTitle>
-                <Users className="h-4 w-4 text-blue-600" />
+                <CardTitle className="text-sm font-medium">Officials with Deductions</CardTitle>
+                <Landmark className="h-4 w-4 text-blue-600" />
               </CardHeader>
               <CardContent>
-                <div className="text-2xl font-bold">{new Set(deductions.map(d => d.users_id)).size}</div>
-                <p className="text-xs text-muted-foreground mt-1">Active staff members</p>
+                <div className="text-2xl font-bold">
+                  {new Set(
+                    deductions
+                      .filter(d => {
+                        const person = personnel.find(p => p.users_id === d.users_id)
+                        return person?.department === 'Barangay Officials'
+                      })
+                      .map(d => d.users_id)
+                  ).size}
+                </div>
+                <p className="text-xs text-muted-foreground mt-1">Barangay Officials</p>
+              </CardContent>
+            </Card>
+
+            {/* Staff with Deductions */}
+            <Card className="cursor-default hover:shadow-lg transition-all duration-300 border-l-4 border-l-amber-500">
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                <CardTitle className="text-sm font-medium">Staff with Deductions</CardTitle>
+                <User className="h-4 w-4 text-amber-600" />
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold">
+                  {new Set(
+                    deductions
+                      .filter(d => {
+                        const person = personnel.find(p => p.users_id === d.users_id)
+                        return person?.department !== 'Barangay Officials'
+                      })
+                      .map(d => d.users_id)
+                  ).size}
+                </div>
+                <p className="text-xs text-muted-foreground mt-1">Barangay Staff</p>
               </CardContent>
             </Card>
 
@@ -391,7 +427,7 @@ export default function AttendanceDeductionPage() {
               <Table>
                 <TableHeader>
                   <TableRow className="bg-muted/50">
-                    <TableHead>Staff</TableHead>
+                    <TableHead>Staff / Official</TableHead>
                     <TableHead>Type</TableHead>
                     <TableHead>Incident Date</TableHead>
                     <TableHead>Notes</TableHead>
@@ -408,7 +444,15 @@ export default function AttendanceDeductionPage() {
                     .map((deduction) => (
                       <TableRow key={deduction.deductions_id}>
                         <TableCell className="font-medium">
-                          {deduction.staffName || <span className="text-muted-foreground italic">Unknown</span>}
+                          <div className="flex items-center gap-2">
+                            {(() => {
+                              const person = personnel.find(p => p.users_id === deduction.users_id)
+                              return person?.department === 'Barangay Officials'
+                                ? <Landmark className="h-3.5 w-3.5 text-blue-600 flex-shrink-0" />
+                                : <User className="h-3.5 w-3.5 text-amber-600 flex-shrink-0" />
+                            })()}
+                            {deduction.staffName || <span className="text-muted-foreground italic">Unknown</span>}
+                          </div>
                         </TableCell>
                         <TableCell>
                           <Badge variant="destructive">{deduction.deductionType}</Badge>
@@ -460,22 +504,58 @@ export default function AttendanceDeductionPage() {
       {/* Personnel List */}
       <Card>
         <CardHeader>
-          <div className="flex items-center justify-between">
-            <div>
-              <CardTitle>Staff List</CardTitle>
-              <CardDescription>Select staff to add attendance deductions</CardDescription>
-            </div>
-            <div className="flex flex-col gap-2 w-full sm:w-80 mt-2 sm:mt-0">
-              <Label className="text-sm font-medium text-muted-foreground ml-1">Search</Label>
-              <div className="relative">
-                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                <Input
-                  placeholder="Search staff..."
-                  value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
-                  className="pl-9 h-10 border-slate-300 dark:border-slate-700 focus-visible:ring-1 focus-visible:ring-slate-400 focus-visible:ring-offset-0"
-                />
+          <div className="flex flex-col gap-4">
+            <div className="flex items-center justify-between flex-wrap gap-4">
+              <div>
+                <CardTitle>Staff &amp; Officials List</CardTitle>
+                <CardDescription>Select a staff member or official to add attendance deductions</CardDescription>
               </div>
+              {/* BLGU Filter Buttons */}
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={() => setBlguFilter('all')}
+                  className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium border transition-all ${
+                    blguFilter === 'all'
+                      ? 'bg-foreground text-background border-foreground'
+                      : 'bg-muted text-muted-foreground border-border hover:border-foreground/30'
+                  }`}
+                >
+                  <Users className="h-3.5 w-3.5" />
+                  All
+                </button>
+                <button
+                  onClick={() => setBlguFilter('officials')}
+                  className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium border transition-all ${
+                    blguFilter === 'officials'
+                      ? 'bg-blue-600 text-white border-blue-600'
+                      : 'bg-muted text-muted-foreground border-border hover:border-blue-400 hover:text-blue-600'
+                  }`}
+                >
+                  <Landmark className="h-3.5 w-3.5" />
+                  Officials
+                </button>
+                <button
+                  onClick={() => setBlguFilter('staff')}
+                  className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium border transition-all ${
+                    blguFilter === 'staff'
+                      ? 'bg-amber-500 text-white border-amber-500'
+                      : 'bg-muted text-muted-foreground border-border hover:border-amber-400 hover:text-amber-600'
+                  }`}
+                >
+                  <User className="h-3.5 w-3.5" />
+                  Staff
+                </button>
+              </div>
+            </div>
+            {/* Search Bar */}
+            <div className="relative w-full sm:w-80">
+              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+              <Input
+                placeholder="Search staff or officials..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                className="pl-9 h-10 border-slate-300 dark:border-slate-700 focus-visible:ring-1 focus-visible:ring-slate-400 focus-visible:ring-offset-0"
+              />
             </div>
           </div>
         </CardHeader>
@@ -483,7 +563,7 @@ export default function AttendanceDeductionPage() {
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead>Staff</TableHead>
+                <TableHead>Staff / Official</TableHead>
                 <TableHead>ID Number</TableHead>
                 <TableHead>Email</TableHead>
                 <TableHead>BLGU</TableHead>
@@ -495,13 +575,13 @@ export default function AttendanceDeductionPage() {
               {loading ? (
                 <TableRow>
                   <TableCell colSpan={6} className="text-center py-8 text-muted-foreground">
-                    Loading staff...
+                    Loading staff &amp; officials...
                   </TableCell>
                 </TableRow>
               ) : filteredPersonnel.length === 0 ? (
                 <TableRow>
                   <TableCell colSpan={6} className="text-center py-8 text-muted-foreground">
-                    No staff found
+                    No staff or officials found
                   </TableCell>
                 </TableRow>
               ) : (
@@ -516,18 +596,43 @@ export default function AttendanceDeductionPage() {
                     <TableRow key={person.users_id}>
                       <TableCell>
                         <div className="flex items-center gap-3">
-                          <Avatar className="h-10 w-10">
-                            <AvatarImage src={person.avatar || ''} />
-                            <AvatarFallback className="text-sm font-medium">
-                              {person.name.split(' ').map(n => n.charAt(0)).join('').toUpperCase().slice(0, 2)}
-                            </AvatarFallback>
-                          </Avatar>
-                          <span className="font-medium">{person.name}</span>
+                          <div className="relative">
+                            <Avatar className="h-10 w-10">
+                              <AvatarImage src={person.avatar || ''} />
+                              <AvatarFallback className="text-sm font-medium">
+                                {person.name.split(' ').map(n => n.charAt(0)).join('').toUpperCase().slice(0, 2)}
+                              </AvatarFallback>
+                            </Avatar>
+                            {/* Official ring indicator */}
+                            {person.department === 'Barangay Officials' && (
+                              <span className="absolute -bottom-0.5 -right-0.5 bg-blue-600 rounded-full p-0.5">
+                                <Landmark className="h-2.5 w-2.5 text-white" />
+                              </span>
+                            )}
+                          </div>
+                          <div>
+                            <div className="font-medium flex items-center gap-1.5">
+                              {person.name}
+                              {person.department === 'Barangay Officials' && (
+                                <span className="inline-flex items-center gap-0.5 text-[10px] font-semibold text-blue-700 bg-blue-100 dark:bg-blue-900/40 dark:text-blue-300 px-1.5 py-0.5 rounded-full border border-blue-200 dark:border-blue-800">
+                                  <Landmark className="h-2.5 w-2.5" />
+                                  Official
+                                </span>
+                              )}
+                            </div>
+                          </div>
                         </div>
                       </TableCell>
                       <TableCell><span className="inline-block bg-muted text-muted-foreground font-mono px-2 py-0.5 rounded" style={{ fontSize: '11px' }}>{person.idNumber || person.users_id}</span></TableCell>
                       <TableCell className="text-muted-foreground">{person.email}</TableCell>
-                      <TableCell>{blgu}</TableCell>
+                      <TableCell>
+                        <div className="flex items-center gap-1.5">
+                          {person.department === 'Barangay Officials'
+                            ? <Landmark className="h-3.5 w-3.5 text-blue-600" />
+                            : <User className="h-3.5 w-3.5 text-amber-600" />}
+                          {blgu}
+                        </div>
+                      </TableCell>
                       <TableCell>{position}</TableCell>
                       <TableCell className="text-right">
                         <Button
